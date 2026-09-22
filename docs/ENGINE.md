@@ -16,3 +16,14 @@
 - Level: DS:2BB8 (see LEVEL.md). Input: control_x/y/shift DS:5CD4/5/6 from key_states DS:1D0D.
 - Resources: get_resource(id, 4CC tag) 194C:6F4C, lock_resource 194C:15B2; level files read directly.
 - RTLink overlays: 15 code overlays (OVL01 = gameplay: kid control, room entry; OVL00 = intro/menus).
+
+## Kid control (OVL01, 2FDF:048C = control)
+play_kid_frame (169B:0692): Char = Kid; play_kid_control (0AFF:10E8) -> control_kid (0AFF:11F8):
+load_ctrl1_saved, read_input (0823:10A0 -> read_keyb_control), update_ctrl1_edges (0AFF:13B8:
+ctrl1_* at DS:6122..6126 become -1 on a new press, 0 on release, 1 once consumed), control_dispatch
+(0AFF:12CA: flip x to forward/backward for a left-facing character, flip y when upside_down, call
+control(), flip back), save_ctrl1. control() is PoP1's frame-range dispatch: 15 or 50..52 standing,
+45..49 turning, 1..3 start_run, 67..69 jumpup, <15 running, 87..99 hanging, 109 crouched,
+0xF6..0x107 with-sword, 0xD9..0xE2, dead frames, ... Sequences start through seqtbl_offset_char
+(2FDF:000E, also sets Char+0x19 = seq id). After control: play_seq, fall_accel, fall_speed,
+load_frame_to_obj, and the OVL01 3212 checks (collisions/press), then Kid = Char.

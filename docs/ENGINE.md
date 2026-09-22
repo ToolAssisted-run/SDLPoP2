@@ -105,3 +105,35 @@ Dead kid: the death counter Char+0x11 goes 0..7 one per tick but waits while the
   else land (02FFE0): fall_y < 0x16 -> seq 0x11 (0x3F/0xBB with the sword, drawn), < 0x21 -> hp -1 and seq
   0x14, else death (seq 0x16, sound 0, 0301D2 nudges away from the edge); tiles 0x17/0x18 go to OVL02 34724.
 - take_hp (0AFF:095C): schedules -n in Char+0x14 (never past -hp); returns 1 when the character dies.
+
+## The tick body (169B:05E0)
+1375:1A52 falling loose floors (13-byte entries DS:527E, count DS:6186) -> 1375:0006 animated tiles (4-byte entries
+DS:6676, count DS:6670; 1375:1414 adds one) -> level-kind hooks -> 2D3E:0A4A guard spawns -> 169B:0FF0 guards'
+line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword hits, 2D3E:19C2 hurt characters
+(action 99) -> 1611:0164, 169B:0DB4, 169B:11E2 -> 0823:1008 hp deltas -> 2D3E:108A prince left the room?
+-> 0823:0E72 switch the drawn room.
+
+## Rooms and their characters (room.c)
+- Each room has a character count and five 23-byte records at level+0x1867 + (room-1)*0x74 (DS:43AB + room*0x74):
+  +0 tile position (row*10+col at load; 30 = outside; runtime saves write row*10), +1 x, +3 direction, +4 skill,
+  +5 sequence, +7 sequence position (nonzero = resume), +9 palette, +A slot index, +B sword drawn, +C hp,
+  +D -> Char+0x38, +E -> Char+0x39, +F type (charid = DS:0096[type]), +10 max hp, +11 y / state, +15 home row.
+- Only the drawn room's characters are live in chars[]. 2D3E:108A detects the prince leaving (2D3E:14DE, edges
+  at char_x_left_coll < 0x7E / > 0x1C1, y < -16 / >= 0xE7), moves him with 2D3E:1454 and handles the old room's
+  characters (2D3E:1152): each either follows him (engaged guards near the exit edge, anyone already standing in
+  his new room) or is written back to its record (2D3E:04CC; a character outside the grid is re-homed through
+  2D3E:133A, which walks the room links). 0823:0E72 then sets the neighbours (0FB3:0026), pulls records within
+  0xD0 of the shared edge out of the side rooms (2D3E:03DA) and rebuilds chars[] (2D3E:0064).
+- chars[-1] is Kid in the data segment; code that indexes chars with -1 reads the prince.
+
+## Guards (guard.c)
+- 2D3E:1864 clears the controls and dispatches by charid: 2 (level-1 guards) -> 2D3E:192C, which picks OVL10
+  366C:03E2 (sword sheathed), 043C (frames 0xBA..0xD4: turning/noticing) or 0774 (sword drawn). The routines
+  "press" controls through 366C:0002..0042 (forward, backward, up, down, down+back, down+forward, shift), then
+  the shared control() state machine runs, exactly like PoP1's autocontrol.
+- Sword fighting uses PoP1's per-skill probability tables (DS:1BB6 strike, 1BCE restrike, 1BE6 block, 1BFE
+  block after a hit, 1C16 advance; skill = room record +4) against 2751:008C, PoP1's generator
+  (seed DS:2B7A, seed = seed*0x343FD + 0x269EC3, (seed >> 16) % (n+1)).
+- Sword reach: 2D3E:21C6 returns near/far distances by charid and relative facing.
+- Guard frames come from the guard DAT's FRAM table (GUARD.DAT 750 on level 1, frames from 149); guard sprites
+  are GUARD.DAT SHAP 751 + image, or 851 + image at or above the type's threshold (DS:06BC[type], 31 for type 0).

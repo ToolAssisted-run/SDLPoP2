@@ -30,3 +30,13 @@ runtime state that the game rewrites when characters change rooms; the harness u
 guard scan (031BC4) after a teleport can count differently (capture E tick 182). Reconstructing the room-change
 bookkeeping (OVL01 02D444 / 02DC8C) will close it. Status: 1451 ticks over five captures (window jump, running, turning, standing jumps, ledge grabs,
 crouching, sword fight, falls, deaths, teleports into rooms 1, 10, 16) identical.
+
+## Snapshot tests (tests/snaptest.c)
+Captures probe the whole data segment DS:2B00..6C00 (16640 bytes; the tracer allows samples up to 64 KiB) at the
+phases of the tick body: ds_tick 169B:05E0, ds_prechars 0616, ds_postchars 0619, ds_preleave 0642, ds_postroom 064F
+(pop2dec/oracle/gen_ticks.py NAME --snap). tests/snap.c maps DS offsets onto the reconstructed globals.
+
+    python3 tests/snaps_from_events.py tickD-snap.txt ds_prechars ds_postchars chars.bin
+    GUARD_DAT=.../GUARD.DAT KID_DAT=... PRINCE_DAT=... snaptest chars SEQUENCE.DAT ram1436.bin PRINCE.EXE chars.bin
+
+Status (8 captures, level 1): play_all_chars 1641/1641 ticks, room transitions 1841/1841 (11 room changes).

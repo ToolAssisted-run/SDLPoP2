@@ -186,3 +186,76 @@ int seq_peek_frame_decreases(void)
 	Char.seq_id = id; Char.seq_pos = pos; Char.f19 = f19;
 	return Char.frame <= frame;
 }
+
+/* 2FDF:08A0 (030630): crouched (frame 109) */
+void control_crouched(void)
+{
+	int id;
+	if (level_kind == 4) ovl_35a88();
+	if (level_number == 5 && Char.room == 3 && Char.f19 != 0x11 && Char.f19 != 0x14) {
+		if (get_tile_at_char() == 0x12 || get_tile(Char.curr_row, Char.curr_col - 1, Char.room) == 0x12) { ovl_384e8(); return; }
+	}
+	if (Char.f19 == 0x6F || control_sword_check_030e3c()) { ctrl1_shift = control_rest(); return; }
+	id = -1;
+	if (ctrl1_down == 0) {
+		if (!ovl_32a0e()) {
+			if (word_6d46 != 0 && ovl_34350()) goto forward;
+			id = 0x31;                            /* seq 49: stand up from crouch */
+		} else {
+		forward:
+			if (ctrl1_forward >= 0) goto done;
+		}
+	} else {
+		if (ctrl1_forward >= 0) goto done;
+		ctrl1_forward = control_rest();
+		uint8_t t = get_tile_n_ahead(1);
+		if ((t == 7 || t == 12 || t == 13) && (t != 7 || (curr_modifier & 3) != 3)) {
+			int8_t c = tile_col_in_drawn_room(); int16_t d;
+			if (Char.direction == 0) { d = col_x_left[c] - Char.x; d = (d != -6 && -d > 5) ? d + 6 : 0; }
+			else if (Char.direction == -1) { d = Char.x - col_x_right[c]; d = d < 0x16 ? d - 0x16 : 0; }
+			else d = 0;
+			if (d) Char.x = char_dx_forward(d);
+			id = 0x7D;
+			goto done;
+		}
+		id = 0x4F;                                /* seq 79: crouch hop */
+	}
+done:
+	if (ctrl1_down != 0) ctrl1_down = control_rest();
+	if (id != -1) seqtbl_offset_char(id);
+}
+
+/* 2FDF:14EA (03127a): hanging (frames 87..99) */
+void control_hanging(void)
+{
+	if (Char.alive < 0) {
+		if (word_8a84 == 0 && ctrl1_up != 0) { control_hanging_climb(); return; }
+		if (ctrl1_shift == 0 || Char.f24 == 0xB) { Char.f24 = 0; control_frame81_0313c6(); return; }
+		uint8_t t = get_tile_at_char();
+		if (Char.action != 6 && tile_is_wall_kind(t)) { seqtbl_offset_char(0x19); return; }
+		if ((Char.direction == -1 && t == 4) || (level_kind == 5 && Char.room == 15)) { seqtbl_offset_char(0x19); return; }
+		if (!tile_is_empty_kind(get_tile_above_char())) return;
+		if (level_kind == 5 && ovl_34ab2()) return;
+	}
+	control_frame81_0313c6();
+}
+
+/* 2FDF:15D6 (0313c6): release the ledge: pick the landing/fall sequence from the tiles around */
+void control_frame81_0313c6(void)
+{
+	ctrl1_down = control_rest();
+	uint8_t front = get_tile_infrontof_char(), here = get_tile_at_char(); int id, dx = 0;
+	if (tile_is_empty_kind(front) && tile_is_empty_kind(here)) { id = seq_peek_frame_decreases() ? 99 : 0x17; seqtbl_offset_char(id); return; }
+	int here_solid = tile_is_solid_floor(here), front_solid = tile_is_solid_floor(front);
+	if (!here_solid && !front_solid) {
+		if (tile_is_floor(front) && tile_is_wall_kind(here)) front_solid = 1;
+		else if (tile_is_floor(here) && tile_is_wall_kind(front)) here_solid = 1;
+	}
+	if (!tile_is_wall_kind(here)) {
+		if (!here_solid && front_solid) { dx = -8; id = 0xB; }
+		else if (here_solid && !front_solid) { dx = 6; id = 0xB; }
+		else id = (here_solid && front_solid) ? 0xB : 0x17;
+	} else { dx = -14; id = front_solid ? 0xB : 0x17; }
+	if (dx) Char.x = char_dx_forward(dx);
+	seqtbl_offset_char(id);
+}

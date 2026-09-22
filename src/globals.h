@@ -56,3 +56,4 @@ int shadow_seq_2f86a(void); int sword_seq_0317c4(void); void ovl_2f86_0a5c(void)
 void ovl_383fa(void); void ovl_35f5a(void);
 extern uint8_t byte_5cc5; extern const int16_t *col_x_left, *col_x_right;   /* DS:5CC5; column x tables DS:0D06 / 0D08 */
 void ovl_35a88(void); int ovl_34350(void); int ovl_35240(int a); int ovl_34ab2(void); void control_hanging_climb(void); int seq_peek_frame_decreases(void);
+extern uint16_t word_6d46, word_8a84; int control_sword_check_030e3c(void); void ovl_384e8(void); int ovl_32a0e(void); int8_t tile_col_in_drawn_room(void);

@@ -9,11 +9,15 @@ ARE the in-memory level struct:
 |---|---|---|
 | 2B9A | -0x1E | tiles[room 0] (dummy room, zeros, not in the file) |
 | 2BB8 | 0x0000 | tiles[room][30]: one byte per tile, 10 cols x 3 rows, rooms 1..; PoP1 tile ids (0 empty, 1 floor, 20 wall) |
-| 2F00 | 0x0348 | tile_attrs[room][30]: one dword per tile (bits 0xC000 tested by 0CD6:027A; low bits = modifier) |
-| 43AB | 0x17F3 | room records, 0x74 bytes each, indexed by room: +0 = number of characters starting in the room |
-| 43FF | 0x1847 | level number byte (compared against 5, 6 in play_seq specials) |
-| 441E | 0x1866 | ? (42 references) |
-| 5AB2 | 0x2EFA | ? (last dword, 69 references) |
+| 2F00 | 0x0348 | tile_attrs[room][30]: one dword per tile, room 0 included (room r at 0x348 + r*0x78); bits 0xC000 tested by 0CD6:027A |
+| 3C98 | 0x10E0 | 1811 bytes, all zero in level 1 (door links?) |
+| 43AB | 0x17F3 | level header (0x74 bytes, occupies the "room 0" slot): +4D room count (19 in level 1), +54 level number, +6D start room, +6E start tile (col + 10*row), +6F start direction (-1 = the prince faces right after ~), +73 level type/flag |
+| 441F | 0x1867 | room records for rooms 1..: 0x74 = 1 + 5*23 bytes: +0 number of characters, then five 23-byte character init records: +0 type (0x0C = prince, 6 = a guard kind), +1 x (word), +3 direction?, +4 ?, +5 0x4D?, +9 3?, +17 ... |
+| 50CF | 0x2517 | 2530 bytes, zero in level 1 |
+| 5AB2 | 0x2EFA | last dword: a resource handle set at runtime (FUN_194c_19dc), not level data |
 | 5AB6 | end | Char record follows immediately |
 
-tools/leveldump.py (to write) will decode a level file into rooms and print tile maps.
+tools/leveldump.py decodes a level file (PRINCE.DAT untyped resource body) and prints tile maps and
+the character init records. Tile ids are PoP1's in the low 5 bits (room 4 of level 1 shows floors, walls
+and a 0x27 = doortop-with-floor + flag 0x20). Levels 2020..2033 are byte-identical copies of 2000..2013
+except for two bytes (their purpose is still open).

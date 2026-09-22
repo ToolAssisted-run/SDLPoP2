@@ -1,0 +1,37 @@
+/* Character helpers reconstructed from 0AFF (core character logic segment). */
+#include "types.h"
+#include "globals.h"
+
+/* 0AFF:08E4 - same rule as PoP1's fall_accel */
+void fall_accel(void)
+{
+	if (Char.action == 4 || Char.action == 9) {
+		if (is_feather_fall == 0) { Char.fall_y += 3; if (Char.fall_y > 33) Char.fall_y = 33; }
+		else { Char.fall_y += 1; if (Char.fall_y > 4) Char.fall_y = 4; }
+	}
+}
+
+/* 0AFF:091C - y += fall_y; in free fall (or for charids 7/8) x follows fall_x and the frame/column are reloaded */
+void fall_speed(void)
+{
+	if (Char.y < 0x780) {
+		Char.y += Char.fall_y;
+		if (Char.action == 4 || Char.charid == 7 || Char.charid == 8) {
+			Char.x = char_dx_forward(Char.fall_x);
+			load_fram_det_col();
+		}
+	}
+}
+
+/* 0AFF:1CC2 / 0AFF:1D0E / 0AFF:1D60 */
+void save_char(void)    { if (Char.index < 5) chars[Char.index] = Char; else rtlink_fatal(0x176); }
+void load_char(int n)   { if (n >= 0 && n < 5) Char = chars[n]; else rtlink_fatal(0x191); }
+void restore_char_from_saved(void) { Char = Char_saved; }
+/* 0AFF:0878 */
+void load_char_and_opp(int n) { load_char(n); Opp = Char_saved; }
+/* 0AFF:0DF6: 1 = the character is outside the level (room 0, or level 6 rooms 3/5 below row 11) */
+int char_out_of_level(void)
+{
+	if (Char.room != 0 && ((Char.room != 3 || level.number != 6) && (Char.room != 5 || level.number != 6) || Char.curr_row < 11)) return 0;
+	return 1;
+}

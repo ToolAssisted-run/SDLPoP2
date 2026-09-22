@@ -47,7 +47,7 @@ int8_t find_opponent(int8_t mode)
 		const level_char_init *rec = &level.rooms[drawn_room - 1].chars[i];
 		const char_type *c = &chars[i];
 		int dy = c->y - Kid.y, dx = -1; if (dy < 0) dy = -dy;
-		if (c->alive < 0 && c->charid != 0xB && ((c->charid != 7 && c->charid != 8) || rec->f11 != 2)) {
+		if (c->alive < 0 && c->charid != 0xB && ((c->charid != 7 && c->charid != 8) || (uint8_t)rec->y != 2)) {
 			if (mode == 1) { dx = c->x - Kid.x; if (dx < 0) dx = -dx; }
 			else if (mode == -1 && c->x <= Kid.x) dx = Kid.x - c->x;
 			else if (mode == 0 && c->x > Kid.x) dx = c->x - Kid.x;
@@ -75,7 +75,7 @@ int char_scan_31bc4(void)
 			load_char(i);
 			if (Char.alive < 0 && Char.f23 > 0 && Char.charid != 0xB) {
 				const level_char_init *rec = Char.room ? &level.rooms[Char.room - 1].chars[Char.index] : 0;
-				r = !((Char.charid == 7 || Char.charid == 8) && rec && rec->f11 != 1 && rec->f11 != 3);
+				r = !((Char.charid == 7 || Char.charid == 8) && rec && (uint8_t)rec->y != 1 && (uint8_t)rec->y != 3);
 			}
 		}
 	}

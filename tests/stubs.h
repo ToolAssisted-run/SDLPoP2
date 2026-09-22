@@ -6,3 +6,4 @@ void control(void);
 void stubs_load_frame_tables(const char *prince_exe);
 void debug_case_tiles(void);
 void load_fram_det_col_nocol(void); void debug_opp(void);
+void stubs_load_ds_tables(const unsigned char *ram);

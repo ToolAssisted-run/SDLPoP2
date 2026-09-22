@@ -29,23 +29,35 @@ typedef struct char_type {
 	int16_t  bbox_top, bbox_left, bbox_bottom, bbox_right;   /* +1B..+22 sprite box from set_char_collision */
 	uint8_t  f23;          /* +23 */
 	uint16_t f24;          /* +24 set by opcode FFEB; 8 = ? in play_kid */
-	uint8_t  f26[0x13];    /* +26..+38 */
-	uint8_t  opp_index;    /* +39 index of the tracked opponent in chars[], 0xFF none */
-	uint8_t  f3a[6];       /* +3A..+3F */
+	uint16_t f26, f28, f2a;   /* +26..+2B cleared on room entry */
+	uint8_t  f2c[8];        /* +2C..+33 */
+	uint16_t pal_slot;      /* +34 palette/sprite slot: 2 prince, 4 << n for the guard palette slots DS:5D08/5D09 */
+	uint8_t  f36[2];        /* +36..+37 */
+	uint8_t  f38;          /* +38 from the room record +0x0D (guard skill / state) */
+	uint8_t  opp_index;    /* +39 index of the tracked opponent in chars[], 0xFF none; room record +0x0E */
+	uint8_t  f3a;          /* +3A cleared on room entry */
+	uint8_t  f3b[5];       /* +3B..+3F */
 } char_type;
 
 /* Level resource (PRINCE.DAT untyped ids 2000..2033, 12024 bytes), loaded at DS:2BB8. */
-typedef struct level_char_init {
-	uint8_t  type;         /* +00 0x0C prince, 6 guard kind ... */
+typedef struct level_char_init {   /* room record: level+0x1867 + (room-1)*0x74 + 1 + i*23 (DS:43AC + room*0x74 + i*23) */
+	int8_t   tilepos;      /* +00 row*10 + col at level load; 30 = outside the room grid; runtime saves write row*10 only */
 	int16_t  x;            /* +01 */
 	int8_t   direction;    /* +03 */
 	uint8_t  f04;
-	uint8_t  f05;          /* 0x4D in level 1 */
-	uint8_t  f06[3];
-	uint8_t  f09;          /* 3 in level 1 */
-	uint8_t  f0a[7];
-	uint8_t  f11;          /* 1 / 3 */
-	uint8_t  f12[5];
+	uint16_t seq_id;       /* +05 0 pos = start this sequence on entry (0x4D guard idle, 2 kid, 0x69/0x6A, 0x16) */
+	uint16_t seq_pos;      /* +07 nonzero: resume here */
+	uint8_t  pal;          /* +09 palette slot (DS:5D08/5D09) */
+	uint8_t  index;        /* +0A slot in the room (kept in sync by add/remove) */
+	uint8_t  f10;          /* +0B sword drawn */
+	uint8_t  hp;           /* +0C */
+	uint8_t  f38;          /* +0D -> Char+0x38 */
+	uint8_t  opp_index;    /* +0E -> Char+0x39 */
+	uint8_t  type;         /* +0F character type; charid = DS:0096[type], back via DS:00A2[charid] */
+	uint8_t  max_hp;       /* +10 (0 = 3) */
+	int16_t  y;            /* +11 y for type-2 guards in seq 100/0xBA; low byte doubles as a state for charids 7/8 */
+	int16_t  w13;          /* +13 */
+	int16_t  w15;          /* +15 y for charid 6 */
 } level_char_init;         /* 23 bytes */
 
 typedef struct level_room {

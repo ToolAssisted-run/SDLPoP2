@@ -98,3 +98,11 @@ uint8_t get_tile_above_front(void); uint8_t get_tile_above_behind(void);   /* 0A
 int play_kid_frame(void); int play_kid_control(void); void kid_post_move(void);
 void loose_floor_184e(int8_t how); void ovl_348e6(void); void ovl_3564e(void); void spikes_15d4(void); void spikes_16a0(void); void ovl_34724(void); void ovl_37826(void);
 void ovl_349be(void); void fall_scream_1611_0030(void); void sound_194c_83d2(uint16_t n); int sound_playing_8426(void); void shake_loose_row(int8_t row, uint8_t room); void level_kind_hooks(void);
+/* room.c (OVL01 2D3E room records, 0823:0E72 room switch, 0FB3:0026) */
+extern uint8_t next_room, pal_slots[2], byte_9276; extern int16_t exit_dir; extern uint16_t word_922a, word_32d8, word_68f0;
+extern const uint8_t *type_to_charid, *charid_to_type;
+level_char_init *room_char_record(int i, uint8_t room); void change_room(int dir); void check_kid_left_room(void); void apply_hp_deltas(void);
+void set_neighbour_rooms(void); void enter_room_chars(void); void switch_room(void);
+void ovl_37d2a(void); void ovl_352b4(void); int ovl_342b4(void); void ovl_34210(void); void ovl_34958(void); void ovl_34370(void); void ovl_2f9f2(void);
+void load_guard_sprites(uint8_t type); void ovl_guard6_sprites(void); int random_2751(int n); level_char_init *ovl_379e8(level_char_init *r); level_char_init *ovl_36ada(level_char_init *r);
+void ovl_36712(void); void ovl_3791e(int a, int idx); void room_music_087e(void); void redraw_room(void); void hp_bar_clear(void);

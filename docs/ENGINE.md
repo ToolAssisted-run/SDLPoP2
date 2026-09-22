@@ -107,7 +107,7 @@ Dead kid: the death counter Char+0x11 goes 0..7 one per tick but waits while the
 - take_hp (0AFF:095C): schedules -n in Char+0x14 (never past -hp); returns 1 when the character dies.
 
 ## The tick body (169B:05E0)
-1375:1A52 falling loose floors (13-byte entries DS:527E, count DS:6186) -> 1375:0006 animated tiles (4-byte entries
+1375:1A52 falling loose floors (13-byte entries DS:293E, count DS:6186) -> 1375:0006 animated tiles (4-byte entries
 DS:6676, count DS:6670; 1375:1414 adds one) -> level-kind hooks -> 2D3E:0A4A guard spawns -> 169B:0FF0 guards'
 line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword hits, 2D3E:19C2 hurt characters
 (action 99) -> 1611:0164, 169B:0DB4, 169B:11E2 -> 0823:1008 hp deltas -> 2D3E:108A prince left the room?

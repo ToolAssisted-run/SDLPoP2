@@ -1,0 +1,8 @@
+*.DAT
+*.dat
+*.EXE
+*.exe
+*.bin
+*.img
+*.iso
+build/

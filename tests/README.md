@@ -45,3 +45,9 @@ the whole tick body (tick mode: ds_tick -> ds_postroom with the prince's capture
 
     python3 tests/snaps_from_events.py tickD-snap.txt ds_tick ds_postroom tick.bin kc_ctrl:8 kc_ctrl1:16
     snaptest tick SEQUENCE.DAT ram1436.bin PRINCE.EXE tick.bin
+
+Level 3 (pop2dec/oracle/gen_ticks.py L3loose7 / L3loose22 / L3btn10 / L3btn3, run with `prince yippeeyahoo LEVEL3`,
+RAM image w/ramL3.bin): loose floors, falling floors, buttons and gates match on every tick of L3loose7, L3loose22
+and L3btn3; L3btn10 has 5 ticks left that need the falling rock (tile 2, segment 186A). The random explorations
+L3r1/L3r2 reach skeleton rooms (charid 4 AI and SKELETON.DAT not reconstructed yet).
+Snapshots of new captures cover DS:2900..6C00 (the falling-floor list starts at DS:293E); pair files record the size.

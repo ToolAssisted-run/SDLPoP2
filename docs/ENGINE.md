@@ -155,3 +155,26 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
 - The input reader 0823:10A0 clears next_room and the controls before reading the keyboard/joystick.
 - Level-kind overlays: the 33FD overlay loaded on level 1 (kind 5) is the file saved as ovl02_33FD (the capture
   numbering does not follow the RTLink descriptor order; identify overlays by content).
+
+## Tile mechanics (anim.c, mobs.c; verified on level 3)
+- Buttons 5/6 (and 0x22 on level kind 3) press through 1375:15D4: the modifier's low byte is a door-link index;
+  links live at level+0x12C0 (DS:3E78, 5 bytes: room, tile position, timer, flag, next; 0xFD ends a chain).
+  Pressing sets the link timer to 5 (0x1F = held by a character, 1375:16A0) and walks the chain (1375:10E0):
+  gates get animation states from 1375:11A6 (5 raise: 2/3, 6 lower: 4, 0xE rubble plate: stuck open), the exit
+  door opens (state 1). The button's own animation (1375:16BC) counts the timer down and releases it.
+- Kind-3 plate 0x22 (33FD:0000 in the kind-3 overlay): holds its gate open while pressed or while a landed
+  falling floor lies on it (1375:1F42), and slams it (state 4) when released.
+- Gates (1375:0910): position = modifier low byte, 0 shut .. 200 open, 0xFF stuck open; states 0/1 close by
+  DS:0776 speeds (-1, -4), 2/3 open by +4, 4..8 slam with DS:076C speeds (40..120). A gate closing on the prince
+  hanging below it drops him (seq 0x2F).
+- Loose floors: stepping on one (1375:184E / 18B0) starts a 0x0B animation; at count 12 (1375:1744) the tile
+  becomes empty and a falling-floor object is created (list DS:293E, 13 bytes: x, y, room, speed, -, type,
+  row, landed; count DS:6186, max 30). Falling floors (1375:1B7C) accelerate by 3 up to 29, fall into the room
+  below at row 3, knock out loose floors below them, shatter on solid tiles (shaking that row's loose floors),
+  leave rubble (0xE) or break buttons, and hit characters under them (-1 hp for the prince, seq 0x34).
+- Torches (0x13/0x20) start at a random frame on room entry and pick random frames while on screen (kind 3:
+  random(8), bumped if equal); tile 0x0A cycles 0..0x1B; the level door (0x11) opens to 0x2A.
+- Level kind 3's 33FD overlay is the file saved as ovl04_33FD. Tile 2 on kind 3 is a falling rock handled by
+  segment 186A (becomes falling object type 4) — not reconstructed yet.
+- Starting a level directly: `prince yippeeyahoo LEVELn`. From level 3 on, a manual-symbol check appears at
+  frame 175 before the level; the capture scripts answer it with the symbol the game expects (TAB x2, ENTER).

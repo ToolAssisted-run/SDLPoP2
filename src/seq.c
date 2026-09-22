@@ -3,6 +3,30 @@
 #include "types.h"
 #include "globals.h"
 
+/* 0AFF:0376 */
+int16_t char_dx_forward(int16_t dx) { return (Char.direction ? -dx : dx) + Char.x; }
+/* 0AFF:07B0 */
+void char_y_to_floor(void) { Char.y = 63 * Char.curr_row + 56; if (Char.charid == 7 || Char.charid == 8) Char.y -= 19; }
+/* 0AFF:0794 */
+void seq_set_85f8(uint16_t v) { if (Char.charid == 0 || Char.charid == 1) byte_5cb8 = (uint8_t)v; }
+/* 0AFF:0716: n == 0 -> only the charid-0 flag; n == 1 -> alternating footstep 0x17/0x18 unless level byte 43FD == 1,
+ * plus a room-dependent x nudge for charid 4; 2..0x111 -> play sound n (0x10F through a different entry) */
+void seq_sound(uint16_t n)
+{
+	if (n == 1) {
+		counter_27d6++;
+		if (lvl_43fd != 1) {
+			play_sound(counter_27d6 % 2 + 0x17);
+			if (Char.charid == 4 && ovl_366c_11f8(Char.room)) Char.x = char_dx_forward(Char.index - 1);
+		}
+	} else if (n > 1) {
+		if (n > 0x111) return;
+		if (n == 0x10F) sound_1611_01a8(0x10F); else play_sound(n);
+		return;
+	}
+	if (Char.charid == 0) word_6140 = 1;
+}
+
 /* DS:5AC2/5AC3 clamps */
 #define FALL_X_MAX 16
 #define FALL_Y_MAX 32

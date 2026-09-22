@@ -9,7 +9,7 @@
 char_type Char, Opp, Kid, chars[5]; level_type level; uint8_t tiles0[30]; uint32_t tick; int16_t knock, is_feather_fall;
 int8_t control_x, control_y, control_shift; uint8_t drawn_room; uint16_t counter_5cec, word_27c0, counter_27d6, word_6140;
 uint8_t flag_5cb9, byte_5cb8, level_kind, level_number, room_A; uint8_t *level_roomlinks;
-int8_t ctrl1_left, ctrl1_right, ctrl1_up, ctrl1_down, ctrl1_shift;
+int8_t ctrl1_forward, ctrl1_backward, ctrl1_up, ctrl1_down, ctrl1_shift;
 static dat_file seqdat; static char log_[512];
 static void note(const char *s) { strncat(log_, s, sizeof log_ - strlen(log_) - 1); }
 void stubs_init(const char *seqpath, const char *levelbin)

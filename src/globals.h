@@ -41,3 +41,16 @@ uint8_t get_tile(int8_t row, int8_t col, uint8_t room); uint8_t get_tile_at_char
 uint8_t get_tile_infrontof_char(void); uint8_t get_tile_n_ahead(int8_t n); void get_room_address(uint8_t room); uint8_t find_room_of_tile(void);
 int tile_is_empty_kind(uint8_t t); int tile_is_wall_kind(uint8_t t); int tile_is_floor(uint8_t t); int tile_is_loose_kind(uint8_t t); int tile_is_solid_floor(uint8_t t);
 void seqtbl_offset_char(uint16_t seq_id); void shadow_hook_2f9a2(void);
+/* control.c and its not-yet-reconstructed callees */
+extern int8_t ctrl1_forward, ctrl1_backward, ctrl1_up, ctrl1_down, ctrl1_shift;   /* DS:6122..6126 */
+extern uint8_t frame_dx, frame_flags;      /* DS:5CCA / 5CCC (current frame table entry) */
+extern uint8_t kid_84af, kid_f34; extern int16_t word_3bf62;
+extern int8_t obj_xl;
+void control(void); void control_running(void); void control_turning(void); void control_start_run(void); void control_jumpup(void);
+void control_standing(void); void control_hanging(void); void control_crouched(void); void control_with_sword(void); void control_0d9_0e2(void);
+void control_dead_0307a2(void); void control_frame81_0313c6(void); void control_standing_down(void); void control_standing_shift(void);
+int control_runjump(int kind); int control_rest(void); void control_jump_031062(void); void control_2fdf_1bfa(void); void control_by_charid_cc1e(void);
+int is_dead_frame(uint8_t frame); int8_t x_to_col(int16_t x); int16_t dx_weight(void); int16_t distance_to_edge(int16_t x); int16_t distance_to_edge_weight(void);
+int can_climb_down_146e(uint16_t mod_here, uint16_t mod_front, uint8_t here, uint8_t front); int tile_passable_2f800(uint16_t mod, uint8_t tile);
+int shadow_seq_2f86a(void); int sword_seq_0317c4(void); void ovl_2f86_0a5c(void); uint8_t find_char_02dcc8(void); void shadow_2fba4(void); void ovl_34024(void);
+void ovl_383fa(void); void ovl_35f5a(void);

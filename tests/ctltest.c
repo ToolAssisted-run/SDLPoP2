@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 	while (fread(in, 1, 64, f) == 64 && fread(ctl, 1, 8, f) == 8 && fread(c1, 1, 8, f) == 8 && fread(out, 1, 64, f) == 64) {
 		n++; stubs_reset();
 		memcpy(&Char, in, 64); control_x = ctl[0]; control_y = ctl[1]; control_shift = ctl[2];
-		ctrl1_left = c1[0]; ctrl1_right = c1[1]; ctrl1_up = c1[2]; ctrl1_down = c1[3]; ctrl1_shift = c1[4];
+		ctrl1_forward = c1[0]; ctrl1_backward = c1[1]; ctrl1_up = c1[2]; ctrl1_down = c1[3]; ctrl1_shift = c1[4];
 		control();
 		char_type exp; memcpy(&exp, out, 64);
 		int d = memcmp(&Char, &exp, 64) != 0;

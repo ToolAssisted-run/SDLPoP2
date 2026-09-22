@@ -1,0 +1,233 @@
+seq   1 seq_1_start_run                          (  9 words): ACT(1) DX(3) f1 f2 f3 JMP(200)
+seq   2 seq_2_stand                              (  5 words): ACT(0) f15 JMP(2)
+seq   3 seq_3_standing_jump                      ( 61 words): ACT(1) DX(2) f16 f17 DX(1) f18 DX(10) f19 DX(3) f20 DX(1) f21 DX(4) f22 DX(3) f23 DX(20) f24 DX(20) DY(-6) f25 DX(12) DY(6) f26 DX(8) GET_ITEM SND(1) f27 DX(-1) f28 DX(13) f29 SND(1) f30 f31 f32 DX(-4) f33 DX(-2) JMP(2)
+seq   4 seq_4_run_jump                           ( 54 words): ACT(1) SND(1) f34 DX(11) f35 DX(14) f36 DX(7) f37 DX(10) SND(1) f38 DX(16) f39 DX(28) DY(-3) f40 DX(18) DY(-9) f41 DX(18) DY(-2) f42 DX(9) DY(11) f43 DX(9) DY(3) f44 DX(11) GET_ITEM SND(1) JMP(201)
+seq   5 seq_5_turn                               ( 21 words): ACT(7) FLIP DX(8) f45 f46 DX(2) f47 DX(-2) f48 f49 DX(-2) f50 f51 f52 JMP(2)
+seq   6 seq_6_run_turn                           ( 42 words): ACT(1) DX(2) f53 DX(2) SND(1) f54 DX(18) f55 SND(1) f56 DX(16) f57 DX(6) f58 DX(2) f59 f60 DX(4) f61 DX(-2) f62 f63 f64 DX(-2) f65 DX(-30) FLIP JMP(202)
+seq   7 seq_7_fall                               ( 10 words): ACT(3) DX(2) DY(3) DIE f228 JMP(214)
+seq   8 seq_8_jump_up_and_grab_straight          ( 20 words): ACT(1) f67 f68 f69 f70 f71 f72 f73 f74 f75 f76 f77 ACT(2) f78 f79 f80 JMP(9)
+seq   9                                          (  5 words): ACT(2) f91 JMP(210)
+seq  10 seq_10_climb_up                          ( 20 words): ACT(1) f135 f136 f137 DY(-1) f138 DX(-1) f139 f140 DX(11) DY(-63) UP f141 JMP(235)
+seq  11 seq_11_release_ledge_and_land            ( 16 words): f81 f82 ACT(5) f83 ACT(1) GET_ITEM SND(0) f84 f85 DX(1) JMP(2)
+seq  12                                          (  5 words): ACT(4) f106 f106 f233
+seq  13 seq_13_stop_run                          ( 24 words): ACT(1) f53 DX(4) SND(1) f54 DX(16) f55 SND(1) f56 DX(-3) f49 DX(-2) f50 f51 f52 JMP(2)
+seq  14 seq_14_jump_up_into_ceiling              ( 23 words): ACT(1) f67 f68 f69 f70 f71 f72 f73 f74 f75 f76 f77 f78 ACT(0) KNOCK_DOWN f79 SND(22) OP_EE(-1) f11
+seq  15 seq_15_grab_ledge_midair                 (  9 words): ACT(3) DX(3) f80 DX(-3) JMP(9)
+seq  16 seq_16_jump_up_and_grab                  ( 30 words): ACT(1) f67 f68 f69 f70 f71 f72 DX(2) f73 f74 f75 DX(1) f76 f77 ACT(2) DX(-5) f78 DX(-2) f79 DX(-2) f80 JMP(9)
+seq  17 seq_17_soft_land                         ( 13 words): ACT(5) GET_ITEM DX(2) f107 DX(4) f108 ACT(1) JMP(117)
+seq  18 seq_18_fall_after_standing_jump          ( 27 words): ACT(3) DX(2) DY(3) f102 DX(13) DY(6) f103 DX(2) DY(9) f104 DX(4) DY(12) f105 SET_FALL(4,15) JMP(12)
+seq  19 seq_19_fall                              (  4 words): DX(2) JMP(7)
+seq  20 seq_20_medium_land                       ( 10 words): ACT(5) GET_ITEM DY(-2) DX(6) f108 JMP(212)
+seq  21 seq_21_fall_after_running_jump           ( 27 words): ACT(3) DX(2) DY(3) f102 DX(6) DY(6) f103 DX(4) DY(9) f104 DX(6) DY(12) f105 SET_FALL(6,15) JMP(12)
+seq  22 seq_22_crushed                           ( 11 words): ACT(5) GET_ITEM DX(6) f185 f65517 ACT(1) f185 f233
+seq  23 seq_23_release_ledge_and_fall            ( 22 words): ACT(3) f81 DX(-3) DY(6) f81 DX(-3) DY(9) f81 DX(-3) DY(12) SET_FALL(0,12) JMP(12)
+seq  24 seq_24_jump_up_and_grab_forward          ( 26 words): ACT(1) f67 f68 f69 f70 f71 f72 f73 f74 f75 f76 f77 ACT(2) DX(2) f78 DX(5) f79 DX(2) f80 JMP(9)
+seq  25 seq_25_hang_against_wall                 (  9 words): ACT(6) f92 f93 f93 f92 f92 f91 f233
+seq  26 seq_26_crouch_while_running              ( 18 words): ACT(1) DX(2) f107 DX(8) f108 DX(5) f109 DX(4) f109 DX(5) JMP(117)
+seq  27                                          (119 words): ACT(3) SND(44) DY(7) f56 DX(7) f57 DX(-2) DY(1) f58 DX(2) DY(1) f59 DX(-3) DY(1) f60 DY(1) f61 DX(3) DY(1) f59 DX(-2) DY(1) f58 DX(-2) DY(2) f57 DX(2) DY(2) f58 DX(2) DY(2) f59 DX(-3) DY(2) f60 DX(2) DY(2) f62 DX(-4) DY(2) f63 DY(4) f64 DX(4) f65 DX(-10) DY(2) f47 DX(-2) DY(2) f48 DX(1) DY(1) f49 DX(-2) DY(2) f48 DX(1) DY(1) f49 DX(-2) DY(2) f48 DX(1) DY(1) f49 DX(2) DY(4) f77 OP_EE(-21) f7 f185 f233
+seq  28 seq_28_jump_up_with_nothing_above        ( 34 words): ACT(1) f67 f68 DX(1) f69 f70 f71 f72 DX(1) f73 f74 f75 f76 f77 f78 f79 DY(-4) f79 DY(-2) f79 f79 DY(2) f79 DY(4) OP_EE(-1) f11
+seq  29 seq_29_safe_step_1                       (  8 words): ACT(1) f121 DX(2) f132 JMP(2)
+seq  30 seq_30_safe_step_2                       ( 11 words): ACT(1) f121 DX(2) f122 DX(2) f132 JMP(2)
+seq  31 seq_31_safe_step_3                       ( 15 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(2) f131 f132 JMP(2)
+seq  32 seq_32_safe_step_4                       ( 15 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(4) f131 f132 JMP(2)
+seq  33 seq_33_safe_step_5                       ( 20 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(4) f124 DX(2) f129 f130 f131 f132 JMP(2)
+seq  34 seq_34_safe_step_6                       ( 20 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(4) f124 DX(4) f129 f130 f131 f132 JMP(2)
+seq  35 seq_35_safe_step_7                       ( 20 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(6) f124 DX(4) f129 f130 f131 f132 JMP(2)
+seq  36 seq_36_safe_step_8                       ( 23 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(6) f124 DX(6) f125 f127 f128 f129 f130 f131 f132 JMP(2)
+seq  37 seq_37_safe_step_9                       (  5 words): ACT(1) f121 JMP(211)
+seq  38 seq_38_safe_step_10                      (  7 words): ACT(1) f121 DX(2) JMP(211)
+seq  39 seq_39_safe_step_11                      ( 26 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(6) f124 DX(6) f125 DX(6) f126 f127 f128 f129 f130 f131 f132 JMP(2)
+seq  40 seq_40_safe_step_12                      ( 26 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(6) f124 DX(8) f125 DX(6) f126 f127 f128 f129 f130 f131 f132 JMP(2)
+seq  41 seq_41_safe_step_13                      ( 28 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(6) f124 DX(8) f125 DX(6) f126 DX(2) f127 f128 f129 f130 f131 f132 JMP(2)
+seq  42 seq_42_safe_step_14                      ( 28 words): ACT(1) f121 DX(2) f122 DX(2) f123 DX(7) f124 DX(9) f125 DX(6) f126 DX(2) f127 f128 f129 f130 f131 f132 JMP(2)
+seq  43 seq_43_start_run_after_turn              (  6 words): ACT(1) DX(-2) JMP(1)
+seq  44 seq_44_step_on_edge                      ( 28 words): f121 DX(2) f122 f123 DX(9) f124 DX(7) f125 DX(1) f126 DX(-6) f86 SND(1) GET_ITEM DX(-13) f116 f117 f118 f119 JMP(2)
+seq  45 seq_45_bumpfall                          ( 31 words): ACT(5) DX(2) DY(3) DIE f229 f102 DX(4) DY(6) f103 DX(-2) DY(9) f104 DY(12) ACT(4) f105 DX(-4) SET_FALL(0,15) JMP(12)
+seq  46 seq_46_hardbump                          ( 25 words): ACT(5) DX(-2) DY(-4) f102 DX(-8) DY(4) GET_ITEM DX(2) SND(1) f107 DX(4) f108 SND(1) f109 JMP(49)
+seq  47 seq_47_bump                              (  9 words): ACT(5) DX(-11) f50 f51 f52 JMP(2)
+seq  48                                          (  9 words): ACT(5) DX(8) f50 f51 f52 JMP(2)
+seq  49 seq_49_stand_up_from_crouch              ( 26 words): ACT(5) DX(2) f110 f111 DX(5) f112 f113 DX(2) f114 f115 DX(-6) f116 DX(-2) ACT(1) f117 f118 f119 JMP(2)
+seq  50 seq_50_crouch                            ( 10 words): ACT(1) DX(2) f107 DX(4) f108 JMP(117)
+seq  51 seq_51_spiked                            (  8 words): ACT(5) f186 f187 ACT(1) f242 f233
+seq  52 seq_52_loose_floor_fell_on_kid           (  2 words): JMP(20)
+seq  53                                          (  9 words): SET_FALL(0,0) ACT(4) f65517 f185 f185 f233
+seq  54 seq_54_chomped                           (  8 words): ACT(5) f188 f189 ACT(1) f243 f233
+seq  55 seq_55_draw_sword                        ( 16 words): ACT(1) DX(4) f207 f208 DX(7) f209 DX(6) f210 DX(2) JMP(227)
+seq  56 seq_56_guard_forward_with_sword          ( 14 words): ACT(1) SET_FALL(2,0) DX(4) f163 DX(8) f164 f165 JMP(227)
+seq  57 seq_57_back_with_sword                   ( 13 words): ACT(1) SET_FALL(-2,0) DX(-6) f160 DX(-4) f157 JMP(227)
+seq  58 seq_58_guard_strike                      (  8 words): ACT(1) SET_FALL(2,0) f168 JMP(75)
+seq  59                                          ( 33 words): ACT(1) f135 f136 f137 f138 f139 f140 DX(11) DY(-63) UP f141 f142 f143 f144 f145 f146 f147 f148 ACT(5) f149 ACT(1) f118 f119 DX(6) OP_F0(-1) f215
+seq  60 seq_60_turn_with_sword                   ( 12 words): ACT(5) f171 f171 FLIP DX(10) f171 f171 f171 JMP(57)
+seq  61 seq_61_parry_after_strike                (  4 words): f159 f160 JMP(206)
+seq  62 seq_62_parry                             (  3 words): f169 JMP(206)
+seq  63 seq_63_guard_stand_active                (  5 words): ACT(1) GET_ITEM JMP(227)
+seq  64 seq_64_pushed_back_with_sword            (  6 words): ACT(5) DX(-10) JMP(227)
+seq  65 seq_65_bump_forward_with_sword           (  6 words): ACT(5) f160 f157 JMP(227)
+seq  66 seq_66_strike_after_parry                (  3 words): f162 JMP(203)
+seq  67                                          ( 13 words): ACT(1) SET_FALL(2,0) f155 DX(5) f165 DX(-4) JMP(227)
+seq  68 seq_68_climb_down                        ( 24 words): ACT(1) f148 f145 f144 f143 f142 f141 DX(-11) DY(63) DOWN ACT(3) f140 f138 f136 f91 OP_EE(-7) f2 JMP(210)
+seq  69 seq_69_attack_was_parried                (  5 words): ACT(1) f167 JMP(204)
+seq  70 seq_70_go_up_on_level_door               ( 81 words): ACT(1) DX(-12) DY(-1) SND(1) f217 f218 f219 DX(2) f220 DX(-9) DY(-3) SND(1) f221 DX(-9) DY(-2) f222 DX(-4) DY(-2) f223 DX(-7) DY(-6) SND(1) f224 DX(-2) DY(-4) f225 DX(-9) DY(-3) f226 DX(2) DY(-3) SND(1) f221 DX(-9) DY(-2) f222 f0 SND(1) f0 f0 f0 SND(1) f0 f0 f0 SND(1) f0 f0 f0 SND(1) OP_F0(-1) f215
+seq  71 seq_71_dying                             (  6 words): ACT(1) f65517 f179 JMP(213)
+seq  72                                          (  4 words): DX(-10) JMP(2)
+seq  73 seq_73_climb_up_to_closed_gate           ( 15 words): f135 f136 f137 f137 f138 f138 f138 f138 f137 f136 f135 DX(-16) JMP(11)
+seq  74 seq_74_hit_by_sword                      ( 25 words): ACT(99) SET_FALL(-2,0) f172 ACT(5) DX(-2) DY(1) f173 DX(-2) f174 DX(-6) DY(-1) SET_FALL(0,0) JMP(205)
+seq  75 seq_75_strike                            (  7 words): ACT(1) DX(-6) f151 JMP(203)
+seq  76                                          ( 14 words): ACT(1) SET_FALL(-2,0) f155 f156 f157 f158 SET_FALL(0,0) JMP(57)
+seq  77 seq_77_guard_stand_inactive              (  5 words): ACT(1) f166 JMP(77)
+seq  78 seq_78_drink                             ( 36 words): ACT(1) DX(-5) f191 f192 f193 f194 f195 f196 SND?(2) f197 SND(18) f198 f199 f200 f201 f202 f203 f204 f205 f205 f205 SND?(1) f205 f205 f201 f198 DX(-1) OP_EE(-1) f2
+seq  79 seq_79_crouch_hop                        ( 16 words): ACT(1) DX(2) f110 f111 DX(4) f112 DX(4) f108 DX(4) JMP(117)
+seq  80 seq_80_stand_flipped                     (  7 words): ACT(5) FLIP DX(14) JMP(77)
+seq  81 seq_81_kid_pushed_off_ledge              ( 27 words): ACT(3) DY(-1) f102 DX(-4) DY(6) f103 DX(-4) DY(9) f104 DX(-4) DY(12) f105 DX(-7) SET_FALL(0,15) JMP(12)
+seq  82 seq_82_guard_pushed_off_ledge            ( 29 words): ACT(3) DX(-4) DY(-1) f102 DX(-6) DY(6) f103 DX(-6) DY(9) f104 DX(-4) DY(12) f105 DX(-6) SET_FALL(0,15) JMP(12)
+seq  83 seq_83_guard_fall                        ( 27 words): ACT(3) DX(2) DY(-1) f102 DX(4) DY(6) f103 DX(-2) DY(10) f104 DY(14) f105 DX(-4) SET_FALL(2,15) JMP(12)
+seq  84 seq_84_run                               ( 14 words): ACT(1) f186 f187 f188 f189 DX(14) f190 f191 DX(9) JMP(208)
+seq  85 seq_85_stabbed_to_death                  (  7 words): ACT(99) f179 ACT(5) JMP(213)
+seq  86 seq_86_forward_with_sword                ( 13 words): ACT(1) DX(14) f164 DX(2) f165 DX(2) f158 JMP(227)
+seq  87 seq_87_guard_become_inactive             ( 27 words): ACT(1) SET_FALL(2,0) f152 DX(10) f153 DX(8) f154 DX(5) ACT(5) f155 DX(3) ACT(1) f156 DX(2) f157 JMP(227)
+seq  88 seq_88_skel_wake_up                      ( 28 words): ACT(5) SND(75) f206 f207 f208 f209 f184 DX(-3) f183 f182 f181 f180 DX(3) f178 f177 DX(5) f173 f172 OP_EE(-5) f2 JMP(227)
+seq  89 seq_89_turn_draw_sword                   ( 11 words): ACT(7) FLIP DX(12) f45 DX(2) f46 JMP(55)
+seq  90 seq_90_en_garde                          (  2 words): JMP(227)
+seq  91 seq_91_get_sword                         ( 17 words): ACT(1) SND?(1) f229 f229 f229 f229 f229 f229 f230 f231 f232 DX(8) JMP(92)
+seq  92 seq_92_put_sword_away                    ( 32 words): ACT(1) DX(-10) f233 f234 f235 f236 f237 f238 f239 f240 f133 f133 f134 f134 f134 f48 DX(2) f49 DX(-4) ACT(5) f50 ACT(1) f51 f52 JMP(2)
+seq  93 seq_93_put_sword_away_fast               ( 13 words): ACT(1) DX(-10) f234 f236 f238 f240 f134 DX(-2) JMP(2)
+seq  94 seq_94_princess_stand_PV1                ( 27 words): ACT(99) DX(4) SET_FALL(1,0) f172 ACT(5) DX(1) DY(1) f173 DX(1) f174 DX(7) DY(-1) SET_FALL(0,0) JMP(205)
+seq  95 seq_95_Jaffar_stand_PV1                  ( 27 words): ACT(3) DY(-1) f102 DX(6) DY(6) f103 DX(4) DY(9) f104 DX(2) DY(12) f105 DX(3) SET_FALL(0,15) JMP(12)
+seq  96                                          ( 21 words): ACT(1) DX(-2) f151 ACT(1) DX(6) f152 f244 f245 ACT(5) f155 ACT(1) f156 f157 JMP(227)
+seq  97                                          ( 16 words): ACT(99) f179 ACT(5) f180 f181 f182 DX(2) f183 DX(-8) f65517 f185 f233
+seq  98                                          (  9 words): ACT(99) f265 ACT(5) DX(-1) f266 f233
+seq  99                                          ( 22 words): ACT(3) f81 DX(3) DY(6) f81 DX(3) DY(9) f81 DX(3) DY(12) SET_FALL(0,12) JMP(12)
+seq 100                                          ( 55 words): ACT(1) SND(1) f202 DX(11) f203 DX(14) f204 DX(7) f205 DX(10) SND(1) f206 DX(16) f207 DX(26) DY(-3) f208 DX(18) DY(-9) f209 DX(18) DY(-2) f210 DX(10) DY(11) f211 DX(8) DY(3) f212 DX(11) GET_ITEM SND(1) OP_EE(-1) f208
+seq 101 seq_101_mouse_stands_up                  (  6 words): ACT(1) f200 f201 JMP(77)
+seq 102                                          ( 20 words): ACT(1) f186 DX(2) f187 DX(4) f188 DX(7) f189 DX(3) f190 f191 DX(7) JMP(216)
+seq 103 seq_103_princess_lying_PV2               (  9 words): ACT(1) DX(-6) f221 f220 f218 JMP(227)
+seq 104 seq_104_start_fall_in_front_of_wall      ( 10 words): ACT(1) DX(-6) f171 DX(-4) f171 JMP(227)
+seq 105 seq_105_mouse_forward                    (  5 words): ACT(1) f213 JMP(105)
+seq 106 seq_106_mouse                            ( 25 words): ACT(1) SND(195) f214 f213 f215 f213 f214 f213 f215 SND(193) DY(-1) f214 DY(-3) f213 DY(4) f216 f217 JMP(227)
+seq 107 seq_107_mouse_stand_up_and_go            ( 23 words): ACT(1) f217 f216 DY(-4) SND(195) f213 DY(3) f214 DY(1) f215 f213 f214 f213 f215 f213 f214 JMP(105)
+seq 108 seq_108_princess_turn_and_hug            (  7 words): ACT(1) DX(8) f171 JMP(227)
+seq 109 seq_109_princess_stand_PV2               ( 45 words): ACT(1) SET_FALL(2,0) f218 DX(-4) f219 DX(6) f220 f221 DX(2) DY(-2) f222 DX(6) DY(-2) f223 DX(4) f224 ACT(5) f225 ACT(1) DX(-4) DY(2) f226 DX(-6) DY(2) f227 DX(-4) JMP(227)
+seq 110 seq_110_princess_crouching_PV2           ( 18 words): ACT(1) f228 f229 f230 f231 f232 DX(13) f233 f234 f235 f236 f237 f238 f239 f240 f233
+seq 111 seq_111_princess_stand_up_PV2            ( 25 words): ACT(5) DX(-8) f286 f287 f288 DX(-13) f289 DX(4) f290 DX(4) f291 f292 SND(197) SND?(3) DX(2) JMP(212)
+seq 112 seq_112_princess_crouch_down_PV2         ( 14 words): ACT(1) SND(76) f207 f208 f206 f207 f208 f209 f207 OP_EE(-1) f119
+seq 113                                          ( 19 words): ACT(5) f65517 f267 f268 DX(5) f269 DX(13) DY(3) f270 ACT(1) DX(1) f271 f233
+seq 114 seq_114_mouse_stand                      (  6 words): DX(-2) DY(-3) JMP(214)
+seq 115                                          (  9 words): ACT(1) DX(8) f172 f172 f172 f185 f233
+seq 116                                          ( 20 words): ACT(1) KNOCK_UP f1 f15 f15 f15 f15 f15 f15 f15 f15 f15 f15 f15 f15 f15 f15 f185 f233
+seq 117                                          (  5 words): ACT(1) f109 f109 f233
+seq 118                                          ( 21 words): ACT(1) DX(4) f264 f264 f264 f264 f264 f65515 f3 f264 f65515 f0 DX(5) f265 DX(-1) f266 f233
+seq 119                                          (  3 words): f206 JMP(119)
+seq 120                                          ( 20 words): ACT(1) f173 DX(-7) f177 f178 f179 f180 f181 f182 f183 DX(2) f184 f209 f208 f207 JMP(119)
+seq 121                                          (  5 words): ACT(1) f251 f251 f233
+seq 122                                          ( 21 words): ACT(1) DX(1) f252 DX(3) f253 DX(7) f254 f255 f246 f247 f248 f249 DX(13) f250 JMP(121)
+seq 123                                          ( 21 words): ACT(1) DX(-1) f250 DX(-13) f249 f248 f247 f246 f255 f254 DX(-7) f253 DX(-3) f252 JMP(121)
+seq 124                                          ( 20 words): ACT(1) f256 f257 DX(2) f258 DX(-12) f259 f260 DX(-9) f261 f262 f263 DX(5) JMP(2)
+seq 125                                          ( 18 words): ACT(1) DX(-14) f261 DX(9) f260 f259 DX(12) f258 DX(2) f257 f256 JMP(121)
+seq 126                                          (  9 words): ACT(5) SND(76) f174 f173 f172 JMP(227)
+seq 127                                          ( 24 words): ACT(5) FLIP DX(-4) f177 DX(-5) f178 ACT(1) DX(1) f211 DX(10) f213 DX(-5) f212 DX(8) JMP(57)
+seq 128                                          ( 86 words): ACT(1) f296 f296 f296 f296 f296 f296 f296 f296 f296 f296 f296 f295 DY(-2) f295 DY(-2) f295 DY(-2) f295 DY(-2) f295 DY(-2) f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 f295 DY(-3) f295 DY(-6) f295 DY(-9) f295 DY(-15) f295 DY(-18) f295 DY(-21) f295 DY(-24) f295 DY(-27) f295 DY(-30) f295 DY(-33) f295 DY(-36) OP_F0(-1) f199
+seq 129                                          (  2 words): JMP(199)
+seq 130                                          ( 21 words): ACT(0) f150 FLIP DX(14) f151 f152 f153 f154 f155 FLIP DX(14) f155 f154 f153 f152 f151 JMP(130)
+seq 131                                          ( 36 words): ACT(0) FLIP DX(11) f151 DX(-3) f152 DX(-4) f153 DX(-3) f154 DX(-3) f155 FLIP DX(17) f155 DX(3) f154 DX(4) f153 DX(3) f152 DX(3) f151 JMP(130)
+seq 132                                          ( 52 words): ACT(0) FLIP DX(11) DY(-1) f151 DX(-3) DY(-1) f152 DX(-4) DY(-1) f153 DX(-3) DY(-1) f154 DX(-3) f155 FLIP DX(17) f155 DX(3) DY(1) f154 DX(4) DY(1) f153 DX(3) DY(1) f152 DX(3) DY(1) f151 JMP(130)
+seq 133                                          ( 52 words): ACT(0) FLIP DX(11) DY(1) f151 DX(-3) DY(1) f152 DX(-4) DY(1) f153 DX(-3) DY(1) f154 DX(-3) f155 FLIP DX(17) f155 DX(3) DY(-1) f154 DX(4) DY(-1) f153 DX(3) DY(-1) f152 DX(3) DY(-1) f151 JMP(130)
+seq 134                                          ( 36 words): ACT(0) FLIP DX(17) f151 DX(3) f152 DX(4) f153 DX(3) f154 DX(3) f155 FLIP DX(11) f155 DX(-3) f154 DX(-4) f153 DX(-3) f152 DX(-3) f151 JMP(130)
+seq 135                                          ( 52 words): ACT(0) FLIP DX(17) DY(-1) f151 DX(3) DY(-1) f152 DX(4) DY(-1) f153 DX(3) DY(-1) f154 DX(3) f155 FLIP DX(11) f155 DX(-3) DY(1) f154 DX(-4) DY(1) f153 DX(-3) DY(1) f152 DX(-3) DY(1) f151 JMP(130)
+seq 136                                          ( 52 words): ACT(0) FLIP DX(17) DY(1) f151 DX(3) DY(1) f152 DX(4) DY(1) f153 DX(3) DY(1) f154 DX(3) f155 FLIP DX(11) f155 DX(-3) DY(-1) f154 DX(-4) DY(-1) f153 DX(-3) DY(-1) f152 DX(-3) DY(-1) f151 JMP(130)
+seq 137                                          ( 54 words): ACT(0) FLIP DX(16) DY(-6) f151 DX(2) DY(-6) f152 DY(-7) f153 DX(-2) DY(-6) f154 DX(-2) DY(-6) f155 UP FLIP DX(16) DY(-7) f155 DX(2) DY(-6) f154 DY(-6) f153 OP_EE(-5) FLIP DY(-7) f152 DX(-2) DY(-6) f151 JMP(130)
+seq 138                                          ( 54 words): ACT(0) FLIP DX(16) DY(6) f151 DX(2) DY(6) f152 DY(7) f153 DX(-2) DY(6) f154 DX(-2) DY(6) f155 DOWN FLIP DX(16) DY(7) f155 DX(2) DY(6) f154 DY(6) f153 OP_EE(-5) FLIP DY(7) f152 DX(-2) DY(6) f151 JMP(130)
+seq 139                                          ( 13 words): ACT(0) f65517 SET_FALL(0,0) DX(-2) f157 f156 OP_EE(-1) f130
+seq 140                                          ( 17 words): ACT(0) f156 f157 DX(2) f158 f159 f158 f159 f158 f159 f158 f159 OP_EE(-1) f141
+seq 141                                          ( 11 words): ACT(0) f65517 SET_FALL(0,0) DX(-5) f165 JMP(141)
+seq 142                                          (  8 words): ACT(0) f65517 SET_FALL(10000,0) JMP(218)
+seq 143                                          (  9 words): ACT(0) DX(5) SET_FALL(0,10000) JMP(219)
+seq 144                                          (  9 words): ACT(0) DX(5) SET_FALL(0,10000) JMP(220)
+seq 145                                          ( 19 words): f289 f289 f289 f289 f289 f289 f289 f289 f289 f289 f289 f289 f289 f289 f289 f289 f289 f289 f239
+seq 146                                          ( 10 words): SET_FALL(0,0) f65517 DY(5) f226 f227 JMP(145)
+seq 147                                          ( 31 words): ACT(0) f65517 SET_FALL(0,0) DY(3) f160 DX(-4) DY(4) f165 DX(2) DY(-2) f165 DX(7) DY(-6) f165 DX(16) DY(2) f165 JMP(221)
+seq 150                                          ( 20 words): f65517 SET_FALL(0,0) SND(89) f65515 f1 f167 f65515 f0 DX(-3) DY(1) f167 DX(-16) JMP(152)
+seq 151                                          ( 28 words): f65517 SET_FALL(0,0) DX(3) SND(89) f65515 f1 f181 f65515 f0 DX(-6) f166 DX(-3) DY(1) f166 DX(-6) DY(-2) f165 JMP(152)
+seq 152                                          ( 32 words): SET_FALL(0,0) f65517 DX(-9) DY(1) f168 DX(-8) DY(3) f169 DX(-6) DY(-1) f169 DX(-7) DY(-2) f169 DY(6) f160 DY(-1) OP_EE(-1) f155
+seq 153                                          ( 57 words): SET_FALL(0,0) ACT(5) FLIP DX(26) DY(-1) f170 DX(7) DY(-6) f171 f65515 f2 DX(12) DY(9) f172 f65515 f0 FLIP DX(12) DY(3) f166 DX(-5) DY(9) f166 DX(13) DY(5) f166 DX(4) DY(-6) f166 DX(-3) DY(-6) f166 DY(-7) ACT(0) JMP(155)
+seq 154                                          ( 49 words): FLIP DX(36) SET_FALL(0,0) SND(88) f183 DX(9) f184 DX(15) f185 DX(10) f186 DX(8) f187 DX(7) f188 DX(7) f189 DX(6) f190 DX(5) f191 DX(4) f192 DX(3) f226 DX(2) f227 f289 f289 f289 f289 f289 f289 f239
+seq 155                                          ( 18 words): SET_FALL(0,0) f65517 DY(2) f173 DY(-1) f165 DY(1) f166 DY(-2) f165 JMP(155)
+seq 156                                          ( 20 words): ACT(0) SET_FALL(0,0) f65517 DX(3) f160 DX(3) FLIP DX(14) f159 DX(-4) OP_EE(-1) f141
+seq 157                                          ( 18 words): ACT(5) SET_FALL(0,0) f162 DX(4) DY(2) f162 DX(3) DY(-1) f162 JMP(156)
+seq 158                                          ( 17 words): ACT(5) SET_FALL(0,0) f162 DX(2) DY(2) f162 DX(1) DY(-1) JMP(155)
+seq 159                                          ( 27 words): ACT(0) f65515 f0 f65517 DX(5) SET_FALL(4,0) f174 DX(5) f175 DX(4) f176 DX(3) f177 DX(2) f178 DX(1) JMP(222)
+seq 160                                          ( 13 words): ACT(0) SET_FALL(0,0) DY(2) f179 DY(1) f180 JMP(161)
+seq 161                                          ( 22 words): ACT(0) DY(2) f179 DY(-1) f180 DY(-2) f179 DY(1) f180 DY(1) f179 DY(-1) f180 JMP(161)
+seq 162                                          (  8 words): ACT(0) DY(-4) f152 f65517 JMP(140)
+seq 163                                          (  8 words): ACT(0) DY(-4) f152 f65517 JMP(130)
+seq 164                                          (  6 words): f191 f192 f226 f227 JMP(145)
+seq 165                                          ( 20 words): SET_FALL(0,0) f65517 DY(1) f173 DY(-1) f165 DY(1) f166 DY(-2) f165 f65514 f5 f165 f226
+seq 166                                          ( 24 words): ACT(0) SET_FALL(0,0) f65517 f158 FLIP DX(18) f160 f161 f162 f164 f163 FLIP DX(18) f164 f162 f161 f160 JMP(166)
+seq 168                                          (  5 words): ACT(1) f230 JMP(168)
+seq 169                                          (  3 words): f288 f288 f233
+seq 170                                          ( 32 words): ACT(1) f230 f232 DX(2) f234 DX(4) f236 DX(3) f238 DX(6) f240 DX(2) f242 DX(2) f244 DX(1) f246 DX(1) f248 DX(1) JMP(223)
+seq 171                                          ( 17 words): ACT(1) f255 DX(-4) f256 f257 DX(1) f258 f259 f260 f261 f262 f263 f264 f233
+seq 172                                          ( 34 words): ACT(1) f65515 f0 DX(10) f265 DX(2) f266 DX(6) f267 DX(5) f268 DX(4) f269 DX(4) f270 DX(7) f271 DX(6) f272 DX(14) f273 OP_EE(-1) f223
+seq 173                                          ( 24 words): ACT(1) DX(22) DY(-1) f274 DX(9) f280 OP_EE(280) DX(-20) DY(1) f274 DX(-9) f276 DX(-7) JMP(175)
+seq 174                                          ( 23 words): ACT(99) f281 ACT(1) DX(1) f282 DX(2) f283 DX(-1) f284 DX(-1) f285 f286 DX(-1) f287 f288 f233
+seq 175                                          ( 12 words): ACT(1) f278 f279 f278 f278 f279 f278 f279 f279 JMP(175)
+seq 176                                          ( 14 words): ACT(1) f274 DX(-1) f275 DX(2) f276 f277 DX(1) JMP(175)
+seq 177                                          ( 14 words): ACT(1) DX(-1) f277 f276 DX(-2) f275 DX(1) f274 JMP(170)
+seq 180                                          ( 22 words): ACT(8) f180 f181 f182 f183 f184 f185 f186 f187 f188 f189 f190 DX(-2) f192 f192 f192 f192 f192 JMP(225)
+seq 184                                          ( 29 words): ACT(3) DX(-4) DY(-1) f202 DX(-6) DY(6) f203 DX(-6) DY(9) f204 DX(-4) DY(12) f205 DX(-6) SET_FALL(0,15) JMP(217)
+seq 185                                          ( 39 words): ACT(9) SND(25) f213 DY(-1) DX(-4) f214 DX(-10) DY(7) f215 DX(-6) DY(13) f216 DX(-6) DY(23) f217 DY(15) f218 DY(18) f217 DY(21) f218 SET_FALL(0,24) JMP(207)
+seq 186                                          ( 29 words): ACT(3) DX(-7) DY(6) f219 DX(9) DY(9) f219 DX(4) DY(12) f219 DX(1) DY(15) f219 ACT(4) SET_FALL(1,18) JMP(209)
+seq 187                                          ( 28 words): ACT(1) f220 DX(4) f221 DX(3) f222 DX(4) f223 DX(1) f224 DX(-4) f225 DX(-1) f226 DX(-1) f227 DX(10) JMP(227)
+seq 188                                          ( 12 words): ACT(5) f249 DX(-1) f250 ACT(1) DX(2) f251 f233
+seq 189                                          ( 12 words): ACT(5) f246 DX(-2) f247 ACT(1) DX(-3) f248 f233
+seq 190                                          ( 23 words): ACT(5) f65517 f241 DX(1) f242 DX(10) f243 DX(13) DY(3) f244 ACT(1) DX(9) DY(2) f245 f233
+seq 191                                          (  3 words): f252 f252 f233
+seq 192                                          (  3 words): f253 f253 f233
+seq 193                                          (  3 words): f254 f254 f233
+seq 194                                          (  3 words): f255 f255 f233
+seq 195                                          (  3 words): f228 f228 f233
+seq 196                                          ( 10 words): ACT(5) SND(261) f301 f302 f303 f304 f305 f239
+seq 197                                          ( 29 words): ACT(5) f297 f298 f299 f300 f300 f299 f299 f300 f300 f299 f300 f299 f300 f299 f300 f299 f300 f299 f300 f299 f300 f299 f300 f298 f297 JMP(2)
+seq 198                                          ( 27 words): ACT(5) DY(3) DX(-8) DY(6) f100 DX(-4) DY(4) f101 DY(11) FLIP DX(23) ACT(4) SET_FALL(0,9) f184 JMP(12)
+seq 199                                          (  3 words): f295 JMP(199)
+seq 200                                          ( 13 words): DX(6) f4 DX(7) f5 DX(6) f6 DX(7) JMP(201)
+seq 201                                          ( 22 words): f7 DX(11) f8 DX(2) SND(1) f9 DX(4) f10 DX(9) f11 DX(11) f12 DX(5) JMP(202)
+seq 202                                          ( 10 words): SND(1) f13 DX(8) f14 DX(11) JMP(201)
+seq 203                                          (  9 words): ACT(1) DX(6) f152 f153 f154 JMP(204)
+seq 204                                          (  5 words): ACT(5) f155 JMP(205)
+seq 205                                          (  6 words): ACT(1) f156 f157 JMP(227)
+seq 206                                          (  3 words): f150 JMP(227)
+seq 207                                          (  4 words): f217 f218 JMP(207)
+seq 208                                          ( 30 words): f192 DX(7) f193 DX(2) SND(1) f194 DX(5) f195 DX(9) f196 DX(11) f197 DX(1) SND(1) f198 DX(8) f199 DX(9) JMP(208)
+seq 209                                          (  4 words): f219 f219 JMP(209)
+seq 210                                          ( 47 words): f90 f89 f88 f87 f87 f87 f88 f89 f90 f91 f92 f93 f94 f95 f96 f97 f98 f99 f97 f96 f95 f94 f93 f92 f91 f90 f89 f88 f87 f88 f89 f90 f91 f92 f93 f94 f95 f96 f95 f94 f93 f65515 f11 f92 f92 JMP(11)
+seq 211                                          ( 20 words): f122 DX(2) f123 DX(6) f124 DX(6) f125 DX(4) f126 f128 f129 f130 f131 f132 JMP(2)
+seq 212                                          ( 55 words): f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 f109 DX(2) f110 f110 f110 f111 DX(4) f112 f113 DX(2) DY(1) f114 DY(1) f115 f116 DX(-8) f117 f118 f119 JMP(2)
+seq 213                                          ( 13 words): ACT(1) f65517 f180 f181 f182 DX(2) f183 DX(-8) f185 f233
+seq 214                                          ( 21 words): f102 DX(7) DY(6) f103 DX(-2) DY(9) f104 DY(12) f105 DX(-4) SET_FALL(2,15) JMP(12)
+seq 215                                          (  3 words): f0 JMP(215)
+seq 216                                          ( 30 words): f192 DX(13) f193 DX(4) SND(1) f194 DX(3) f195 DX(11) f196 DX(12) f197 DX(1) SND(1) f198 DX(7) f199 DX(6) JMP(216)
+seq 217                                          (  4 words): f204 f205 JMP(217)
+seq 218                                          ( 14 words): JMP_IF_FEATHER(3) f0 f165 JMP_IF_FEATHER(3) f0 f166 JMP_IF_FEATHER(3) f0 f173 JMP(218)
+seq 219                                          ( 14 words): JMP_IF_FEATHER(0) UP f165 JMP_IF_FEATHER(0) UP f166 JMP_IF_FEATHER(0) UP f173 JMP(219)
+seq 220                                          ( 14 words): JMP_IF_FEATHER(0) f3 f165 JMP_IF_FEATHER(0) f3 f166 JMP_IF_FEATHER(0) f3 f173 JMP(220)
+seq 221                                          (  5 words): DX(16) f165 JMP(221)
+seq 222                                          (  8 words): f179 DY(1) f180 DY(-1) JMP(222)
+seq 223                                          ( 11 words): f250 DX(1) f252 DX(1) f254 DX(2) JMP(170)
+seq 225                                          ( 17 words): f191 DX(-4) f192 DX(-2) f193 DX(-2) f194 DX(-6) f195 DX(-2) JMP(225)
+seq 226                                          ( 45 words): DY(4) DX(5) f166 DY(8) DX(3) f165 DY(12) DX(1) SND(89) f65515 f1 f167 f65515 f0 DY(-12) DX(1) f169 DY(-8) DX(3) f168 DY(-4) DX(5) f160 DX(3) FLIP DX(14) f159 f160 JMP(165)
+seq 227                                          ( 11 words): ACT(1) SET_FALL(0,0) SND(0) f158 f170 f171 f233
+seq 228                                          ( 23 words): ACT(3) f102 DX(4) DY(3) f103 DX(-2) DY(4) f104 DY(5) f105 DX(-4) SET_FALL(2,6) JMP(12)
+seq 229                                          ( 22 words): f102 DX(4) DY(3) f103 DX(-2) DY(4) f104 DY(5) f105 DX(-4) OP_EE(-8) f0 f6 JMP(12)
+seq 230                                          ( 29 words): ACT(1) f65512 f1 f225 f50 f51 f65512 f0 f51 f306 f307 DX(-1) f308 f309 f310 f311 f312 f313 f314 f315 f316 f317 f318 f65515 f12 f185 f233
+seq 231                                          ( 15 words): ACT(1) DY(1) f185 DX(8) f183 DX(2) f182 f181 f179 f15 f233
+seq 232                                          ( 22 words): ACT(1) DX(8) f235 DX(10) f153 f154 f65512 f1 f225 f65515 f13 f153 DX(-10) f14 f65512 f0 f15 f233
+seq 235                                          ( 19 words): f142 f143 f144 f145 f146 f147 f148 DY(1) ACT(5) f149 ACT(1) f118 f119 OP_EE(-1) f2
+seq 236                                          ( 22 words): ACT(1) f135 f136 f137 SND(19) DY(-1) f319 DX(-1) f320 f321 DX(11) DY(-63) UP f322 JMP(235)
+seq 237                                          ( 18 words): ACT(1) f324 f323 f324 f323 f324 f323 f180 f181 f182 DX(2) f183 DX(-8) f185 f233
+seq 238                                          ( 18 words): ACT(1) f229 f230 f231 f232 f233 f234 f235 f236 f237 f238 f239 f240 f241 OP_EE(-1) f77
+seq 239                                          ( 16 words): ACT(1) f242 f243 f244 f245 f246 f247 f248 f249 f250 f251 f252 f253 f254 f239
+seq 240                                          ( 15 words): ACT(5) f15 f15 f15 f15 f15 f15 f15 f15 f15 SND(271) JMP(196)
+seq 241                                          ( 64 words): ACT(1) f325 SND(256) DX(-8) f326 DX(1) f327 DX(-1) f328 DX(1) f329 DX(-3) f330 f331 f332 f333 f334 f335 f336 f337 SND(257) ACT(99) f338 DX(1) ACT(1) f339 FLIP DX(17) ACT(99) f340 DX(1) ACT(1) f341 FLIP DX(29) f342 DX(4) f343 DX(6) f344 DX(3) f345 f346 JMP(117)
+seq 242                                          ( 41 words): ACT(1) DX(6) f48 DX(8) f272 f273 f274 f275 f276 f277 f278 DX(-2) f279 DX(-1) f280 DX(6) f281 DX(-2) f282 f283 f282 f283 f284 DX(2) f285 DX(-13) f3 DX(-3) OP_EE(-1) f2
+seq 243                                          ( 12 words): ACT(1) f65517 f347 f348 DX(-1) f349 f350 f351 f352 f233
+seq 244                                          ( 13 words): ACT(1) f65512 f1 f134 f153 DX(-10) f14 f65512 f0 JMP(2)

@@ -64,6 +64,23 @@ int8_t find_opponent(int8_t mode)
 	}
 	return best;
 }
+/* OVL01 031BC4: is a live guard (with an engaged side, not a charid-11 one) in the prince's room? (sheathing picks 0x5D over 0x5C) */
+int char_scan_31bc4(void)
+{
+	char_type saved = Char; int r = 0;
+	loadkid();
+	if (Char.f24 != 0xD && Char.charid != 1 && Char.action != 3 && Char.action != 4 && !is_dead_frame(Char.frame) && Kid.room != 0) {
+		int8_t n = level.rooms[Kid.room - 1].nchars;
+		for (int8_t i = 0; i < n && r == 0; i++) {
+			load_char(i);
+			if (Char.alive < 0 && Char.f23 > 0 && Char.charid != 0xB) {
+				const level_char_init *rec = Char.room ? &level.rooms[Char.room - 1].chars[Char.index] : 0;
+				r = !((Char.charid == 7 || Char.charid == 8) && rec && rec->f11 != 1 && rec->f11 != 3);
+			}
+		}
+	}
+	Char = saved; return r;
+}
 /* 0AFF:080A */
 void load_opp_080a(int n) { if (n >= 0 && n < 5) { loadkid(); Opp = chars[n]; } }
 

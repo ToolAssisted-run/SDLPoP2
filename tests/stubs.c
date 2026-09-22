@@ -43,7 +43,7 @@ void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); 
 int control_sword_check_030e3c(void) { note(" swordcheck?"); return 0; } void ovl_384e8(void) {} int ovl_32a0e(void) { note(" 32a0e?"); return 0; } int8_t tile_col_in_drawn_room(void) { return tile_col; }
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) {} int level_door_open_0cfa(void) { return curr_modifier > 0x29; } void ovl_30b52(void) { note(" 30b52"); }
 uint16_t word_922e, word_922c, word_8604, word_927e;
-int char_scan_31bc4(void) { note(" scan31bc4?"); return 0; } int ovl_377c6(void) { return 0; } void ovl_3741a(void) {} uint8_t room_nchars(uint8_t r) { return ((uint8_t *)&level)[0x17F3 + r * 0x74]; }
+int ovl_377c6(void) { return 0; } void ovl_3741a(void) {} uint8_t room_nchars(uint8_t r) { return ((uint8_t *)&level)[0x17F3 + r * 0x74]; }
 int8_t find_char_02dcc8_dir(int d) { return find_opponent((int8_t)d); } int rtlink_0dd5(void) { return 0; } 
 void control_dead_0307a2(void) { note(" dead0307a2"); } void control_0d9_0e2(void) { note(" 0d9_0e2?"); }
 int is_dead_frame(uint8_t f) { if (f == 0xB9) return 1; if (Char.charid == 0) return f == 0xF2 || f == 0xF3 || f == 0x10F || f == 0x10A; return 0; }

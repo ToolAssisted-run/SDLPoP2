@@ -25,5 +25,8 @@ vars DS:6112 (41362). A `ram 1436 file` line dumps the level as loaded. Run:
 Known, accepted differences: the dead prince's counter waits for the death sound (not modelled, reported
 separately), and on the level-restart tick the game leaves the last drawn character's box in the image
 variables (the harness recomputes the prince's). Out-of-level ticks skip the collision comparison for the
-same reason. Status: 1451 ticks over five captures (window jump, running, turning, standing jumps, ledge grabs,
+same reason. One open case: the level's room records (character counts and init records at level+0x1867) are
+runtime state that the game rewrites when characters change rooms; the harness uses the records as loaded, so a
+guard scan (031BC4) after a teleport can count differently (capture E tick 182). Reconstructing the room-change
+bookkeeping (OVL01 02D444 / 02DC8C) will close it. Status: 1451 ticks over five captures (window jump, running, turning, standing jumps, ledge grabs,
 crouching, sword fight, falls, deaths, teleports into rooms 1, 10, 16) identical.

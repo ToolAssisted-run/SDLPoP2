@@ -267,7 +267,7 @@ static void check_standing_on_air(void)
 	}
 }
 /* 1375:06F2 */
-static void check_fall_or_ceiling(void)
+void check_fall_or_ceiling(void)
 {
 	if (Char.charid == 7 || Char.charid == 8 || Char.action == 9) { if (Char.fall_y == 0) return; }
 	else {
@@ -282,7 +282,7 @@ static void check_fall_or_ceiling(void)
 	check_fall_landing();
 }
 /* 1375:0758: spikes / loose floors / chompers under or above the character */
-static void check_tile_effects(void)
+void check_tile_effects(void)
 {
 	uint16_t frame = Char.frame; uint8_t t;
 	if (Char.charid == 0xB || Char.charid == 10) return;
@@ -341,4 +341,54 @@ int play_kid_frame(void)
 	else r = 1;
 done:
 	Kid = Char; return r;
+}
+
+/* 0AFF:1258: death counter, decisions, then the shared control state machine */
+void char_control_step(void)
+{
+	if (Char.alive < 0) { if (Char.f12 == 0) Char.alive = 0; }
+	else if (Char.alive < 6) { if (Char.f0f != 0) { if (Char.alive < 0x14) Char.alive++; else Char.f0f = 0; } }
+	else { dead_char_sound_1611(); if (Char.index == Kid.opp_index) Kid.opp_index = 0xFF; }
+	autocontrol();
+	if (word_2ba8 != 0) ovl_15db_64();
+	if (Char.charid != 1 && Char.charid != 12) control();
+}
+/* 169B:07EC: every character of the drawn room */
+void play_all_chars(void)
+{
+	if (drawn_room == 0) return;
+	int8_t n = room_nchars(drawn_room);
+	for (int8_t i = 0; i < n; i++) {
+		load_char(i);
+		if ((uint8_t)Char.direction == 0x56 || char_out_of_level() || (Char.y > 0xFE && level_links(Char.room)[3] == 0)) char_fell_out();
+		else {
+			load_char(i); Opp = Kid;                                 /* 0AFF:0878 */
+			load_fram_det_col();
+			char_control_step();
+			uint8_t dr = drawn_room;
+			if (drawn_room != Char.room) { drawn_room = Char.room; set_neighbour_rooms(); }
+			play_seq();
+			if (Char.charid == 2) guard_after_seq();
+			if ((Char.x > 0x21 && Char.x < 0x222) || (Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12))
+			    || ((Char.room == 7 || Char.room == 8) && level_kind == 6)) {
+				fall_accel(); fall_speed(); load_frame_to_obj(); load_fram_det_col(); set_char_collision();
+				if (Char.action == 9) Char.curr_row = y_to_row(Char.y);
+				else {
+					check_guard_bumped(); check_gate_guard(); check_fall_or_ceiling(); check_tile_effects();
+					if (level_kind == 2 || level_kind == 3 || level_kind == 4 || level_kind == 6) level_kind_hooks_char();
+				}
+			}
+			if (Char.charid == 12) ovl_37d28();
+			if (Char.room != dr) { drawn_room = dr; set_neighbour_rooms(); }
+		}
+		if (level_kind == 6 && room_nchars(drawn_room) != n) { n--; i--; } else save_char();
+	}
+	for (int8_t i = 0; i < n; i++) {
+		if ((uint8_t)chars[i].direction != 0x56) continue;
+		load_char(i); remove_record_pub(i, drawn_room);
+		if ((int8_t)Char.index < (int8_t)Kid.opp_index) Kid.opp_index--;
+		else if (Char.index == Kid.opp_index) Kid.opp_index = find_opponent(Char.direction);
+		i--; n--;
+	}
+	word_6140 = 0;
 }

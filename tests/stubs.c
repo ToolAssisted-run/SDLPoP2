@@ -36,7 +36,6 @@ void shadow_hook_2f9a2(void) { note(" shadow"); }
 void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", code); note(t); }
 /* control.c externs not yet reconstructed */
 uint8_t kid_f34, byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_6d46, word_8a84;
-int tile_passable_2f800(uint16_t m, uint8_t t) { (void)m; return !tile_is_wall_kind(t); }
 int shadow_seq_2f86a(void) { return -1; } int sword_seq_0317c4(void) { note(" sword0317c4?"); return -1; }
 void ovl_2f86_0a5c(void) { note(" 2f86_0a5c"); } uint8_t find_char_02dcc8(void) { return (uint8_t)find_opponent(Char.direction); } void shadow_2fba4(void) {} void ovl_34024(void) {}
 void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) {} int ovl_34350(void) { return 0; } int ovl_35240(int a) { (void)a; return 0; } int ovl_34ab2(void) { return 0; }
@@ -54,8 +53,11 @@ void stubs_load_frame_tables(const char *exe)
 	FILE *f = fopen(exe, "rb"); if (!f) { fprintf(stderr, "cannot open %s\n", exe); exit(2); }
 	fseek(f, 0x3A500, SEEK_SET); if (fread(kidtab, 1, sizeof kidtab, f) < 12000) fprintf(stderr, "short data resource\n");
 	fclose(f); frame_table_kid = kidtab;
-	static dat_file princedat; if (dat_open(&princedat, getenv("PRINCE_DAT") ? getenv("PRINCE_DAT") : "PRINCE.DAT")) { uint16_t n; const uint8_t *g = dat_find(&princedat, "MARF", 1000, &n); frame_table_guard = g ? g : kidtab; } else frame_table_guard = kidtab;
-	sword_table = frame_table_guard;
+	static dat_file princedat, guarddat; uint16_t n;
+	/* sword frames: PRINCE.DAT FRAM 1000 (1286:0544); guard frames: the guard DAT's FRAM table (GUARD.DAT 750 on level 1, DS:0CB8) */
+	sword_table = dat_open(&princedat, getenv("PRINCE_DAT") ? getenv("PRINCE_DAT") : "PRINCE.DAT") ? dat_find(&princedat, "MARF", 1000, &n) : NULL;
+	frame_table_guard = dat_open(&guarddat, getenv("GUARD_DAT") ? getenv("GUARD_DAT") : "GUARD.DAT") ? dat_find(&guarddat, "MARF", 750, &n) : NULL;
+	if (!frame_table_guard) frame_table_guard = kidtab;
 }
 
 #include <stdlib.h>
@@ -76,11 +78,22 @@ void loose_floor_184e(int8_t how) { char t[24]; snprintf(t, sizeof t, " LOOSE(%d
 void spikes_15d4(void) { note(" SPIKES"); } void spikes_16a0(void) { note(" spikes16a0"); } void ovl_34724(void) { note(" 34724"); } void ovl_37826(void) { note(" 37826"); }
 void ovl_349be(void) {} void fall_scream_1611_0030(void) {} void sound_194c_83d2(uint16_t n) { (void)n; } int sound_playing_8426(void) { return 0; }
 void shake_loose_row(int8_t row, uint8_t room) { char t[32]; snprintf(t, sizeof t, " SHAKE(%d,%u)", row, room); note(t); } void level_kind_hooks(void) { note(" kindhooks"); }
-static dat_file kiddat; static int kiddat_ok;
+static uint16_t guard_bank2[8];
+static dat_file kiddat, guardshp; static int kiddat_ok, guardshp_ok;
 /* 0993:0FE2 + 26BC:06B6: the SHAP resource header of the sprite (chtab 2 = KID.DAT, base id 25001: image+1, or image-399 above 221) */
 int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1)
 {
-	if (chtab != 2 || image < 0) { note(" IMGSIZE?"); return 0; }
+	if (getenv("IMGDBG")) printf("IMG chtab %u image %d frame %u charid %u x %d\n", chtab, image, Char.frame, Char.charid, Char.x);
+	if (chtab == 3 && image >= 0) {   /* guards: GUARD.DAT SHAP 751 + image */
+		if (!guardshp_ok) guardshp_ok = dat_open(&guardshp, getenv("GUARD_DAT") ? getenv("GUARD_DAT") : "GUARD.DAT") ? 1 : -1;
+		/* 0993:0F36: images at or above the guard type's threshold (DS:06BC[type] -> first word) come from the second bank (+100) */
+		uint8_t t = (Char.charid == 10 || Char.charid == 12) ? charid_to_type[Char.charid] : level.type;
+		int id = 751 + image; if (t != 5 && t != 6 && t < 8 && guard_bank2[t] && image >= guard_bank2[t]) id += 100;
+		uint16_t n; const uint8_t *r = guardshp_ok > 0 ? dat_find(&guardshp, "PAHS", id, &n) : NULL;
+		if (!r) { note(" NOGSHAP"); return 0; }
+		*height = r[0] | (r[1] << 8); *width_m1 = r[2] | (r[3] << 8); return 1;
+	}
+	if (chtab != 2 || image < 0) { if (getenv("IMGDBG")) printf("IMG chtab %u image %d frame %u charid %u\n", chtab, image, Char.frame, Char.charid); note(" IMGSIZE?"); return 0; }
 	if (!kiddat_ok) { kiddat_ok = dat_open(&kiddat, getenv("KID_DAT") ? getenv("KID_DAT") : "KID.DAT") ? 1 : -1; }
 	if (kiddat_ok < 0) return 0;
 	uint16_t n; const uint8_t *r = dat_find(&kiddat, "PAHS", image <= 0xDD ? 25002 + image : 24602 + image, &n);
@@ -92,10 +105,16 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 uint16_t word_68f0;
 void ovl_37d2a(void) { note(" 37d2a"); } void ovl_352b4(void) { note(" 352b4"); } int ovl_342b4(void) { note(" 342b4?"); return -1; } void ovl_34210(void) { note(" 34210"); }
 void ovl_34958(void) { note(" 34958"); } void ovl_34370(void) { note(" 34370"); } void ovl_2f9f2(void) { note(" 2f9f2"); }
-void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {} int random_2751(int n) { (void)n; note(" RANDOM?"); return 0; }
+void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {}
 level_char_init *ovl_379e8(level_char_init *r) { note(" 379e8?"); return r; } level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
 void ovl_36712(void) { note(" 36712"); } void ovl_3791e(int a, int i) { (void)a; (void)i; note(" 3791e"); } void room_music_087e(void) {} void redraw_room(void) {} void hp_bar_clear(void) {}
 static uint8_t dstables[0x20];
 void stubs_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 charid->type (static data) */
-{ memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; }
+{ memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; guard_set_prob_tables(ram + 0x3B250);
+  for (int i = 0; i < 8; i++) { uint16_t p = ram[0x3B250 + 0x6BC + 2 * i] | ram[0x3B250 + 0x6BD + 2 * i] << 8; guard_bank2[i] = p ? (ram[0x3B250 + p] | ram[0x3B250 + p + 1] << 8) : 0; } }
 __attribute__((weak)) int play_kid_control(void) { note(" play_kid_control?"); return -2; }   /* ticktest supplies the captured-input version */
+
+/* guard.c / play_all_chars stubs */
+int ovl_383d2(void) { note(" 383d2?"); return 1; }
+void ovl_shadow_37f0_78(void) { note(" shadow78"); } void ovl_366c_10cc(void) { note(" 10cc?"); } void ovl_33fd_694(void) { note(" 694?"); } void ovl_366c_e0a(void) { note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
+int ovl_36ed6(int16_t d) { (void)d; note(" 36ed6?"); return -1; } void dead_char_sound_1611(void) {} void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); } void level_kind_hooks_char(void) { note(" kindhooks_char"); }

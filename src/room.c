@@ -38,6 +38,7 @@ static void remove_record(int i, uint8_t room)
 	}
 	room_base(room)[0]--;
 }
+void remove_record_pub(int i, uint8_t room) { remove_record(i, room); }
 /* OVL01 02DB1A */
 static void record_fixup(level_char_init *rec)
 {

@@ -106,3 +106,11 @@ void set_neighbour_rooms(void); void enter_room_chars(void); void switch_room(vo
 void ovl_37d2a(void); void ovl_352b4(void); int ovl_342b4(void); void ovl_34210(void); void ovl_34958(void); void ovl_34370(void); void ovl_2f9f2(void);
 void load_guard_sprites(uint8_t type); void ovl_guard6_sprites(void); int random_2751(int n); level_char_init *ovl_379e8(level_char_init *r); level_char_init *ovl_36ada(level_char_init *r);
 void ovl_36712(void); void ovl_3791e(int a, int idx); void room_music_087e(void); void redraw_room(void); void hp_bar_clear(void);
+/* guard.c (2D3E:1864 autocontrol, OVL10 366C guard decisions) and play_all_chars */
+extern uint32_t random_seed; extern uint16_t word_68ec; extern uint8_t byte_5cba;
+void guard_set_prob_tables(const uint8_t *ds); int tile_passable_2f800(uint16_t mod, uint8_t tile); void autocontrol(void); void guard_after_seq(void);
+int tile_blocks(uint8_t t); void check_guard_bumped(void); void check_gate_guard(void); void check_fall_or_ceiling(void); void check_tile_effects(void);
+void char_control_step(void); void play_all_chars(void); void remove_record_pub(int i, uint8_t room);
+int ovl_383d2(void); void ovl_shadow_37f0_78(void); void ovl_366c_10cc(void); void ovl_33fd_694(void); void ovl_366c_e0a(void); void ovl_366c_11(void);
+int ovl_36ed6(int16_t d); void dead_char_sound_1611(void); void ovl_15db_64(void); void ovl_37d28(void); void level_kind_hooks_char(void);
+#define word_2ba8 (*(uint16_t *)(tiles0 + 0xE))   /* DS:2BA8 */

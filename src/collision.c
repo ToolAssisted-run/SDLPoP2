@@ -3,6 +3,7 @@
 #include "types.h"
 #include "globals.h"
 #include <stdio.h>
+#include <stdlib.h>
 int coll_debug;
 
 int16_t obj_x, obj_y, obj_id; uint8_t obj_chtab;                             /* DS:60FC / 60FE / 6100 / 6102 */
@@ -68,6 +69,7 @@ void set_char_collision(void)
 	if (Char.direction == -1) { Char.bbox_left = obj_x; Char.bbox_right = obj_x + w1; }
 	else { Char.bbox_left = obj_x - w1; Char.bbox_right = obj_x; }
 	Char.bbox_top = char_top_y;
+	if (coll_debug) printf("   setcoll idx %u frame %u obj %d,%d id %d h %d w1 %d extra %d -> box %d %d %d %d\n", Char.index, Char.frame, obj_x, obj_y, obj_id, h, w1, extra, Char.bbox_top, Char.bbox_left, Char.bbox_bottom, Char.bbox_right);
 	char_x_left_coll = char_x_left; char_x_right_coll = char_x_right;
 	char_top_row = y_to_row(char_top_y);
 	char_bottom_row = y_to_row(obj_y); if (char_bottom_row == -1) char_bottom_row = 3;
@@ -190,7 +192,7 @@ static int blocks_tile7(void)  { return !(Char.charid != 7 && Char.charid != 8 &
 static int blocks_tile12(void) { return Char.charid != 1 && Char.charid != 7 && Char.charid != 8 && Char.charid != 0xB && image_height > 0x19 && ovl_343c2(); }
 
 /* OVL01 032636: does curr_tile (already looked up) block the character? Sets coll.tile_left_xpos when it does. */
-static int tile_blocks(uint8_t t)
+int tile_blocks(uint8_t t)
 {
 	int r;
 	if (t == 0xC) r = blocks_tile12();
@@ -356,4 +358,44 @@ void check_gate_push(void)
 		if (Char.charid != 1) word_6140 = 1;
 		gate_push_out();
 	} else if (Char.f19 != 0x32) seqtbl_offset_char(0x32);
+}
+
+/* OVL01 3212:0E8E (032FAE): a guard with the sword drawn walking into a wall or a gate */
+void check_guard_bumped(void)
+{
+	int is78 = Char.charid == 7 || Char.charid == 8; uint8_t act = is78 ? 0 : 1;
+	if (!((Char.action == act || (is78 && Char.f19 != 0xA4)) && (Char.alive < 0 || is78) && Char.f10 == 1 && Char.f19 != 0x46)) return;
+	uint8_t t = get_tile_at_char();
+	if (!tile_is_wall_kind(t) && (t != 4 || !can_bump_into_gate())) {
+		t = get_tile_infrontof(1);
+		if (!tile_is_wall_kind(t) && (t != 4 || !can_bump_into_gate())) t = 0;
+	}
+	if (t == 0) return;
+	load_frame_to_obj(); set_char_collision();
+	if (!tile_blocks(t)) return;
+	int id = -1;
+	int16_t far = gate_far_distance(curr_tile, curr_room, tile_col), near = wall_distance(tile_col, curr_room, curr_tile);
+	int16_t m = abs(far) <= abs(near) ? far : near;
+	if (is78) id = ovl_36ed6(near);
+	if (id == -1 && m < 5 && m >= -image_width) {
+		if (t == 4 && m > 0) m = -m;
+		Char.x = char_dx_forward(-m);
+		if (m < 0 || t != 4 || is78) { if (!is78 || (Char.f19 != 0x91 && Char.f19 != 0xA4 && Char.f24 != 1)) id = is78 ? 0x9E : 0x41; }
+		else id = 0x40;
+	}
+	if (id != -1) { seqtbl_offset_char(id); play_seq(); load_fram_det_col(); }
+}
+/* OVL01 3212:0C88 (032DA8): a guard overlapping a closing gate is pushed out */
+void check_gate_guard(void)
+{
+	uint8_t t = get_tile_at_char();
+	if (Char.alive >= 0) return;
+	if (t != 4 && get_tile_behind_char() != 4 && get_tile_infrontof(1) != 4) return;
+	if ((curr_room == 9 && level_number == 8) || Char.charid == 0xC || !can_bump_into_gate()) return;
+	coll.tile_left_xpos = col_x_left[tile_col] + 14;
+	int16_t l = get_left_wall_xpos(tile_row, tile_col, curr_room), r = get_right_wall_xpos(tile_row, tile_col, curr_room);
+	if (curr_room != drawn_room) {
+		if (curr_room == room_L) { l -= 320; r -= 320; } else if (curr_room == room_R) { l += 320; r += 320; } else { l = 999; r = 0; }
+	}
+	if (l < char_x_right && char_x_left < r) gate_push_out();
 }

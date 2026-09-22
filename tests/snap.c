@@ -3,10 +3,12 @@
 #include "../src/types.h"
 #include "../src/globals.h"
 #include "snap.h"
+int SNAP_BASE = 0x2B00, SNAP_SIZE = 0x4100;
+static int in_snap(int i);
 extern int16_t image_height, image_width;
 /* one table drives load, store and diff: DS offset, size, address of the C global */
 struct field { const char *name; uint16_t ds; uint16_t size; void *p; };
-extern uint16_t word_5cd8, word_6142, word_6146, mob_count_stub;
+extern uint16_t word_5cd8, word_6142, word_6146;
 static struct field fields[] = {
 	{"level", 0x2BB8, sizeof(level_type), &level}, {"tiles0", 0x2B9A, 30, tiles0}, {"coll", 0x2B24, 0x44, &coll},
 	{"Char", 0x5AB6, 64, &Char}, {"Opp", 0x5AF6, 64, &Opp}, {"Kid", 0x5B36, 64, &Kid}, {"chars", 0x5B76, 320, chars},
@@ -24,21 +26,22 @@ static struct field fields[] = {
 	{"knock", 0x613E, 2, &knock}, {"word_6140", 0x6140, 2, &word_6140}, {"word_6142", 0x6142, 2, &word_6142}, {"word_8a84", 0x6144, 2, &word_8a84}, {"word_6146", 0x6146, 2, &word_6146},
 	{"word_922a", 0x68EA, 2, &word_922a}, {"word_922e", 0x68EE, 2, &word_922e}, {"word_68f0", 0x68F0, 2, &word_68f0}, {"exit_dir", 0x68F2, 2, &exit_dir},
 	{"byte_9276", 0x6936, 1, &byte_9276}, {"prev_coll_flags", 0x6948, 10, prev_coll_flags}, {"curr_row_coll_flags", 0x6952, 10, curr_row_coll_flags},
-	{"next_room", 0x6B6D, 1, &next_room}, {"random_seed", 0x2B7A, 4, &random_seed}, {"word_68ec", 0x68EC, 2, &word_68ec}, {"byte_5cba", 0x5CBA, 1, &byte_5cba}, {"mob_count", 0x6186, 2, &mob_count_stub}, {"trob_count", 0x6670, 2, &trob_count}, {"trobs", 0x6676, 80, trobs}, {"word_5ce8", 0x5CE8, 2, &word_5ce8},
+	{"next_room", 0x6B6D, 1, &next_room}, {"random_seed", 0x2B7A, 4, &random_seed}, {"word_68ec", 0x68EC, 2, &word_68ec}, {"byte_5cba", 0x5CBA, 1, &byte_5cba}, {"mob_count", 0x6186, 2, &mob_count}, {"mobs", 0x293E, 390, mobs}, {"trob_count", 0x6670, 2, &trob_count}, {"trobs", 0x6676, 80, trobs}, {"word_5ce8", 0x5CE8, 2, &word_5ce8},
 };
 #define NF (int)(sizeof fields / sizeof fields[0])
 void snap_load(const uint8_t *ds)
 {
-	for (int i = 0; i < NF; i++) memcpy(fields[i].p, ds + fields[i].ds - SNAP_BASE, fields[i].size);
+	for (int i = 0; i < NF; i++) if (in_snap(i)) memcpy(fields[i].p, ds + fields[i].ds - SNAP_BASE, fields[i].size);
 	curr_modifier = ds[0x612F - SNAP_BASE] | ds[0x6130 - SNAP_BASE] << 8;
 	level_kind = level.hdr_pad2[4]; level_number = level.number; word_32d8 = counter_5cec;
 }
-void snap_store(uint8_t *ds) { for (int i = 0; i < NF; i++) memcpy(ds + fields[i].ds - SNAP_BASE, fields[i].p, fields[i].size); }
+void snap_store(uint8_t *ds) { for (int i = 0; i < NF; i++) if (in_snap(i)) memcpy(ds + fields[i].ds - SNAP_BASE, fields[i].p, fields[i].size); }
+static int in_snap(int i) { return fields[i].ds >= SNAP_BASE && fields[i].ds + fields[i].size <= SNAP_BASE + SNAP_SIZE; }
 int snap_diff(const uint8_t *got, const uint8_t *exp, const char *const *regions, int verbose)
 {
 	int bad = 0;
 	for (const char *const *r = regions; *r; r++)
-		for (int i = 0; i < NF; i++) if (!strcmp(fields[i].name, *r)) {
+		for (int i = 0; i < NF; i++) if (!strcmp(fields[i].name, *r) && in_snap(i)) {
 			const uint8_t *g = got + fields[i].ds - SNAP_BASE, *e = exp + fields[i].ds - SNAP_BASE; int d = 0;
 			for (int o = 0; o < fields[i].size; o++) if (g[o] != e[o]) { if (verbose && d < 24) { if (!d) printf("  %s:", fields[i].name); printf(" +%X:%02X!=%02X", o, g[o], e[o]); } d++; }
 			if (d && verbose) printf("%s\n", d > 24 ? " ..." : "");

@@ -96,8 +96,8 @@ extern uint16_t word_5cd8, word_6142, word_6146; extern int16_t word_087e, word_
 int take_hp(int n); void die_at_bottom(void); void char_fell_out(void); int8_t find_opponent(int8_t mode); int frame_is_strike_02f712(uint16_t frame, uint8_t charid);
 uint8_t get_tile_above_front(void); uint8_t get_tile_above_behind(void);   /* 0AFF:1514 / 14F6 */
 int play_kid_frame(void); int play_kid_control(void); void kid_post_move(void);
-void loose_floor_184e(int8_t how); void ovl_348e6(void); void ovl_3564e(void); void spikes_15d4(void); void spikes_16a0(void); void ovl_34724(void); void ovl_37826(void);
-void ovl_349be(void); void fall_scream_1611_0030(void); void sound_194c_83d2(uint16_t n); int sound_playing_8426(void); void shake_loose_row(int8_t row, uint8_t room); void level_kind_hooks(void);
+void ovl_348e6(void); void ovl_3564e(void); void ovl_34724(void); void ovl_37826(void);
+void ovl_349be(void); void fall_scream_1611_0030(void); void sound_194c_83d2(uint16_t n); int sound_playing_8426(void); void level_kind_hooks(void);
 /* room.c (OVL01 2D3E room records, 0823:0E72 room switch, 0FB3:0026) */
 extern uint8_t next_room, pal_slots[2], byte_9276; extern int16_t exit_dir; extern uint16_t word_922a, word_32d8, word_68f0;
 extern const uint8_t *type_to_charid, *charid_to_type;
@@ -123,3 +123,11 @@ void falling_floors(void); void animate_tiles(void); void ovl_366c_f60(void); vo
 /* anim.c */
 extern trob_type trobs[20], cur_trob; extern uint16_t trob_count; extern uint32_t anim_mod; void add_trob(uint8_t tile, uint8_t state, int8_t tilepos, uint8_t room); void anim_tile_other(uint8_t t);
 void start_room_anims(void); void anim_start_other(uint8_t t, int8_t tilepos, uint8_t room, int si);
+/* mobs.c */
+extern mob_type mobs[30], cur_mob; extern uint16_t mob_count; extern int16_t cur_mob_index; extern uint32_t *anim_attrs;
+void mobs_set_tables(const uint8_t *ds); trob_type *get_trob(int8_t tp, uint8_t room); void trigger_links(int link, uint8_t button);
+void press_button(int link, uint8_t tile); void press_button_hold(void); void anim_button(void); void anim_gate(void); void anim_loose(void);
+void loose_floor_touch(int8_t arg); void loose_floor_shake(void); void shake_loose_row(int8_t row, uint8_t room); void falling_floors(void);
+int exit_door_speed(int state);
+int ovl_button22(uint8_t room, int8_t tp); void ovl_347c_b3e(uint8_t room, int8_t tp, int k); int ovl_2a31_dad(uint8_t room, int8_t tp); void ovl_33fd_4d0(uint8_t room, int8_t tp);
+int ovl_33fd_b0e(int si); void ovl_347c_e8e(void); void ovl_347c_126(void); void ovl_366c_1294(int8_t row, uint8_t room); void ovl_mob_other(uint8_t type); int ovl_torch_347c(int cur);

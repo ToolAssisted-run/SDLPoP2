@@ -33,13 +33,13 @@ int main(int argc, char **argv)
 	static uint8_t ram[655360]; FILE *rf = fopen(argv[3], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf); stubs_load_ds_tables(ram);
 	level_roomlinks = (uint8_t *)&level + 0x17BC;
 	FILE *f = fopen(argv[5], "rb"); if (!f) return 2;
-	static uint8_t a[SNAP_SIZE], b[SNAP_SIZE], got[SNAP_SIZE]; uint32_t frame; int n = 0, bad = 0, busy = 0, skipped = 0;
+	static uint8_t a[SNAP_MAX], b[SNAP_MAX], got[SNAP_MAX]; uint32_t frame, size; int n = 0, bad = 0, busy = 0, skipped = 0;
 	static const char *const room_regions[] = {"Kid", "chars", "level", "drawn_room", "room_L", "room_R", "room_A", "room_B", "room_AL", "room_AR", "room_BL", "room_BR", "next_room", "exit_dir", "pal_slots", "word_922a", NULL};
 	static const char *const chars_regions[] = {"chars", "Kid", "level", "random_seed", "drawn_room", "room_L", "room_R", "word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", NULL};
-	static const char *const tick_regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "random_seed", "drawn_room", "room_L", "room_R", "room_A", "room_B", "next_room", "exit_dir", "pal_slots", "word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", "word_922a", NULL};
+	static const char *const tick_regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "random_seed", "drawn_room", "room_L", "room_R", "room_A", "room_B", "next_room", "exit_dir", "pal_slots", "word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", "word_922a", NULL};
 	const char *const *regions = tick_mode ? tick_regions : chars_mode ? chars_regions : room_regions;
 	int only = getenv("CASE") ? atoi(getenv("CASE")) : 0;
-	while (fread(&frame, 4, 1, f) == 1 && fread(a, 1, SNAP_SIZE, f) == SNAP_SIZE && fread(b, 1, SNAP_SIZE, f) == SNAP_SIZE && (!tick_mode || (fread(kctl, 1, 8, f) == 8 && fread(kc1, 1, 16, f) == 16))) {
+	while (fread(&frame, 4, 1, f) == 1 && fread(&size, 4, 1, f) == 1 && size <= SNAP_MAX && (SNAP_SIZE = size, SNAP_BASE = 0x6C00 - size, 1) && fread(a, 1, SNAP_SIZE, f) == SNAP_SIZE && fread(b, 1, SNAP_SIZE, f) == SNAP_SIZE && (!tick_mode || (fread(kctl, 1, 8, f) == 8 && fread(kc1, 1, 16, f) == 16))) {
 		n++; stubs_reset(); snap_load(a); coll_debug = only == n;
 		uint8_t dr0 = drawn_room; int8_t nch = room_nchars(drawn_room);
 		if (tick_mode) { if (tick_body() == -1) { skipped++; continue; } busy += drawn_room != dr0; }

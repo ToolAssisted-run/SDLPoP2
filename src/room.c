@@ -117,7 +117,7 @@ static int save_to_record(void)
 			rec->f10 = Char.f10; rec->hp = Char.f12; rec->type = charid_to_type[Char.charid];
 			record_fixup(rec);
 			uint8_t t = get_tile_at_char();
-			if (t == 5 || t == 6) spikes_16a0();
+			if (t == 5 || t == 6) press_button_hold();
 		}
 	}
 	Char.f12 = 0;

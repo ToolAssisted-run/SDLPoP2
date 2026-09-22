@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pair whole-DS snapshots from an oracle capture: for each LABEL_A event, the next LABEL_B event.
 usage: snaps_from_events.py events.txt LABEL_A LABEL_B out.bin [extra_label:size ...]
-records: frame(u32) A[16640] B[16640] then, per extra label, its first sample between A and B (zero-filled if absent)"""
+records: frame(u32) size(u32) A[size] B[size] then, per extra label, its first sample between A and B (zero-filled if absent)"""
 import sys, struct
 ev, la, lb, outp = sys.argv[1:5]
 extras = [(e.split(":")[0], int(e.split(":")[1])) for e in sys.argv[5:]]
@@ -14,6 +14,6 @@ for line in open(ev):
     frame = int(f[0][6:]); mem = bytes.fromhex(line.split("mem=")[1].strip())
     if lab == la: cur = (frame, mem); ext = {}
     elif lab == lb and cur:
-        out.write(struct.pack("<I", cur[0]) + cur[1] + mem + b"".join(ext.get(k, b"")[:sz].ljust(sz, b"\0") for k, sz in extras)); n += 1; cur = None
+        out.write(struct.pack("<II", cur[0], len(mem)) + cur[1] + mem + b"".join(ext.get(k, b"")[:sz].ljust(sz, b"\0") for k, sz in extras)); n += 1; cur = None
     elif cur and lab not in ext: ext[lab] = mem
 print("pairs:", n)

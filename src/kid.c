@@ -245,7 +245,7 @@ static void check_fall_landing(void)
 	if (tile_is_wall_kind(t)) t = push_out_of_wall();
 	if (tile_is_empty_kind(t)) { Char.curr_row++; return; }
 	if (t != 0xB && t != 0xF && t != 0x1A) { land(); return; }
-	if (t == 0xB) loose_floor_184e(Char.fall_y); else if (t == 0xF) ovl_348e6(); else ovl_3564e();
+	if (t == 0xB) loose_floor_touch(Char.fall_y); else if (t == 0xF) ovl_348e6(); else ovl_3564e();
 	if ((Char.fall_y > 32 || Char.index != 10) && Char.charid != 1) take_hp(100);
 	Char.fall_y /= 2;
 	Char.y = y_land_tbl[Char.curr_row & 7] - 7;
@@ -293,13 +293,13 @@ void check_tile_effects(void)
 		if (a > 1 && a != 7 && a != 5 && a != 8) t = 0;
 		else {
 			t = get_tile_above_char();
-			if (frame == 0x4F && t == 0xB) loose_floor_184e(0);
+			if (frame == 0x4F && t == 0xB) loose_floor_touch(0);
 			else if (frame == 0x4F && t == 0xF) ovl_348e6();
 			else t = (frame_flags & 0x40) ? get_tile_at_char() : 0;
 		}
 	} else t = get_tile_above_char();
-	if (t == 5 || t == 6 || t == 0x22) { if (Char.alive >= 0 && Char.charid != 4) spikes_16a0(); else spikes_15d4(); }
-	else if (t == 0xB || t == 0xF) { word_6140 = 1; if (t == 0xB) loose_floor_184e(0); else ovl_348e6(); }
+	if (t == 5 || t == 6 || t == 0x22) { if (Char.alive >= 0 && Char.charid != 4) press_button_hold(); else press_button(-1, 0); }
+	else if (t == 0xB || t == 0xF) { word_6140 = 1; if (t == 0xB) loose_floor_touch(0); else ovl_348e6(); }
 }
 /* 169B:0E94: running into the opponent's drawn sword */
 static void check_opp_bump(void)

@@ -9,7 +9,7 @@ trob_type trobs[20]; uint16_t trob_count;        /* DS:6676, DS:6670 */
 trob_type cur_trob;                              /* DS:6672 */
 uint32_t anim_mod;                               /* DS:5CF0 */
 uint8_t anim_tile;                               /* DS:6B72 */
-static uint32_t *anim_attrs; static uint8_t *anim_tiles;
+uint32_t *anim_attrs; static uint8_t *anim_tiles;
 
 /* 17C1:0000: tile and attribute pointers of any room (room 0 = the dummy room) */
 static void room_pointers(uint8_t room) { anim_tiles = room ? level.tiles[room - 1] : tiles0; anim_attrs = (uint32_t *)((uint8_t *)&level + 0x348) + room * 30; }
@@ -36,6 +36,53 @@ static void anim_27(void)         /* 33FD:058A */
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)((uint16_t)anim_mod + 1);
 	if ((uint16_t)anim_mod == 1) play_sound(0x31);
 }
+/* 1375:04CE: animations off screen stop */
+static int anim_visible(void) { int v = tile_visible(cur_trob.tilepos, cur_trob.room); if (!v) cur_trob.state = 0xFF; return v; }
+/* 1375:08D0 / 0D0A: torches pick a new random frame (kind 3: 33FD:0BC2) */
+static void anim_torch(void)
+{
+	if (!anim_visible()) return;
+	int cur = (uint8_t)anim_mod, v;
+	if (level_kind == 3) { v = random_2751(8); if (v == cur) { v++; if (v >= 9) v = 0; } }
+	else v = ovl_torch_347c(cur);
+	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFF00) + v);
+}
+/* 1375:088C: tile 0x0A cycles 0..0x1B while visible */
+static void anim_0a(void)
+{
+	if (anim_tile != 0xA) { cur_trob.state = 0xFF; return; }
+	if ((int8_t)cur_trob.state < 0 || !anim_visible()) return;
+	int v = (uint8_t)anim_mod & 0x1F; v = v >= 0x1B ? 0 : v + 1;
+	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFFE0) | v);
+}
+/* 1375:0C66: the level door opens (states 0..3, +1 up to 0x2A) or closes (4.., DS:0764 speeds) */
+static void anim_exit_door(void)
+{
+	int si = (uint8_t)anim_mod;
+	if ((int8_t)cur_trob.state >= 0) {
+		if (cur_trob.state >= 4) {
+			cur_trob.state++;
+			si -= exit_door_speed(cur_trob.state);
+			if (si < 0) { si = 0; cur_trob.state = 0xFF; play_sound(9); }
+		} else if (++si >= 0x2A) { cur_trob.state = 0xFF; if (!(drawn_room == 4 && level_number == 13)) play_sound(8); }
+		else if (!(drawn_room == 4 && level_number == 13)) play_sound(7);
+	}
+	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFF00) + si);
+}
+/* 1375:13C0: a torch starts at a random frame */
+static void start_torch(int8_t tp, uint8_t room)
+{
+	int r = random_2751(level_kind == 3 ? 8 : 3);
+	uint16_t *a = (uint16_t *)&anim_attrs[tp]; *a = (*a & 0xFF00) + r;
+	add_trob(0x13, 1, tp, room);
+}
+/* 1375:1160 */
+static void start_0a(int8_t tp, uint8_t room)
+{
+	int r = random_2751(0x1A) + 1;
+	uint16_t *a = (uint16_t *)&anim_attrs[tp]; *a = (*a & 0xFFE0) | r;
+	add_trob(0xA, 1, tp, room);
+}
 /* 1375:0096 */
 static void animate_tile(void)
 {
@@ -45,7 +92,14 @@ static void animate_tile(void)
 	if (level_kind == 5 && t == 0x25) anim_torch_25();
 	else if (level_kind == 5 && t == 0x26) anim_26();
 	else if (level_kind == 5 && t == 0x27) anim_27();
-	else if (t < 4 || t > 0x2C) cur_trob.state = 0xFF;
+	else if (t == 4 && level_kind != 1) anim_gate();
+	else if (t == 5 || t == 6 || t == 0x22) anim_button();
+	else if (t == 0xA) anim_0a();
+	else if (t == 0xB) anim_loose();
+	else if (t == 0x11) anim_exit_door();
+	else if (t == 0x13 || t == 0x20) anim_torch();
+	else if (t < 4 || t > 0x2C || t == 7 || t == 8 || t == 9 || t == 0xC || t == 0xE || t == 0xF || t == 0x10 || t == 0x12 || t == 0x14 || t == 0x15 || t == 0x16
+	         || t == 0x18 || t == 0x19 || t == 0x1A || t == 0x21 || t == 0x23) cur_trob.state = 0xFF;
 	else anim_tile_other(t);
 	((uint16_t *)&anim_attrs[(int8_t)cur_trob.tilepos])[0] = (uint16_t)anim_mod;
 }
@@ -81,7 +135,9 @@ void start_room_anims(void)
 		else { tp = si - 0x21; anim_mod = anim_attrs[tp]; t = anim_tiles[tp]; }
 		switch (t) {
 		case 0x1C: case 0x1D: case 0x1F: case 0x25: case 0x26: case 0x27: case 0x28: case 0x2B: add_trob(t, 1, tp, room); break;
-		case 0x02: case 0x0A: case 0x13: case 0x20: case 0x17: case 0x1E: case 0x2C: anim_start_other(t, tp, room, si); break;
+		case 0x0A: if (si < 0x21) start_0a(tp, room); break;
+		case 0x13: case 0x20: start_torch(tp, room); break;
+		case 0x02: case 0x17: case 0x1E: case 0x2C: anim_start_other(t, tp, room, si); break;
 		default: if ((room == 6 || room == 7 || room == 8) && level_kind == 6 && (anim_mod & 0x1000)) anim_start_other(t, tp, room, si); break;
 		}
 	}

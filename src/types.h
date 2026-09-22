@@ -84,6 +84,7 @@ typedef struct level_type {
 } level_type;
 #pragma pack(pop)
 
+typedef struct __attribute__((packed)) mob_type { int16_t x, y; uint8_t room; int16_t speed, w7; uint8_t type, row; int16_t wd; } mob_type;   /* 13 bytes, DS:293E */
 typedef struct trob_type { int8_t tilepos; uint8_t room; uint8_t state; uint8_t tile; } trob_type;   /* 4 bytes, DS:6676 */
 typedef struct frame_type { uint16_t image, sword; int8_t dx, dy; uint8_t flags; } frame_type;   /* 7 bytes */
 
@@ -93,3 +94,4 @@ enum {
 	SEQ_LVL6_COUNTER, SEQ_SND, SEQ_CTL, SEQ_KNOCK_UP, SEQ_KNOCK_DOWN, SEQ_SET_85F8, SEQ_JMP_IF_FEATHER, SEQ_ADD_FALL,
 	SEQ_SET_FALL, SEQ_ACT, SEQ_DY, SEQ_DX, SEQ_DOWN, SEQ_UP, SEQ_FLIP, SEQ_JMP
 };
+_Static_assert(sizeof(mob_type) == 13, "mob_type");

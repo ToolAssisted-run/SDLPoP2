@@ -26,9 +26,9 @@ void fall_speed(void)
 /* 0AFF:1CC2 / 0AFF:1D0E / 0AFF:1D60 */
 void save_char(void)    { if (Char.index < 5) chars[Char.index] = Char; else rtlink_fatal(0x176); }
 void load_char(int n)   { if (n >= 0 && n < 5) Char = chars[n]; else rtlink_fatal(0x191); }
-void restore_char_from_saved(void) { Char = Char_saved; }
+void loadkid(void) { Char = Kid; }
 /* 0AFF:0878 */
-void load_char_and_opp(int n) { load_char(n); Opp = Char_saved; }
+void load_char_and_opp(int n) { load_char(n); Opp = Kid; }
 /* 0AFF:0DF6: 1 = the character is outside the level (room 0, or level 6 rooms 3/5 below row 11) */
 int char_out_of_level(void)
 {

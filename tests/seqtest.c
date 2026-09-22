@@ -6,7 +6,7 @@
 #include "../src/globals.h"
 #include "../src/dat.h"
 
-char_type Char, Opp, Char_saved, chars[5]; level_type level; uint8_t tiles0[30]; uint32_t tick; int16_t knock, is_feather_fall;
+char_type Char, Opp, Kid, chars[5]; level_type level; uint8_t tiles0[30]; uint32_t tick; int16_t knock, is_feather_fall;
 int8_t control_x, control_y, control_shift; uint8_t drawn_room; uint16_t counter_5cec, word_27c0, counter_27d6, word_6140; uint8_t flag_5cb9, byte_5cb8, lvl_43fd;
 static dat_file seqdat; static char log_[512];
 static void note(const char *s) { strncat(log_, s, sizeof log_ - strlen(log_) - 1); }

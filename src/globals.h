@@ -3,7 +3,7 @@
 #include "types.h"
 extern char_type Char;            /* DS:5AB6 */
 extern char_type Opp;             /* DS:5AF6 */
-extern char_type Char_saved;      /* DS:5B36 */
+extern char_type Kid;             /* DS:5B36 - the prince's persistent record (play_kid_frame loads/saves it) */
 extern char_type chars[5];        /* DS:5B76 */
 extern level_type level;          /* DS:2BB8 */
 extern uint8_t   tiles0[30];      /* DS:2B9A dummy room 0 */
@@ -26,5 +26,5 @@ void ovl_366c_1704(void);
 void flash_on(uint16_t v); void flash_off(void);   /* 0FB3:2A34 / 294C */
 int16_t char_dx_forward(int16_t dx); void char_y_to_floor(void); void seq_sound(uint16_t n); void seq_set_85f8(uint16_t v);
 void play_seq(void);              /* 0AFF:03AA */
-void fall_accel(void); void fall_speed(void); void save_char(void); void load_char(int n); void restore_char_from_saved(void);
+void fall_accel(void); void fall_speed(void); void save_char(void); void load_char(int n); void loadkid(void);
 void load_char_and_opp(int n); int char_out_of_level(void); void load_fram_det_col(void); void rtlink_fatal(int code);

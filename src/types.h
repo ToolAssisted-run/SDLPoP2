@@ -18,7 +18,12 @@ typedef struct char_type {
 	int8_t   fall_x;       /* +0C SET_FALL / ADD_FALL, clamped to 16 */
 	int8_t   fall_y;       /* +0D clamped to 32 */
 	uint8_t  room;         /* +0E CLEAR_CHAR sets 0 */
-	uint8_t  f0f[6];       /* +0F..+14 */
+	uint8_t  f0f;          /* +0F */
+	uint8_t  f10;          /* +10 set to 1 by the standing shift handler; 1 = special control (2FDF:1BFA) */
+	int8_t   alive;        /* +11 < 0 while alive (PoP1 alive = -1), counts up when dying */
+	uint8_t  f12;          /* +12 hp-like (take_hp compares) */
+	uint8_t  f13;          /* +13 */
+	uint8_t  f14;          /* +14 */
 	uint16_t seq_pos;      /* +15 word index into the current sequence */
 	uint16_t seq_id;       /* +17 SQES resource id */
 	uint16_t f19;          /* +19 cleared by opcode FFEE; compared with 0x3C in JMP special case */

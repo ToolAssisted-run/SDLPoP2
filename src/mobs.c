@@ -201,7 +201,7 @@ static void add_mob(void) { if (mob_count < 30) mobs[mob_count++] = cur_mob; }
 void anim_loose(void)
 {
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)((uint16_t)anim_mod + 1);
-	int dl = (uint8_t)anim_mod & 0xF;
+	int dl = (uint8_t)anim_mod & 0xF;   /* shake counter */
 	if (cur_trob.state == 0xFF) return;
 	if (anim_mod & 0x40) { if (dl >= 4) { cur_trob.state = 0xFF; anim_mod = (anim_mod & 0xFFFFFF00u) | ((uint8_t)anim_mod & 0xB0); } return; }
 	if (dl < 0xC) return;
@@ -209,7 +209,7 @@ void anim_loose(void)
 	remove_loose(cur_trob.tilepos, cur_trob.room);
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(si + 3);
 	cur_mob.x = (cur_trob.tilepos % 10) * 32; cur_mob.y = (cur_trob.tilepos / 10) * 63 + 0x42; cur_mob.room = cur_trob.room;
-	cur_mob.speed = (int8_t)cur_trob.state; cur_mob.w7 = 0; cur_mob.type = si; cur_mob.row = dl; cur_mob.wd = 0;
+	cur_mob.speed = (int8_t)cur_trob.state; cur_mob.w7 = 0; cur_mob.type = si; cur_mob.row = cur_trob.tilepos / 10; cur_mob.wd = 0;   /* DL holds the row from the division at 1375:17BD */
 	add_mob();
 	cur_trob.state = 0xFF;
 }
@@ -356,3 +356,49 @@ void falling_floors(void)
 	mob_count = k;
 }
 int exit_door_speed(int state) { return exit_door_speeds[state]; }
+
+/* 1375:19DE: the n-th (1-based) live falling object of a type */
+static mob_type *find_mob(int n, uint8_t type) { int k = 0; for (int i = 0; i < (int16_t)mob_count; i++) if (mobs[i].type == type && mobs[i].speed != -1 && ++k == n) return &mobs[i]; return NULL; }
+/* 1375:1F42: is a landed falling floor lying on the current tile? */
+static int mob_on_tile(void)
+{
+	uint8_t type = level_kind == 3 ? 1 : 3; mob_type *m; int n = 0;
+	while ((m = find_mob(++n, type)) != NULL) {
+		int16_t x = m->x; int8_t c = (int8_t)(x < 0 ? -((-x) >> 5) : x >> 5);
+		if (m->room == curr_room && m->row == tile_row && c == tile_col && m->wd != 0) return 1;
+	}
+	return 0;
+}
+/* 33FD:0000 (kind 3): pressure plate 0x22 holding a gate: returns the gate's new state or -1 */
+int ovl_button22(uint8_t room, int8_t tp)
+{
+	uint16_t *a = attr_lo(room, tp); uint16_t pos = *a & 0xFF, hi = *a & 0xFF00;
+	int weighted = mob_on_tile();
+	trob_type *t = get_trob(tp, room);
+	if (t) {
+		if (t->state == 0 || t->state == 1) {
+			uint16_t mod;
+			if (weighted) mod = curr_modifier;
+			else {   /* is Char standing on a plate? (curr_* are saved and restored around the lookup) */
+				uint8_t s_tile = curr_tile, s_room = curr_room, s_tp = curr_tilepos; int8_t s_col = tile_col, s_row = tile_row; uint16_t s_mod = curr_modifier;
+				mod = get_tile(Char.curr_row, Char.curr_col, Char.room) == 0x22 ? curr_modifier : 0;
+				curr_tile = s_tile; curr_room = s_room; curr_tilepos = s_tp; tile_col = s_col; tile_row = s_row; curr_modifier = s_mod;
+			}
+			if (mod & 0x800) { *a = hi + 0xFA; return -1; }
+			if (pos > 0xC8) *a = hi + 0xC8;
+			t->state = 4; return -1;
+		}
+		if (t->state == 2 && weighted) t->state = 3;
+		return -1;
+	}
+	if (pos == 0xFF) return -1;
+	if (pos == 0) {
+		if (!(Char.charid == 4 && Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12))) {
+			if (weighted) return 3;
+			return (curr_modifier & 0x800) ? -1 : 2;
+		}
+		return -1;
+	}
+	if (pos == 0x24) return -1;
+	return Kid.alive < 0 ? 4 : -1;
+}

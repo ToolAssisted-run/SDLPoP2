@@ -128,7 +128,7 @@ void ovl_366c_f60(void) { note(" f60?"); } void checkpoints_0db4(void) {}
 void level_kind_tick(void) { if (level_kind == 5) { if (Kid.room == 0x13 || Kid.room == 0x10 || byte_9276 == 10) note(" KIND5?"); for (int i = 0; i < room_nchars(drawn_room); i++) if (chars[i].room == 0x13 || chars[i].room == 0x10 || byte_9276 == i) note(" KIND5c?"); } else note(" KINDTICK?"); }
 void anim_start_other(uint8_t t, int8_t tp, uint8_t room, int si) { (void)tp; (void)room; (void)si; char m[24]; snprintf(m, sizeof m, " ASTART%02X?", t); note(m); }
 /* mobs stubs */
-int ovl_button22(uint8_t r, int8_t tp) { (void)r; (void)tp; note(" BTN22?"); return -1; } void ovl_347c_b3e(uint8_t r, int8_t tp, int k) { (void)r; (void)tp; (void)k; note(" b3e?"); }
+void ovl_347c_b3e(uint8_t r, int8_t tp, int k) { (void)r; (void)tp; (void)k; note(" b3e?"); }
 int ovl_2a31_dad(uint8_t r, int8_t tp) { (void)r; (void)tp; note(" dad?"); return -1; } void ovl_33fd_4d0(uint8_t r, int8_t tp) { (void)r; (void)tp; note(" 4d0?"); }
 int ovl_33fd_b0e(int si) { note(" b0e?"); return si; } void ovl_347c_e8e(void) { note(" e8e?"); } void ovl_347c_126(void) { note(" 126?"); }
 void ovl_366c_1294(int8_t row, uint8_t r) { (void)row; (void)r; note(" 1294?"); } void ovl_mob_other(uint8_t t) { char m[24]; snprintf(m, sizeof m, " MOB%u?", t); note(m); } int ovl_torch_347c(int c) { note(" torch347c?"); return c; }

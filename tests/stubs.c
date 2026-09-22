@@ -33,3 +33,15 @@ void play_sound(uint16_t n) { (void)n; } void sound_1611_01a8(uint16_t n) { (voi
 void shadow_hook_2f9a2(void) { note(" shadow"); }
 void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", code); note(t); }
 void load_fram_det_col(void) { note(" load_fram_det_col"); }
+/* control.c externs not yet reconstructed */
+uint8_t frame_dx, frame_flags, kid_84af, kid_f34, byte_5cc5, byte_2ab4, edge_type, kid_842f, byte_8459, opp_charid_843c, start_room; int16_t word_3bf62; uint16_t word_6d46, word_8a84;
+static int16_t colx_l[16], colx_r[16]; const int16_t *col_x_left = colx_l, *col_x_right = colx_r;
+int tile_passable_2f800(uint16_t m, uint8_t t) { (void)m; return !tile_is_wall_kind(t); }
+int shadow_seq_2f86a(void) { return -1; } int sword_seq_0317c4(void) { note(" sword0317c4?"); return -1; }
+void ovl_2f86_0a5c(void) { note(" 2f86_0a5c"); } uint8_t find_char_02dcc8(void) { return 0; } void shadow_2fba4(void) {} void ovl_34024(void) {}
+void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) {} int ovl_34350(void) { return 0; } int ovl_35240(int a) { (void)a; return 0; } int ovl_34ab2(void) { return 0; }
+int control_sword_check_030e3c(void) { note(" swordcheck?"); return 0; } void ovl_384e8(void) {} int ovl_32a0e(void) { note(" 32a0e?"); return 0; } int8_t tile_col_in_drawn_room(void) { return tile_col; }
+int gate_blocks_0329b6(void) { note(" gate0329b6?"); return 0; } void ovl_2f86_08d8(void) {} int get_edge_distance(void) { note(" EDGE?"); edge_type = 2; return 0x20; } int level_door_open_0cfa(void) { return curr_modifier > 0x29; } void ovl_30b52(void) { note(" 30b52"); }
+void control_jumpup_grab_031074(void) { note(" jumpup031074?"); } int opp_distance(void) { return 999; } void control_2fdf_1bfa(void) { note(" 1bfa?"); } void control_by_charid_cc1e(void) { note(" cc1e"); }
+void control_dead_0307a2(void) { note(" dead0307a2"); } void control_0d9_0e2(void) { note(" 0d9_0e2?"); }
+int is_dead_frame(uint8_t f) { if (f == 0xB9) return 1; if (Char.charid == 0) return f == 0xF2 || f == 0xF3 || f == 0x10F || f == 0x10A; return 0; }

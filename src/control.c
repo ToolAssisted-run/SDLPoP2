@@ -259,3 +259,100 @@ void control_frame81_0313c6(void)
 	if (dx) Char.x = char_dx_forward(dx);
 	seqtbl_offset_char(id);
 }
+
+/* 2FDF:0E72 (031062): standing jump (forward + up) */
+void control_jump_031062(void) { ctrl1_forward = 1; ctrl1_up = 1; seqtbl_offset_char(3); }
+
+/* 2FDF:0A5A (030c4a): turn around (backward pressed) */
+void control_standing_turn(void)
+{
+	ctrl1_backward = control_rest(); byte_5cc5 = 1;
+	int16_t d = distance_to_edge_weight();
+	if (get_tile_n_ahead(1) == 4 && gate_blocks_0329b6()) {
+		int16_t lim = level_kind == 3 ? 7 : (drawn_room == 9 && level_number == 8) ? -100 : 4;
+		if (d < lim) Char.x = char_dx_forward(d - lim);
+	}
+	if (level_kind == 2 || (level_kind == 6 && ((Char.room != 1 && Char.room != 2) || level_number != 14))) ovl_2f86_08d8();
+	if (Char.f19 != 0x47) seqtbl_offset_char(5);
+}
+
+/* 2FDF:0B9C (030d8c): safe step towards an edge; dist 0 = compute it */
+int control_standing_step(int dist)
+{
+	byte_2ab4 = 1; int r = 1; ctrl1_forward = 1; ctrl1_shift = 1; int id;
+	if (dist == 0) { dist = get_edge_distance(); r = dist; }
+	if (edge_type == 1) dist--;
+	if (dist < 1) {
+		if (byte_5cc5 != 0 && (edge_type != 1 || curr_tile == 12 || curr_tile == 13)) { byte_5cc5 = 0; id = 0x2C; goto set; }
+		id = 0x2A;
+	} else {
+		byte_5cc5 = 1;
+		if (dist < 0x1C) {
+			id = dist == 1 ? -1 : dist / 2 + 0x1C; r = dist / 2;
+			if (dist % 2) { Char.x = char_dx_forward(1); r = Char.x; }
+			goto set;
+		}
+		id = 0x2A;
+	}
+set:
+	if (id != -1) seqtbl_offset_char(id);
+	byte_2ab4 = 0; return r;
+}
+
+/* 2FDF:0AF0 (030ce0): forward pressed while standing: run, or a step when close to an edge */
+void control_standing_forward(void)
+{
+	int d = get_edge_distance();
+	if (edge_type == 1 && d < 0x12) { if (ctrl1_forward < 0) control_standing_step(0); }
+	else seqtbl_offset_char(1);
+	ctrl1_forward = control_rest();
+}
+
+/* 2FDF:0C42 (030a32): up pressed while standing */
+void control_standing_up(void)
+{
+	if (start_room != drawn_room && Char.charid == 0
+	    && (get_tile_at_char() == 0x11 || get_tile_infrontof_char() == 0x11 || get_tile_n_ahead(1) == 0x11)
+	    && level_door_open_0cfa()) { ovl_30b52(); return; }
+	if (ctrl1_forward != 0) { control_jump_031062(); return; }
+	control_jumpup_grab_031074();
+}
+
+/* 2FDF:0684 (030874): standing (frames 15, 50..52) */
+void control_standing(void)
+{
+	if (level_kind == 2 || level_kind == 6) ovl_2f86_0a5c();
+	if (ctrl1_shift == -1 && control_sword_check_030e3c()) return;
+	if (Char.index != 10) {
+		if (ctrl1_down < 0 && ctrl1_forward < 0) { control_standing_shift(); return; }
+	} else {
+		if ((Char.f10 != (uint8_t)-1 || (level_kind == 6 && Char.charid == 1)) && ctrl1_shift == -2
+		    && ctrl1_forward == 0 && ctrl1_backward == 0 && ctrl1_up == 0 && ctrl1_down == 0) {
+			ctrl1_shift = 2; control_rest(); control_standing_shift();
+			kid_842f = find_char_02dcc8(); if (kid_842f == (uint8_t)-1) kid_842f = 0; return;
+		}
+		if (byte_8459 > 1 && Char.charid != 1 && Char.f24 != 0xD && opp_charid_843c != 6) {
+			int d = opp_distance();
+			if (d > -11 && d < 0xD0 && d < 0 && d > -15) { control_standing_turn(); return; }
+		}
+	}
+	if (ctrl1_shift == -1 || ctrl1_shift == 1) {
+		if (ctrl1_backward < 0) { control_standing_turn(); return; }
+		if (ctrl1_up < 0) { control_standing_up(); return; }
+		if (ctrl1_down < 0) { control_standing_down(); return; }
+		if (ctrl1_forward < 0 && ctrl1_up == 0 && ctrl1_down == 0) { control_standing_step(0); return; }
+		if (ctrl1_forward != 0) return;
+	}
+	if (ctrl1_forward < 0) {
+		if (ctrl1_up >= 0) { control_standing_forward(); return; }
+	} else {
+		if (ctrl1_backward < 0) { control_standing_turn(); return; }
+		if (ctrl1_up >= 0) {
+			if (ctrl1_down < 0) { control_standing_down(); return; }
+			if (ctrl1_forward == 0) return;
+			control_standing_forward(); return;
+		}
+		if (ctrl1_forward >= 0) { control_standing_up(); return; }
+	}
+	control_jump_031062();
+}

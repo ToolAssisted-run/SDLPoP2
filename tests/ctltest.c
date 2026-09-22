@@ -20,7 +20,7 @@ int main(int argc, char **argv)
 		control();
 		char_type exp; memcpy(&exp, out, 64);
 		int d = memcmp(&Char, &exp, 64) != 0;
-		if (d) { bad++; printf("case %d: frame %u seq %u ctrl1 %d %d %d %d %d -> expected seq %u pos %u got seq %u pos %u [%s]\n", n, ((char_type *)in)->frame, ((char_type *)in)->seq_id, (int8_t)c1[0], (int8_t)c1[1], (int8_t)c1[2], (int8_t)c1[3], (int8_t)c1[4], exp.seq_id, exp.seq_pos, Char.seq_id, Char.seq_pos, stubs_log()); }
+		if (d) { bad++; printf("case %d: frame %u seq %u ctrl1 %d %d %d %d %d -> expected seq %u pos %u got seq %u pos %u [%s]\n  diff:", n, ((char_type *)in)->frame, ((char_type *)in)->seq_id, (int8_t)c1[0], (int8_t)c1[1], (int8_t)c1[2], (int8_t)c1[3], (int8_t)c1[4], exp.seq_id, exp.seq_pos, Char.seq_id, Char.seq_pos, stubs_log()); for (int o = 0; o < 64; o++) if (((unsigned char *)&Char)[o] != out[o]) printf(" +%02X:%02X!=%02X", o, ((unsigned char *)&Char)[o], out[o]); printf("\n"); }
 	}
 	printf("%d cases, %d mismatches\n", n, bad); return bad != 0;
 }

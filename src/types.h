@@ -66,8 +66,7 @@ typedef struct level_type {
 	uint8_t  hdr_pad4[3];
 	uint8_t  type;                 /* 0x1866 */
 	level_room rooms[28];          /* 0x1867 rooms 1..28 */
-	uint8_t  region_2517[0x9E2];   /* 0x2517 zero in level 1 */
-	uint8_t  tail[2];              /* 0x2EF9 (last bytes) */
+	uint8_t  region_2517[0x9E1];   /* 0x2517 zero in level 1 (ends at 0x2EF8 = 12024) */
 } level_type;
 #pragma pack(pop)
 

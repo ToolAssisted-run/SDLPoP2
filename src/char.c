@@ -35,3 +35,15 @@ int char_out_of_level(void)
 	if (Char.room != 0 && (((Char.room != 3 || level_number != 6) && (Char.room != 5 || level_number != 6)) || Char.curr_row < 11)) return 0;
 	return 1;
 }
+
+/* 0AFF:146E: may the character step/climb down here? (mod_here, mod_front, tile_here, tile_front) */
+int can_climb_down_146e(uint16_t mod_here, uint16_t mod_front, uint8_t here, uint8_t front)
+{
+	if (!tile_is_empty_kind(front)) return 0;
+	if (level_kind == 2 && (mod_front & 0x80)) return 0;
+	if ((here == 11 || here == 15) && (mod_here & 0xF)) return 0;
+	if (!tile_is_floor(here)) return 0;
+	if (here == 4 && mod_here == 0 && Char.direction == -1) return 0;
+	if (level_kind == 5 && Char.room == 15 && Char.curr_row != 0) return 0;
+	return 1;
+}

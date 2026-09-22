@@ -57,3 +57,7 @@ void ovl_383fa(void); void ovl_35f5a(void);
 extern uint8_t byte_5cc5; extern const int16_t *col_x_left, *col_x_right;   /* DS:5CC5; column x tables DS:0D06 / 0D08 */
 void ovl_35a88(void); int ovl_34350(void); int ovl_35240(int a); int ovl_34ab2(void); void control_hanging_climb(void); int seq_peek_frame_decreases(void);
 extern uint16_t word_6d46, word_8a84; int control_sword_check_030e3c(void); void ovl_384e8(void); int ovl_32a0e(void); int8_t tile_col_in_drawn_room(void);
+extern uint8_t byte_2ab4, edge_type, kid_842f, byte_8459, opp_charid_843c, start_room;
+int gate_blocks_0329b6(void); void ovl_2f86_08d8(void); int get_edge_distance(void); int level_door_open_0cfa(void); void ovl_30b52(void);
+void control_jumpup_grab_031074(void); int opp_distance(void); void control_standing_turn(void); int control_standing_step(int dist);
+void control_standing_forward(void); void control_standing_up(void);

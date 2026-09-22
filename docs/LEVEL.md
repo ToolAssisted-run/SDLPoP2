@@ -12,7 +12,7 @@ ARE the in-memory level struct:
 | 2F00 | 0x0348 | tile_attrs[room][30]: one dword per tile, room 0 included (room r at 0x348 + r*0x78); bits 0xC000 tested by 0CD6:027A |
 | 3C98 | 0x10E0 | 1811 bytes, all zero in level 1 (door links?) |
 | 43AB | 0x17F3 | level header (0x74 bytes, occupies the "room 0" slot): +4D room count (19 in level 1), +54 level number, +6D start room, +6E start tile (col + 10*row), +6F start direction (-1 = the prince faces right after ~), +73 level type/flag |
-| 441F | 0x1867 | room records for rooms 1..: 0x74 = 1 + 5*23 bytes: +0 number of characters, then five 23-byte character init records: +0 type (0x0C = prince, 6 = a guard kind), +1 x (word), +3 direction?, +4 ?, +5 0x4D?, +9 3?, +17 ... |
+| 441F | 0x1867 | room records for rooms 1..: 0x74 = 1 + 5*23 bytes: +0 number of characters, then five 23-byte character init records (read by the room-entry routine OVL01::02D444 through OVL01::02DC8C(i, room)): +0 start tile (col + 10*row), +1 x (word), +3 direction, +5 word (100 = use +11 as y for charid 2; 0x0C sets fall 2/18 for charid 6), +7 word (0 = ?), +0xD, +0xE bytes -> DS:5AEE/5AEF, +0xF type (charid = DS:0096[type]; overridden by the level type byte 441E unless 1/3/9/10), +0x11 word (y for charid 2), +0x15 word (y for charid 6, if nonzero) |
 | 50CF | 0x2517 | 2530 bytes, zero in level 1 |
 | 5AB2 | 0x2EFA | last dword: a resource handle set at runtime (FUN_194c_19dc), not level data |
 | 5AB6 | end | Char record follows immediately |

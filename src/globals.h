@@ -68,3 +68,32 @@ void control_standing_forward(void); void control_standing_up(void);
 extern uint16_t word_922e, word_922c, word_8604, word_927e;
 void sword_retreat(void); int char_scan_31bc4(void); int ovl_377c6(void); void ovl_3741a(void); uint8_t room_nchars(uint8_t room);
 void load_opp_080a(int n); int8_t find_char_02dcc8_dir(int dir); int rtlink_0dd5(void);
+/* collision.c (0993:09B6, OVL01 segment 3212) */
+typedef struct coll_state {                 /* DS:2B24.. as laid out in the DOS data segment */
+	uint8_t above_flags[10];                /* 2B24 */
+	int8_t  prev_collision_row, collision_row;   /* 2B2E, 2B2F */
+	uint8_t below_flags[10];                /* 2B30 */
+	int8_t  left_checked_col, right_checked_col; /* 2B3A, 2B3B */
+	int8_t  bump_col_left_of_wall, bump_col_right_of_wall;   /* 2B3C, 2B3D */
+	uint8_t above_room[10], below_room[10], prev_room[10], curr_room[10];   /* 2B3E, 2B48, 2B52, 2B5C */
+	int16_t tile_left_xpos;                 /* 2B66 */
+} coll_state;
+extern coll_state coll; extern uint8_t prev_coll_flags[10], curr_row_coll_flags[10];   /* DS:6948 / 6952 */
+extern int16_t obj_x, obj_y, obj_id; extern uint8_t obj_chtab;   /* DS:60FC.. sprite placed by load_frame_to_obj */
+extern int16_t image_height, image_width, char_x_left, char_x_right, char_x_left_coll, char_x_right_coll, char_top_y;   /* DS:6112.. */
+extern int8_t char_col_left, char_col_right, char_top_row, char_bottom_row;   /* DS:6135.. */
+extern uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR;   /* DS:5CDF.. (861F..8626) */
+extern int16_t word_440a;                  /* DS:440A (6d4a): level-7 moving objects */
+extern const uint8_t *sword_table;         /* FRAM 1000/1200 resource: 4-byte sword frame entries */
+int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);   /* 0993:0FE2 + 26BC:06B6: SHAP header words */
+int8_t col_from_x18(int16_t x18); int8_t y_to_row(int16_t y);
+void load_frame_to_obj(void); void set_char_collision(void); int wall_type(uint8_t t); int can_bump_into_gate(void);
+void check_collisions(void); void check_bumped(void); void check_gate_push(void); int16_t sword_extra_width(void);
+void ovl_366c2(void); void ovl_37bca(void); int ovl_34ce6(void); void ovl_34bd2(uint8_t *flags, uint8_t *rooms, int8_t row); int ovl_343c2(void);
+int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir); int16_t ovl_352ca(void); void ovl_3211a(void);
+/* kid.c (169B:0692 and the fall/land family) */
+extern uint16_t word_5cd8, word_6142, word_6146; extern int16_t word_087e, word_37e8;
+int take_hp(int n); void die_at_bottom(void); void char_fell_out(void); int8_t find_opponent(int8_t mode); int frame_is_strike_02f712(uint16_t frame, uint8_t charid);
+int play_kid_frame(void); int play_kid_control(void); void kid_post_move(void);
+void loose_floor_184e(int8_t how); void ovl_348e6(void); void ovl_3564e(void); void spikes_15d4(void); void spikes_16a0(void); void ovl_34724(void); void ovl_37826(void);
+void ovl_349be(void); void fall_scream_1611_0030(void); void sound_194c_83d2(uint16_t n); int sound_playing_8426(void); void shake_loose_row(int8_t row, uint8_t room); void level_kind_hooks(void);

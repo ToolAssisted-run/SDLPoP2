@@ -10,8 +10,7 @@ typedef struct char_type {
 	int16_t  x;            /* +02 */
 	int16_t  y;            /* +04 */
 	uint8_t  charid;       /* +06 10 = ?, 12 (0x0C) = prince in the level init record, 1 = shadow?, 7/8 = ? */
-	uint8_t  frame;        /* +07 PoP1 frame numbering */
-	uint8_t  f08;          /* +08 */
+	uint16_t frame;        /* +07 word; PoP1 frame numbering, sword frames 0xF6..0x107 */
 	int8_t   curr_col;     /* +09 */
 	int8_t   curr_row;     /* +0A */
 	uint8_t  action;       /* +0B */
@@ -23,11 +22,11 @@ typedef struct char_type {
 	int8_t   alive;        /* +11 < 0 while alive (PoP1 alive = -1), counts up when dying */
 	uint8_t  f12;          /* +12 hp-like (take_hp compares) */
 	uint8_t  f13;          /* +13 */
-	uint8_t  f14;          /* +14 */
+	int8_t   hp_delta;     /* +14 pending hp change (take_hp writes -n) */
 	uint16_t seq_pos;      /* +15 word index into the current sequence */
 	uint16_t seq_id;       /* +17 SQES resource id */
 	uint16_t f19;          /* +19 cleared by opcode FFEE; compared with 0x3C in JMP special case */
-	uint8_t  f1b[8];       /* +1B..+22 */
+	int16_t  bbox_top, bbox_left, bbox_bottom, bbox_right;   /* +1B..+22 sprite box from set_char_collision */
 	uint8_t  f23;          /* +23 */
 	uint16_t f24;          /* +24 set by opcode FFEB; 8 = ? in play_kid */
 	uint8_t  f26[0x13];    /* +26..+38 */

@@ -106,7 +106,7 @@ void control_jumpup(void)    { if (ctrl1_forward != 0) control_jump_031062(); }
 /* 2FDF:048C */
 void control(void)
 {
-	uint8_t frame = Char.frame;
+	uint16_t frame = Char.frame;
 	if (Char.alive >= 0) {
 		if (Char.charid != 0 && Char.index == Kid.opp_index) Kid.opp_index = find_char_02dcc8();
 		if (Char.charid == 1) { if (Char.alive > 6) shadow_2fba4(); }
@@ -181,7 +181,7 @@ void control_hanging_climb(void)
 /* 2FDF:16F6 (0314e6): would the next sequence item lower the frame number? (peek without side effects on the sequence) */
 int seq_peek_frame_decreases(void)
 {
-	uint16_t f19 = Char.f19, id = Char.seq_id, pos = Char.seq_pos; uint8_t frame = Char.frame;
+	uint16_t f19 = Char.f19, id = Char.seq_id, pos = Char.seq_pos; uint16_t frame = Char.frame;
 	play_seq();
 	Char.seq_id = id; Char.seq_pos = pos; Char.f19 = f19;
 	return Char.frame <= frame;
@@ -450,7 +450,7 @@ static void sword_actions(void)
 #endif
 void control_2fdf_1bfa(void)
 {
-	DBG("1bfa: index %u action %u f12 %u f14 %d f10 %u\n", Char.index, Char.action, Char.f12, (int8_t)Char.f14, Char.f10);
+	DBG("1bfa: index %u action %u f12 %u f14 %d f10 %u\n", Char.index, Char.action, Char.f12, Char.hp_delta, Char.f10);
 	if (Char.index == 10) {
 		Kid = Char; int8_t n = -1;
 		if (Char.opp_index != (uint8_t)-1 && Char.opp_index < room_nchars(Char.room)) { load_opp_080a(Char.opp_index); if ((int8_t)Char.f12 > 0) n = Char.opp_index; }
@@ -459,7 +459,7 @@ void control_2fdf_1bfa(void)
 	}
 	DBG("1bfa: after opp: index %u opp_index %u\n", Char.index, Char.opp_index);
 	if (Char.action > 1) return;
-	{ int hd = (int8_t)Char.f14; if (hd < 0) hd = -hd; if ((int)Char.f12 <= hd) return; }
+	{ int hd = Char.hp_delta; if (hd < 0) hd = -hd; if ((int)Char.f12 <= hd) return; }
 	int fall_through = 1;
 	uint8_t t = get_tile_at_char();
 	DBG("1bfa: tile %u opp.f23 %u dist %d charid %u\n", t, Opp.f23, opp_distance(), Char.charid);

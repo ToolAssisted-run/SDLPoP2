@@ -12,3 +12,18 @@ kc_ctrl1/kc_opp/kc_kid/kc_misc(DS:5CC4)/kc_out); `tests/quads_from_events.py eve
 334/335 identical. Open: case 75, a charid-2 character with the sword drawn whose captured Opp record is
 not the Kid; the game starts seq 0x7F (kid engage), so that call reached control() through a path where
 Opp/Char differ from the play_all_chars convention. To be revisited with a per-call stack sample.
+
+## Tick test (tests/ticktest.c)
+Replays play_kid_frame (169B:0692) tick by tick. Capture script (oracle, see pop2dec/oracle/tick2.script):
+probes at 169B:0692 for Kid (40D86), DS:5CC4 misc (40F14), Opp (40D46), chars[0..4] (40DC6..40EC6), the
+collision arrays DS:2B24 (3DD74) and flags DS:6948 (41B98); at 2FDF:048C the post-input controls
+(40F24, 8 bytes) and ctrl1 (41372, 16 bytes); at 169B:07D3 Char (40D06), the arrays, flags and the sprite box
+vars DS:6112 (41362). A `ram 1436 file` line dumps the level as loaded. Run:
+
+    KID_DAT=.../KID.DAT PRINCE_DAT=.../PRINCE.DAT tests/run_ticktest.sh SEQUENCE.DAT ram1436.bin PRINCE.EXE tick-events.txt level.bin
+
+Known, accepted differences: the dead prince's counter waits for the death sound (not modelled, reported
+separately), and on the level-restart tick the game leaves the last drawn character's box in the image
+variables (the harness recomputes the prince's). Out-of-level ticks skip the collision comparison for the
+same reason. Status: 1451 ticks over five captures (window jump, running, turning, standing jumps, ledge grabs,
+crouching, sword fight, falls, deaths, teleports into rooms 1, 10, 16) identical.

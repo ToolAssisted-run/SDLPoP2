@@ -94,6 +94,7 @@ int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir); int16_t ovl_352ca(void)
 /* kid.c (169B:0692 and the fall/land family) */
 extern uint16_t word_5cd8, word_6142, word_6146; extern int16_t word_087e, word_37e8;
 int take_hp(int n); void die_at_bottom(void); void char_fell_out(void); int8_t find_opponent(int8_t mode); int frame_is_strike_02f712(uint16_t frame, uint8_t charid);
+uint8_t get_tile_above_front(void); uint8_t get_tile_above_behind(void);   /* 0AFF:1514 / 14F6 */
 int play_kid_frame(void); int play_kid_control(void); void kid_post_move(void);
 void loose_floor_184e(int8_t how); void ovl_348e6(void); void ovl_3564e(void); void spikes_15d4(void); void spikes_16a0(void); void ovl_34724(void); void ovl_37826(void);
 void ovl_349be(void); void fall_scream_1611_0030(void); void sound_194c_83d2(uint16_t n); int sound_playing_8426(void); void shake_loose_row(int8_t row, uint8_t room); void level_kind_hooks(void);

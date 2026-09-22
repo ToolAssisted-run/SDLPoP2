@@ -79,8 +79,8 @@ int frame_is_strike_02f712(uint16_t frame, uint8_t charid)
 }
 
 /* 0AFF:1514 / 14F6 */
-static uint8_t get_tile_above_front(void)  { return get_tile(Char.curr_row - 1, dir_front[Char.direction + 1] + Char.curr_col, Char.room); }
-static uint8_t get_tile_above_behind(void) { return get_tile(Char.curr_row - 1, dir_behind[Char.direction + 1] + Char.curr_col, Char.room); }
+uint8_t get_tile_above_front(void)  { return get_tile(Char.curr_row - 1, dir_front[Char.direction + 1] + Char.curr_col, Char.room); }
+uint8_t get_tile_above_behind(void) { return get_tile(Char.curr_row - 1, dir_behind[Char.direction + 1] + Char.curr_col, Char.room); }
 /* OVL02 33FD:0AA0 / 0ABA (level-kind 5, the sea room 19 of level 1) */
 static int ovl_34a70(void) { return Char.room == 0x13 && Char.f19 == 0x3B; }
 static int ovl_34a8a(void) { return Char.room == 0x13 && Char.curr_row < 3 && word_37e8 < 0x20 && Char.x < 0xD0; }

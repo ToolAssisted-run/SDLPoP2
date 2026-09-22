@@ -17,7 +17,7 @@ int play_kid_control(void)
 	control_x = ctl[0]; control_y = ctl[1]; control_shift = ctl[2];
 	ctrl1_forward = c1[0]; ctrl1_backward = c1[1]; ctrl1_up = c1[2]; ctrl1_down = c1[3]; ctrl1_shift = c1[4];
 	control();
-	if (Char.alive >= 0 && is_dead_frame(Char.frame) && Char.charid <= 1 && Char.alive < 8) Char.alive++;
+	if (Char.alive >= 0 && is_dead_frame(Char.frame) && Char.charid <= 1 && Char.alive < 8) { Char.alive++; if (Char.alive == 8) return -1; }   /* alive 7 -> 169B:123E (level restart), no frame this tick */
 	return -2;
 }
 static void load_level_from_ram(const char *path)

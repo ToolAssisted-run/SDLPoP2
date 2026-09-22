@@ -308,6 +308,51 @@ void control_standing_forward(void)
 	ctrl1_forward = control_rest();
 }
 
+/* 2FDF:1740 (031530): grab the ledge above: seq 8 (straight up) at the edge, else seq 0x18 (jump up and grab) */
+static void jumpup_grab(int from_jump)
+{
+	int16_t d = distance_to_edge_weight();
+	if (from_jump && d == 0x20) d = 0;
+	if (d < 4) { int e = get_edge_distance(); if (e < 4 && edge_type != 1) { Char.x = char_dx_forward(d); seqtbl_offset_char(8); return; } }
+	Char.x = char_dx_forward(d - (Char.direction == -1 ? 7 : 9)); seqtbl_offset_char(0x18);
+}
+/* 2FDF:13BA (0311aa): plain jump up; seq 0xE when something is above the head, else 0x1C */
+static void jumpup_plain(void)
+{
+	ctrl1_up = control_rest();
+	int e = get_edge_distance(); if (e < 4 && edge_type == 1) Char.x = char_dx_forward(e - 6);
+	uint8_t t = get_tile(Char.curr_row - 1, col_from_x18(dx_weight() - 6), Char.room);
+	int id = 0x1C;
+	if (!tile_is_empty_kind(t) && (level_kind != 5 || Char.room != 0xF)
+	    && (Char.room != 7 || level_kind != 6 || (Char.curr_row == 2 && (Char.curr_col == 2 || Char.curr_col == 6)))
+	    && (Char.room != 8 || level_kind != 6 || (Char.curr_row == 2 && Char.curr_col != 3 && Char.curr_col != 4))) id = 0xE;
+	seqtbl_offset_char(id);
+}
+/* 2FDF:139A (03118a) */
+static void jumpup_step_back_grab(void) { get_tile_above_char(); Char.x = char_dx_forward(distance_to_edge_weight() - 0x18); seqtbl_offset_char(0x10); }
+/* 2FDF:1348 (031138): the ledge is above and behind */
+static void jumpup_behind(void)
+{
+	int16_t d = distance_to_edge_weight(); if (level_kind == 2) ovl_352ca();
+	if (d < 0x10) { jumpup_plain(); return; }
+	if (tile_is_empty_kind(get_tile_behind_char())) { jumpup_step_back_grab(); return; }
+	Char.x = char_dx_forward(d - 0x20); load_fram_det_col(); jumpup_grab(1);
+}
+/* 2FDF:1284 (031074): up while standing: grab the ledge above (in front, then behind) or jump up */
+void control_jumpup_grab_031074(void)
+{
+	ctrl1_up = control_rest();
+	uint8_t above = get_tile_above_char(); uint16_t m_above = curr_modifier;
+	uint8_t front = get_tile_above_front(); if (front == 4) curr_modifier = 200;
+	int16_t lim = level_kind == 2 ? ovl_352ca() : 0;
+	if (lim != 0) { int dl = lim - Char.x; if (dl < 0) dl = -dl; if (dl > 0x20) lim = 0; }
+	if (lim == 0 && can_climb_down_146e(curr_modifier, m_above, front, above)) { jumpup_grab(0); return; }
+	uint8_t behind = get_tile_above_behind(); uint16_t m_behind = curr_modifier;
+	above = get_tile_above_char(); if (above == 4) curr_modifier = 200;
+	if (lim == 0 && can_climb_down_146e(curr_modifier, m_behind, above, behind)) { jumpup_behind(); return; }
+	jumpup_plain();
+}
+
 /* 2FDF:0C42 (030a32): up pressed while standing */
 void control_standing_up(void)
 {

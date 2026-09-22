@@ -42,3 +42,66 @@ load_frame_to_obj, and the OVL01 3212 checks (collisions/press), then Kid = Char
   = 10 marks the player's record inside control routines.
 - Control test status: 331/335 captured cases identical; the rest need DS:5CC4 (engagement toggle) which
   the next capture samples.
+
+## The prince's tick (169B:0692 play_kid_frame; verified by tests/ticktest.c)
+loadkid; if out of the level (0AFF:0DF6): play_kid_control + char_fell_out (0AFF:0D1E: level kind 5
+lets the sea rooms 0x13/0x10 catch the fall, elsewhere death at y 0x180). Otherwise: pick the opponent
+(Kid+0x39, or the nearest live char, OVL01 02DCC8), 0AFF:080A loads Kid into Char and chars[n] into Opp,
+load_fram_det_col, play_kid_control (returns -1 on the level-restart tick), then unless DS:5CD8 (frozen):
+play_seq and, if a frame was produced, fall_accel, fall_speed, load_frame_to_obj (0993:09B6), load_fram_det_col,
+set_char_collision (OVL01 032ADE), opponent bump (169B:0E94), check_collisions (03212C), check_bumped (03250C),
+check_gate_push (032E78), 1375:06F2 (per action: ledge grab on jump-up frames 0x66..0x69, standing-on-air
+check 0AFF:09F8 -> start_fall 0AFF:0AAA, falling -> OVL01 02FE86 land/loose-floor), 1375:0758 (spikes 5/6/0x22,
+loose 0xB, chomper 0xF at or above), level-kind 2/3/4 hooks, and the loose-floor shake when a sequence set
+DS:613E (knock). Finally Kid = Char.
+
+Dead kid: the death counter Char+0x11 goes 0..7 one per tick but waits while the death sound plays
+(1611 sound slot DS:087E); at 7 -> 169B:123E restarts the level and that tick produces no frame.
+
+## Sprite box and collisions (OVL01 segment 3212, tables in DS)
+- load_frame_to_obj: obj_x = char_dx_forward(dx) - 130, obj_y = y + dy, obj_id = frame image, chtab 2 for
+  charids 0/1/6 (KID.DAT SHAP resource 25002 + image, or 24602 + image above 221), 3 otherwise
+  (charid 4 frames 0xCE..0xD1: chtab 4, image + 0x68). A SHAP body starts with {height:2, width-1:2}.
+- set_char_collision: image_height/width at DS:6112/6114, char_x_left = obj_x + 130 - width (facing right)
+  or - sword extra width (facing left; FRAM entry byte +2 of the sword frame minus 2 when the sword is drawn),
+  char_x_right = left + width (+ extra), char_top_y = obj_y - height + 1, Char+1B..+22 = the drawn box,
+  rows/cols at DS:6135..6138 (y_to_row = (y-3)/63, -1 at y <= 3; col_from_x18 with left clamped to 0 and right
+  to 9), frame flag 0x20 narrows the x range by 9 on both sides.
+- wall_type (032378): 0 passable; tile 0x14/0x19 -> 4, 7 -> 2 if height < 0x13 else 4, 2 -> 3 if modifier < 5
+  and DS:0174 set else 4, 4 (gate) -> 1 (5 on level kind 3, 8 in room 9 of level 8), 0xC -> 6. Tables DS:0D48
+  (left edge offset) = {0,25,0,-14,2,12,6,0,10,0} and DS:0D52 (right) = {0,0,31,-14,0,0,10,0,15,0}; a tile's
+  wall spans [colx + 14 + left, colx + 14 + 31 - right]; 578 (DS:0D22) / 0 mean "no wall".
+- check_collisions: rows curr/below/above over columns x_to_col(char_x_left) - 2 .. x_to_col(char_x_right) + 4
+  (max 11), flags 0x0F = wall's left edge < char_x_right, 0xF0 = char_x_left < wall's right edge, plus the room
+  of each column. Layout DS:2B24 above_flags[10], 2B2E prev/curr collision row, 2B30 below_flags, 2B3A/2B3B
+  checked cols, 2B3C/2B3D bump_col_left/right_of_wall, 2B3E above_room, 2B48 below_room, 2B52 prev_room,
+  2B5C curr_room, 2B66 tile_left_xpos; flags for the current row at DS:6952, previous row's at DS:6948
+  (move_coll_to_prev picks the above/below row when the character changed row by one or two).
+  Skipped for action 7, seq 0x4E/0x46, and level-7 moving objects (DS:440A). The arrays are shared with the
+  other characters (play_all_chars runs the same routines), so the "previous" state seen by the prince is
+  whatever character ran last.
+- check_bumped: bump_col_left_of_wall >= 0 -> look right (needs facing right or sword drawn),
+  else bump_col_right_of_wall -> look left; the tile must block (032636: gate needs can_bump_into_gate =
+  gate lower than the character's box height, tile 7 needs height >= 0x13 or modifier bits, 0xC needs
+  height > 0x19, 10 never); then bump_apply (0326E2): x += distance to the wall edge, next tile beyond a wall
+  tile; empty -> knocked back 8 and seq 0x2D, else bump_stand (0327DA): seq 0x2E/0x2F (0x41/0x40 with the
+  sword, 0x79 in sword frames, -10 x when falling fast).
+- check_gate_push (032E78): a gate at/behind/in front whose column is flagged 0xFF in both current and previous
+  flags and low enough: seq 0x32 (pushed) unless frame 0x6D / modifier 0 / sword drawn, then 032F20 moves
+  the character out by the smaller of the near/far distances.
+- get_edge_distance (032C84): rebuilds the box, then distance to a wall in front (edge_type 1, < 0x20) or to
+  the edge of the tile (edge_type 0; loose/empty/0x1E in front, or 6/0x16/2/0x22 with a -1) else 0x1C
+  with edge_type 2.
+
+## Falling and landing
+- start_fall (0AFF:0AAA): row++, sequence by frame (0x51 -> 7 and y += 12; 9 -> 7; 0xD -> 0x13; 0x1A -> 0x12;
+  0x2C -> 0x15; 0x51..0x55 -> 0x13; hanging 0x96..0xB3 -> 0x5F/0x51 for the prince, 0x53/0x52 otherwise;
+  charid 2 in seq 100 -> 0xBA; else 7); most cases snap x away from walls/ledges (distance < 8 -> -11,
+  > 0x18 -> -0x15) and y to row*63+1 when something is above; level kind 1 uses seq 0x1B, feather fall 0xE4.
+- falling (02FE86): scream at fall_y > 30; above the row's floor line (row*63+56) only the ledge grab
+  (0AFF:0E28: shift held, fall_y < 32, tile above-front is floor and above is empty: x snaps to the edge
+  (+4-7 or +4-9), seq 15 hang, DS:6144 = 12); at/below it: wall -> pushed out (0AFF:0F10), empty -> row++,
+  loose/chomper -> fall through (hp -100 unless fall_y <= 32 and the player, fall_y halves, y = DS:0D40[row]-7),
+  else land (02FFE0): fall_y < 0x16 -> seq 0x11 (0x3F/0xBB with the sword, drawn), < 0x21 -> hp -1 and seq
+  0x14, else death (seq 0x16, sound 0, 0301D2 nudges away from the edge); tiles 0x17/0x18 go to OVL02 34724.
+- take_hp (0AFF:095C): schedules -n in Char+0x14 (never past -hp); returns 1 when the character dies.

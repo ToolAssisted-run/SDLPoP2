@@ -27,3 +27,18 @@ control(), flip back), save_ctrl1. control() is PoP1's frame-range dispatch: 15 
 0xF6..0x107 with-sword, 0xD9..0xE2, dead frames, ... Sequences start through seqtbl_offset_char
 (2FDF:000E, also sets Char+0x19 = seq id). After control: play_seq, fall_accel, fall_speed,
 load_frame_to_obj, and the OVL01 3212 checks (collisions/press), then Kid = Char.
+
+## Frames and tile helpers (verified through the control test)
+- Frame table entries are 7 bytes {image:2, sword:2, dx:1, dy:1, flags:1 (low 5 bits = x weight)}; load_frame
+  (0AFF:02AC) copies the entry to cur_frame at DS:5CC6. Kid-type charids 0/1/6 use the table at the start of
+  the data resource (3891:0000, = PRINCE.EXE overlay-15 payload); charids 2/4/10/12, 7/11, 8 use the FRAM
+  resource locked from DS:0CB8, indexed from frame 149 (offset -0x413), with frame shifts (+0x46 for
+  0x66..0x6A on 2/4/10/12; +0x2B below 0xB7 for charid 8).
+- Direction tables: DS:0CF8 {-1, +1} = front, DS:0CFA {+1, -1} = behind, indexed by direction + 1.
+  0AFF:0F6C(n) = tile n in front, 0AFF:0F94 = tile BEHIND (used by "climb down": the prince climbs down
+  the edge behind him, like PoP1), 0AFF:14E2 = tile above. Column x table DS:0D06 = 130 + 32*col.
+- Char fields learned from control: +0F "moved" flag, +10 sword-drawn flag (1 -> sword control),
+  +11 alive (<0), +12 hp, +14 hp delta, +23 (Opp side: >1 enables engagement), +39 opp_index; Kid.index
+  = 10 marks the player's record inside control routines.
+- Control test status: 331/335 captured cases identical; the rest need DS:5CC4 (engagement toggle) which
+  the next capture samples.

@@ -39,4 +39,9 @@ phases of the tick body: ds_tick 169B:05E0, ds_prechars 0616, ds_postchars 0619,
     python3 tests/snaps_from_events.py tickD-snap.txt ds_prechars ds_postchars chars.bin
     GUARD_DAT=.../GUARD.DAT KID_DAT=... PRINCE_DAT=... snaptest chars SEQUENCE.DAT ram1436.bin PRINCE.EXE chars.bin
 
-Status (8 captures, level 1): play_all_chars 1641/1641 ticks, room transitions 1841/1841 (11 room changes).
+Status (8 captures, level 1): play_all_chars 1641/1641 ticks, room transitions 1841/1841 (11 room changes), and
+the whole tick body (tick mode: ds_tick -> ds_postroom with the prince's captured controls, kc_ctrl:8 kc_ctrl1:16)
+1837/1841; the 4 remaining pairs span the ESC pause of the older scripts (frames 1502, 2650), not code.
+
+    python3 tests/snaps_from_events.py tickD-snap.txt ds_tick ds_postroom tick.bin kc_ctrl:8 kc_ctrl1:16
+    snaptest tick SEQUENCE.DAT ram1436.bin PRINCE.EXE tick.bin

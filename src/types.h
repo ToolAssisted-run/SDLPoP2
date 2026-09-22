@@ -84,6 +84,7 @@ typedef struct level_type {
 } level_type;
 #pragma pack(pop)
 
+typedef struct trob_type { int8_t tilepos; uint8_t room; uint8_t state; uint8_t tile; } trob_type;   /* 4 bytes, DS:6676 */
 typedef struct frame_type { uint16_t image, sword; int8_t dx, dy; uint8_t flags; } frame_type;   /* 7 bytes */
 
 /* sequence opcodes (16-bit items; values >= 0xFFE8 are opcodes, anything else is a frame number) */

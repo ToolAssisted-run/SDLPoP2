@@ -137,3 +137,21 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
 - Sword reach: 2D3E:21C6 returns near/far distances by charid and relative facing.
 - Guard frames come from the guard DAT's FRAM table (GUARD.DAT 750 on level 1, frames from 149); guard sprites
   are GUARD.DAT SHAP 751 + image, or 851 + image at or above the type's threshold (DS:06BC[type], 31 for type 0).
+
+## Fights, sight, spawns, animated tiles (fight.c, room.c, anim.c)
+- 2D3E:1F48: every character of the drawn room strikes at the prince and he at each of them (2D3E:1FB0): a strike
+  frame within reach either is parried (opponent in frame 0xA1/0x96, facing: opponent frame := 0xA1, seq 0x45) or,
+  on the connecting frame (2D3E:23C8: 0x9A, 0xF5 for the prince), marks the opponent with action 99.
+  2D3E:19C2 then applies hits (2D3E:1AAA: -1 hp, seq 0x4A/0x5E, 0x2D against charids 7/8; dying falls with seq 0x51
+  at an edge or dies via 2D3E:1D74) and sets the guard's recovery timer from DS:13D0[skill].
+- 169B:0FF0: guards' line of sight (Char+0x23): 3 = clear line and the nearest on its side, 2 = clear line,
+  1 = a gap, loose floor or closed gate in between, 0 = wall / other row / not applicable.
+- 2D3E:0A4A spawns guards from the room's spawn points (level+0x26D7 + room*0x22) when the prince is alive,
+  the tick is not a multiple of 3 and no live guard is already between him and the point on that side.
+- Animated tiles (PoP1's trobs): list at DS:6676 (4 bytes: tile position, room, state, tile), count DS:6670, at most
+  20. 1375:0006 runs each entry's tile handler (1375:0096, most handlers in the level-kind overlay) on a copy of
+  the tile's attribute (DS:5CF0) and drops entries whose state went negative. Room switches start the animations
+  of the tiles on screen (0823:0B78); the list is only cleared at level start (169B:0070).
+- The input reader 0823:10A0 clears next_room and the controls before reading the keyboard/joystick.
+- Level-kind overlays: the 33FD overlay loaded on level 1 (kind 5) is the file saved as ovl02_33FD (the capture
+  numbering does not follow the RTLink descriptor order; identify overlays by content).

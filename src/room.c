@@ -341,10 +341,78 @@ void switch_room(void)
 	if (next_room == 0 || next_room == drawn_room) return;
 	drawn_room = next_room;
 	set_neighbour_rooms();
-	redraw_room();                   /* 0FB3:29B8, 0CD6:02BE, 0823:0B78 tile animations, 1286:0AB2 sprites */
+	redraw_room();                   /* 0FB3:29B8, 0CD6:02BE, 1286:0AB2 sprites */
 	loadkid();
+	start_room_anims();              /* 0823:0B78 */
 	pal_slots[0] = pal_slots[1] = 0;
 	enter_room_chars();
 	if (room_nchars(drawn_room) == 0) hp_bar_clear();
 	else Kid.opp_index = find_opponent(1);
+}
+
+/* ---- guard spawn points: level+0x26D7 + room*0x22 (DS:528F): count, room skill, then 10-byte entries at +4:
+ * +1 max guards already out on that side, +2 row, +3 col, +4 countdown, +5 reload, +6 -> Char+0x38, +7 other row,
+ * +8 guards left, +9 hp (low nibble; 6+ = comes in with the sword drawn when the prince is within 3 columns) */
+static uint8_t *spawn_block(uint8_t room) { return (uint8_t *)&level + 0x26D7 + room * 0x22; }
+/* 2D3E:0E14 / 0CB6 / 0C66 */
+static uint8_t *spawn_entry(int8_t i, uint8_t room) { return (room != 0 && i < (int8_t)spawn_block(room)[0]) ? spawn_block(room) + 4 + i * 10 : NULL; }
+static int spawn_matches(const uint8_t *sp, int8_t row) { int d = (int8_t)sp[3] - Kid.curr_col; if (d < 0) d = -d; return ((int8_t)sp[2] == row || (int8_t)sp[7] == row) && d > 2 && sp[8] != 0; }
+static uint8_t *find_spawn(int8_t row, uint8_t room)
+{
+	int8_t n = spawn_block(room)[0];
+	for (int8_t i = 0; i < n; i++) { uint8_t *sp = spawn_entry(i, room); if (spawn_matches(sp, row)) return sp; }
+	return NULL;
+}
+/* 1375:14C2: first wall column from col in direction dir (stops past the room edge) */
+static int8_t scan_to_wall(int8_t dir, int8_t row, int8_t col, uint8_t room) { do col += dir; while (!tile_is_wall_kind(get_tile(row, col, room)) && col >= 0 && col <= 10); return col; }
+/* 2D3E:0CF8 */
+static int spawn_ok(uint8_t room, const uint8_t *sp)
+{
+	int8_t n = room_nchars(room);
+	if (n >= 5 || (int8_t)word_32d8 != (int16_t)counter_5cec || tick % 3 == 0) return 0;
+	int ok = 1, far = 0; int8_t sc = sp[3], kc = Kid.curr_col;
+	int8_t wall = scan_to_wall(sc < 5 ? 1 : -1, sp[2], sc, room);
+	for (int8_t i = 0; ok && i < n; i++) {
+		const char_type *c = &chars[i];
+		if (c->alive >= 0) continue;
+		if (!((sc < kc && c->x < Kid.x) || (sc > kc && c->x > Kid.x))) continue;
+		if (!((sc < wall && kc < wall) || (sc > wall && kc > wall))) continue;
+		far++;
+		if (sp[1] <= far) ok = 0;
+		else if ((sc < kc && c->curr_col <= sc) || (sc > kc && c->curr_col >= sc)) ok = 0;
+	}
+	return ok;
+}
+/* 2D3E:0AA0: a guard walks in from the spawn point */
+static void spawn_guard(uint8_t room, uint8_t *sp)
+{
+	int8_t n = room_nchars(room);
+	if (n >= 5) return;
+	room_base(room)[0]++;
+	level_char_init *rec = room_char_record(n, room);
+	int8_t col = sp[3];
+	rec->tilepos = row_base(sp[2]) + col;
+	if (col <= 5) { rec->x = col_x_left[col - 2]; rec->direction = 0; } else { rec->x = col_x_left[col + 2]; rec->direction = -1; }
+	rec->f04 = spawn_block(room)[1]; rec->pal = pal_slots[0]; rec->index = n; rec->f10 = 0;
+	rec->f38 = sp[6]; rec->w15 = (rec->w15 & 0xFF00) | sp[7]; rec->hp = rec->max_hp = sp[9] & 0xF;
+	Char.index = n; Char.direction = rec->direction; Char.x = rec->x; Char.charid = type_to_charid[level.type];
+	Char.curr_col = col; Char.curr_row = sp[2]; Char.f38 = sp[6]; Char.room = room;
+	Char.f13 = Char.f12 = rec->hp; Char.hp_delta = rec->hp; Char.alive = -1; Char.pal_slot = 4;
+	char_y_to_floor(); Char.fall_x = Char.fall_y = 0; Char.f24 = 0; Char.f0f = 1;
+	int8_t kc = Kid.curr_col;
+	uint16_t kf = Kid.frame;
+	if (Char.direction != Kid.direction && ((kf >= 1 && kf <= 0xE) || (kf >= 0x31 && kf <= 0x38) || (kf >= 0x22 && kf <= 0x2C))) kc -= dir_behind[Kid.direction + 1];
+	if (col + 3 >= kc && col - 3 <= kc && (sp[9] & 0xF) >= 6) { Char.f10 = 1; seqtbl_offset_char(0x5A); Char.f23 = 3; }
+	else { Char.f10 = 0; seqtbl_offset_char(0x54); Char.f23 = 0; }
+	play_seq();
+	if (Kid.opp_index == 0xFF) Kid.opp_index = Char.index;
+	save_char();
+}
+/* 2D3E:0A4A */
+void spawn_guards(uint8_t room)
+{
+	if (Kid.alive >= 0 || Kid.charid == 1) return;
+	uint8_t *sp = find_spawn(Kid.curr_row, Kid.room);
+	if (!sp || !spawn_ok(room, sp)) return;
+	if (sp[4] == 0) { spawn_guard(room, sp); sp[4] = sp[5]; sp[8]--; } else sp[4]--;
 }

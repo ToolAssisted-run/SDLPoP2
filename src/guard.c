@@ -288,3 +288,4 @@ void guard_after_seq(void)
 	if (id) { seqtbl_offset_char(id); play_seq(); }
 	if (Char.alive < 0x14) Char.alive++;
 }
+void sword_range_pub(int16_t *far_ax, int16_t *near_bx) { sword_range(far_ax, near_bx); }

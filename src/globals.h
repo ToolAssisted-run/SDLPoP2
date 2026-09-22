@@ -114,3 +114,12 @@ void char_control_step(void); void play_all_chars(void); void remove_record_pub(
 int ovl_383d2(void); void ovl_shadow_37f0_78(void); void ovl_366c_10cc(void); void ovl_33fd_694(void); void ovl_366c_e0a(void); void ovl_366c_11(void);
 int ovl_36ed6(int16_t d); void dead_char_sound_1611(void); void ovl_15db_64(void); void ovl_37d28(void); void level_kind_hooks_char(void);
 #define word_2ba8 (*(uint16_t *)(tiles0 + 0xE))   /* DS:2BA8 */
+/* fight.c, spawns, tick.c */
+extern uint16_t word_5ce8; extern const uint16_t *refract_timer;
+void check_sword_hits(void); void process_hurt(void); void guards_see_kid(void); void spawn_guards(uint8_t room); int tick_body(void);
+void sword_range_pub(int16_t *far_ax, int16_t *near_bx); void land_adjust_pub(void);
+int ovl_366c_6ac(void); int ovl_366c_1580(void); void ovl_366c_1166(void); void ovl_33fd_6ae(void); int ovl_366c_fc(void); void music_1286_07ce(uint8_t k); void ovl_366c_f24(void);
+void falling_floors(void); void animate_tiles(void); void ovl_366c_f60(void); void checkpoints_0db4(void); void level_kind_tick(void);
+/* anim.c */
+extern trob_type trobs[20], cur_trob; extern uint16_t trob_count; extern uint32_t anim_mod; void add_trob(uint8_t tile, uint8_t state, int8_t tilepos, uint8_t room); void anim_tile_other(uint8_t t);
+void start_room_anims(void); void anim_start_other(uint8_t t, int8_t tilepos, uint8_t room, int si);

@@ -392,3 +392,4 @@ void play_all_chars(void)
 	}
 	word_6140 = 0;
 }
+void land_adjust_pub(void) { land_adjust(); }

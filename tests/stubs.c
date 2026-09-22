@@ -79,6 +79,7 @@ void spikes_15d4(void) { note(" SPIKES"); } void spikes_16a0(void) { note(" spik
 void ovl_349be(void) {} void fall_scream_1611_0030(void) {} void sound_194c_83d2(uint16_t n) { (void)n; } int sound_playing_8426(void) { return 0; }
 void shake_loose_row(int8_t row, uint8_t room) { char t[32]; snprintf(t, sizeof t, " SHAKE(%d,%u)", row, room); note(t); } void level_kind_hooks(void) { note(" kindhooks"); }
 static uint16_t guard_bank2[8];
+const uint16_t *refract_timer; static uint16_t refract_tbl[16];
 static dat_file kiddat, guardshp; static int kiddat_ok, guardshp_ok;
 /* 0993:0FE2 + 26BC:06B6: the SHAP resource header of the sprite (chtab 2 = KID.DAT, base id 25001: image+1, or image-399 above 221) */
 int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1)
@@ -110,7 +111,7 @@ level_char_init *ovl_379e8(level_char_init *r) { note(" 379e8?"); return r; } le
 void ovl_36712(void) { note(" 36712"); } void ovl_3791e(int a, int i) { (void)a; (void)i; note(" 3791e"); } void room_music_087e(void) {} void redraw_room(void) {} void hp_bar_clear(void) {}
 static uint8_t dstables[0x20];
 void stubs_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 charid->type (static data) */
-{ memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; guard_set_prob_tables(ram + 0x3B250);
+{ memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; guard_set_prob_tables(ram + 0x3B250); for (int i = 0; i < 16; i++) refract_tbl[i] = ram[0x3B250 + 0x13D0 + 2 * i] | ram[0x3B250 + 0x13D1 + 2 * i] << 8; refract_timer = refract_tbl;
   for (int i = 0; i < 8; i++) { uint16_t p = ram[0x3B250 + 0x6BC + 2 * i] | ram[0x3B250 + 0x6BD + 2 * i] << 8; guard_bank2[i] = p ? (ram[0x3B250 + p] | ram[0x3B250 + p + 1] << 8) : 0; } }
 __attribute__((weak)) int play_kid_control(void) { note(" play_kid_control?"); return -2; }   /* ticktest supplies the captured-input version */
 
@@ -118,3 +119,13 @@ __attribute__((weak)) int play_kid_control(void) { note(" play_kid_control?"); r
 int ovl_383d2(void) { note(" 383d2?"); return 1; }
 void ovl_shadow_37f0_78(void) { note(" shadow78"); } void ovl_366c_10cc(void) { note(" 10cc?"); } void ovl_33fd_694(void) { note(" 694?"); } void ovl_366c_e0a(void) { note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
 int ovl_36ed6(int16_t d) { (void)d; note(" 36ed6?"); return -1; } void dead_char_sound_1611(void) {} void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); } void level_kind_hooks_char(void) { note(" kindhooks_char"); }
+
+/* fight/tick stubs */
+int ovl_366c_6ac(void) { note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } void ovl_366c_1166(void) { note(" 1166?"); } void ovl_33fd_6ae(void) { note(" 6ae?"); }
+int ovl_366c_fc(void) { note(" 366c_fc?"); return 0; } void music_1286_07ce(uint8_t k) { (void)k; } void ovl_366c_f24(void) { note(" f24?"); }
+uint16_t mob_count_stub;
+void falling_floors(void) { if (mob_count_stub) note(" MOBS?"); }
+void anim_tile_other(uint8_t t) { char m[24]; snprintf(m, sizeof m, " ANIM%02X?", t); note(m); }
+void ovl_366c_f60(void) { note(" f60?"); } void checkpoints_0db4(void) {}
+void level_kind_tick(void) { if (level_kind == 5) { if (Kid.room == 0x13 || Kid.room == 0x10 || byte_9276 == 10) note(" KIND5?"); for (int i = 0; i < room_nchars(drawn_room); i++) if (chars[i].room == 0x13 || chars[i].room == 0x10 || byte_9276 == i) note(" KIND5c?"); } else note(" KINDTICK?"); }
+void anim_start_other(uint8_t t, int8_t tp, uint8_t room, int si) { (void)tp; (void)room; (void)si; char m[24]; snprintf(m, sizeof m, " ASTART%02X?", t); note(m); }

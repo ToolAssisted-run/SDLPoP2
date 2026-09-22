@@ -15,7 +15,7 @@ void seq_sound(uint16_t n)
 {
 	if (n == 1) {
 		counter_27d6++;
-		if (lvl_43fd != 1) {
+		if (level_kind != 1) {
 			play_sound(counter_27d6 % 2 + 0x17);
 			if (Char.charid == 4 && ovl_366c_11f8(Char.room)) Char.x = char_dx_forward(Char.index - 1);
 		}
@@ -81,7 +81,7 @@ void play_seq(void)
 			break;
 		case SEQ_LVL6_COUNTER:                       /* 04BC */
 			counter_5cec++;
-			if (level.number == 6) flag_5cb9 = (Char.curr_col < 6) ? 1 : 2;
+			if (level_number == 6) flag_5cb9 = (Char.curr_col < 6) ? 1 : 2;
 			break;
 		case SEQ_SND:                                /* 04DE -> 0716 */
 			seq_sound(seq_fetch_word());
@@ -131,7 +131,7 @@ void play_seq(void)
 		do_jmp:
 			target = seq_fetch_word();
 			/* level 5 special: in rooms 10/7/12 with the character above row 0, sequence 0x39 becomes 0x56 */
-			if (Char.curr_row != 0 && level.number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12)
+			if (Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12)
 			    && target == 0x39 && Char.f19 != 0x3C && Char.curr_col == 9) target = 0x56;
 			Char.seq_id = target;
 			Char.seq_pos = 0;

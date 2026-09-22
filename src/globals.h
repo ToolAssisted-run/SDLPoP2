@@ -12,7 +12,10 @@ extern int16_t   knock;           /* DS:613E */
 extern int16_t   is_feather_fall; /* DS:5D36 */
 extern int8_t    control_x, control_y, control_shift;  /* DS:5CD4..5CD6 */
 extern uint8_t   drawn_room;      /* DS:5CDE */
-extern uint16_t  counter_5cec, word_27c0, counter_27d6, word_6140; extern uint8_t flag_5cb9, byte_5cb8, lvl_43fd;
+extern uint8_t   level_kind;      /* DS:43FD (level header): 2,4,5,6 = environment kinds */
+extern uint8_t   level_number;    /* DS:43FF */
+extern uint8_t   room_A;          /* DS:5CE1 (room above the drawn room) */
+extern uint16_t  counter_5cec, word_27c0, counter_27d6, word_6140; extern uint8_t flag_5cb9, byte_5cb8;
 void play_sound(uint16_t n); void sound_1611_01a8(uint16_t n); int ovl_366c_11f8(uint8_t room);
 /* routines referenced by seq.c, to be reconstructed */
 const uint16_t *get_seq_words(uint16_t seq_id);

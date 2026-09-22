@@ -63,3 +63,27 @@ void seqtbl_offset_char(uint16_t seq_id)
 		load_fram_det_col();
 	}
 }
+
+/* 0AFF:0174 - what a tile outside the level (room 0) counts as: wall (20) or empty (0), per level type */
+uint8_t level_edge_tile(int8_t row, int8_t col)
+{
+	switch (level_kind) {
+	case 2:
+		if (drawn_room == 4 && level_number == 13) return 0;
+		if (level_number == 13 && drawn_room == 13) return 0;
+		return 20;
+	case 4:
+		if (room_A == 0 && row == -1) return 0;
+		if (drawn_room == 27 && level_number == 6) return 0;
+		if (drawn_room == 16 && level_number == 9) return 0;
+		return 20;
+	case 5:
+		return 0;
+	case 6:
+		if (drawn_room == 7 || drawn_room == 8) return 20;
+		if (drawn_room == 3 && (col < 0 || col == 9) && row == 2) return 20;
+		return 0;
+	default:
+		return 20;
+	}
+}

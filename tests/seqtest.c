@@ -7,7 +7,7 @@
 #include "../src/dat.h"
 
 char_type Char, Opp, Kid, chars[5]; level_type level; uint8_t tiles0[30]; uint32_t tick; int16_t knock, is_feather_fall;
-int8_t control_x, control_y, control_shift; uint8_t drawn_room; uint16_t counter_5cec, word_27c0, counter_27d6, word_6140; uint8_t flag_5cb9, byte_5cb8, lvl_43fd;
+int8_t control_x, control_y, control_shift; uint8_t drawn_room; uint16_t counter_5cec, word_27c0, counter_27d6, word_6140; uint8_t flag_5cb9, byte_5cb8, level_kind, level_number, room_A; uint8_t *level_roomlinks;
 static dat_file seqdat; static char log_[512];
 static void note(const char *s) { strncat(log_, s, sizeof log_ - strlen(log_) - 1); }
 const uint16_t *get_seq_words(uint16_t id) { uint16_t n; const uint8_t *b = dat_find(&seqdat, "SQES", id, &n); return (const uint16_t *)b; }
@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 {
 	if (argc < 3) { fprintf(stderr, "usage: seqtest SEQUENCE.DAT pairs.bin [level_number]\n"); return 2; }
 	if (!dat_open(&seqdat, argv[1])) return 2;
-	level.number = argc > 3 ? atoi(argv[3]) : 1;
+	level_number = argc > 3 ? atoi(argv[3]) : 1; level_kind = 5;
 	FILE *f = fopen(argv[2], "rb"); if (!f) return 2;
 	unsigned char in[64], out[64]; int n = 0, bad = 0;
 	while (fread(in, 1, 64, f) == 64 && fread(out, 1, 64, f) == 64) {

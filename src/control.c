@@ -135,3 +135,54 @@ void control(void)
 	if (frame >= 0x110 && frame <= 0x119) { ovl_35f5a(); return; }
 	if (frame == 44 || frame == 26) control_rest();
 }
+
+/* 2FDF:068E (03047e): with the sword drawn (frames 0xF6..0x105) */
+void control_with_sword(void)
+{
+	if (Char.frame < 0xF6 || Char.frame > 0x105) return;
+	if (level_kind == 4) ovl_35a88();
+	uint8_t here = get_tile(Char.curr_row, Char.curr_col, Char.room);
+	if (here != 7 && here != 12 && here != 13 && get_tile_n_ahead(1) != 7 && get_tile_n_ahead(1) != 12 && get_tile_n_ahead(1) != 13
+	    && get_tile_infrontof_char() != 7 && get_tile_infrontof_char() != 12 && get_tile_infrontof_char() != 13 && Char.f19 != 0x7C) {
+		seqtbl_offset_char(0x7C); return;
+	}
+	here = get_tile(Char.curr_row, Char.curr_col, Char.room);
+	if (Char.frame != 0xFB) { control_rest(); return; }
+	if (level_kind == 4) ovl_35a88();
+	if (ctrl1_up == 0 || here == 7) {
+		if (ctrl1_forward < 0 && byte_5cc5 != 0) { control_rest(); seqtbl_offset_char(0x7A); }
+		else if (ctrl1_backward < 0) { control_rest(); seqtbl_offset_char(0x7B); }
+	} else {
+		uint8_t front = get_tile_infrontof_char(); int16_t d;
+		if (front == 7) d = Char.direction == 0 ? (Char.x - col_x_left[Char.curr_col]) - 0x26 : (col_x_right[Char.curr_col] - Char.x) - 10;
+		else if (front == 12 || front == 13) d = ovl_34350() == 0 ? 0x20 : -0x20;
+		else d = 0x20;
+		if (d >= 0) { seqtbl_offset_char(0x7C); ctrl1_up = control_rest(); if (d < 6) Char.x = char_dx_forward(-(d - 6)); }
+	}
+	if (ctrl1_forward == 0 && byte_5cc5 == 0) byte_5cc5 = 1;
+}
+
+/* 2FDF:1530 (031320): climb up from hanging (up pressed) */
+void control_hanging_climb(void)
+{
+	int id;
+	if (level_number == 5 && Char.room == 10 && Char.f10 != (uint8_t)-1) { id = 0xEC; Char.f10 = (uint8_t)-1; play_sound(0x13); }
+	else id = 10;                                 /* seq_10_climb_up */
+	ctrl1_up = control_rest(); ctrl1_shift = ctrl1_up;
+	uint8_t above = get_tile_above_char();
+	if (Char.charid == 1 || above != 4 || Char.direction != -1 || (curr_modifier & 0xFFFC) > 0x17) {
+		if (level_kind == 2 && ovl_35240(0)) id = 0x49;
+		else if (level_kind == 5 && ovl_34ab2()) id = 0x3B;
+	} else id = 0x49;
+	seqtbl_offset_char(id);
+	if (Char.direction == 0 || level_kind != 3) Char.x = char_dx_forward(-2);
+}
+
+/* 2FDF:16F6 (0314e6): would the next sequence item lower the frame number? (peek without side effects on the sequence) */
+int seq_peek_frame_decreases(void)
+{
+	uint16_t f19 = Char.f19, id = Char.seq_id, pos = Char.seq_pos; uint8_t frame = Char.frame;
+	play_seq();
+	Char.seq_id = id; Char.seq_pos = pos; Char.f19 = f19;
+	return Char.frame <= frame;
+}

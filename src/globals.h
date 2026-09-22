@@ -25,3 +25,4 @@ void seq_ctl_1954(void);          /* 0AFF:1954 */
 void ovl_366c_1704(void);
 void flash_on(uint16_t v); void flash_off(void);   /* 0FB3:2A34 / 294C */
 int16_t char_dx_forward(int16_t dx); void char_y_to_floor(void); void seq_sound(uint16_t n); void seq_set_85f8(uint16_t v);
+void play_seq(void);              /* 0AFF:03AA */

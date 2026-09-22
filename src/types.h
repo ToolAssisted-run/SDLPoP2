@@ -27,9 +27,12 @@ typedef struct char_type {
 	uint16_t seq_pos;      /* +15 word index into the current sequence */
 	uint16_t seq_id;       /* +17 SQES resource id */
 	uint16_t f19;          /* +19 cleared by opcode FFEE; compared with 0x3C in JMP special case */
-	uint8_t  f1b[9];       /* +1B..+23 */
+	uint8_t  f1b[8];       /* +1B..+22 */
+	uint8_t  f23;          /* +23 */
 	uint16_t f24;          /* +24 set by opcode FFEB; 8 = ? in play_kid */
-	uint8_t  f26[0x1A];    /* +26..+3F */
+	uint8_t  f26[0x13];    /* +26..+38 */
+	uint8_t  opp_index;    /* +39 index of the tracked opponent in chars[], 0xFF none */
+	uint8_t  f3a[6];       /* +3A..+3F */
 } char_type;
 
 /* Level resource (PRINCE.DAT untyped ids 2000..2033, 12024 bytes), loaded at DS:2BB8. */
@@ -69,6 +72,8 @@ typedef struct level_type {
 	uint8_t  region_2517[0x9E1];   /* 0x2517 zero in level 1 (ends at 0x2EF8 = 12024) */
 } level_type;
 #pragma pack(pop)
+
+typedef struct frame_type { uint16_t image, sword; int8_t dx, dy; uint8_t flags; } frame_type;   /* 7 bytes */
 
 /* sequence opcodes (16-bit items; values >= 0xFFE8 are opcodes, anything else is a frame number) */
 enum {

@@ -47,3 +47,12 @@ int can_climb_down_146e(uint16_t mod_here, uint16_t mod_front, uint8_t here, uin
 	if (level_kind == 5 && Char.room == 15 && Char.curr_row != 0) return 0;
 	return 1;
 }
+
+/* 0AFF:1C78: signed distance to the opponent along the facing direction (999 when not comparable) */
+int opp_distance(void)
+{
+	if (Opp.f12 == 0 || Char.room != Opp.room || Char.curr_row != Opp.curr_row || Opp.direction == 0x56) return 999;
+	int d = Opp.x - Char.x; if (Char.direction != 0) d = -d;
+	if (d >= 0 && Char.direction != Opp.direction) return d + 13;
+	return d;
+}

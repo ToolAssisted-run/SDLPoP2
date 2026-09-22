@@ -41,8 +41,8 @@ uint8_t get_tile(int8_t row, int8_t col, uint8_t room)
 }
 uint8_t get_tile_at_char(void)       { return get_tile(Char.curr_row, Char.curr_col, Char.room); }           /* 0AFF:09E6 */
 uint8_t get_tile_above_char(void)    { return get_tile(Char.curr_row - 1, Char.curr_col, Char.room); }       /* 0AFF:14E2 */
-uint8_t get_tile_infrontof_char(void){ return get_tile(Char.curr_row, dir_front[Char.direction + 1] + Char.curr_col, Char.room); } /* 0AFF:0F94 */
-uint8_t get_tile_n_ahead(int8_t n)   { return get_tile(Char.curr_row, dir_front[Char.direction + 1] * n + Char.curr_col, Char.room); } /* 0AFF:0F6C */
+uint8_t get_tile_behind_char(void)  { return get_tile(Char.curr_row, dir_behind[Char.direction + 1] + Char.curr_col, Char.room); } /* 0AFF:0F94 (table DS:0CFA) */
+uint8_t get_tile_infrontof(int8_t n)   { return get_tile(Char.curr_row, dir_front[Char.direction + 1] * n + Char.curr_col, Char.room); } /* 0AFF:0F6C */
 
 /* 0FB3:28D4 / 290A / 2810 / 283C / 2878 - tile classes (PoP1 numbering plus PoP2 additions) */
 int tile_is_empty_kind(uint8_t t) { return t == 0 || t == 9 || t == 33 || t == 35 || t == 27 || t == 37; }

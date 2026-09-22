@@ -14,7 +14,7 @@ int8_t col_from_x18(int16_t x18)
 }
 int8_t x_to_col(int16_t x) { return col_from_x18(x - 14); }
 /* 0AFF:0FB0 / 0FC4 / 0FCE */
-int16_t dx_weight(void) { return char_dx_forward((int8_t)(frame_dx - (frame_flags & 0x1F))); }
+int16_t dx_weight(void) { return char_dx_forward((int8_t)(cur_frame.dx - (cur_frame.flags & 0x1F))); }
 int16_t distance_to_edge(int16_t x) { x_to_col(x); return Char.direction == 0 ? 31 - obj_xl : obj_xl; }
 int16_t distance_to_edge_weight(void) { return distance_to_edge(dx_weight()); }
 
@@ -34,12 +34,12 @@ static void kid_crouch(void)
 void control_standing_down(void)
 {
 	ctrl1_down = 1;
-	if (!tile_is_empty_kind(get_tile_n_ahead(1))) {
+	if (!tile_is_empty_kind(get_tile_infrontof(1))) {
 		if (distance_to_edge_weight() <= 2) { Char.x = char_dx_forward(10); load_fram_det_col(); return; }
 	}
-	if (!tile_is_empty_kind(get_tile_infrontof_char())) { kid_crouch(); return; }
+	if (!tile_is_empty_kind(get_tile_behind_char())) { kid_crouch(); return; }
 	if (distance_to_edge_weight() < 8) { kid_crouch(); return; }
-	uint8_t front = get_tile_infrontof_char(); uint16_t front_mod = curr_modifier;
+	uint8_t front = get_tile_behind_char(); uint16_t front_mod = curr_modifier;
 	uint8_t here = get_tile_at_char();
 	if (!can_climb_down_146e(curr_modifier, front_mod, here, front)) { kid_crouch(); return; }
 	if (Char.direction != 0 && get_tile_at_char() == 4 && (curr_modifier & 0xFFFC) < 0x18) { kid_crouch(); return; }
@@ -108,7 +108,7 @@ void control(void)
 {
 	uint8_t frame = Char.frame;
 	if (Char.alive >= 0) {
-		if (Char.charid != 0 && Char.index == kid_84af) kid_84af = find_char_02dcc8();
+		if (Char.charid != 0 && Char.index == Kid.opp_index) Kid.opp_index = find_char_02dcc8();
 		if (Char.charid == 1) { if (Char.alive > 6) shadow_2fba4(); }
 		else if (Char.room == 3 && level_kind == 6 && Char.charid == 2) ovl_34024();
 		return;
@@ -142,24 +142,24 @@ void control_with_sword(void)
 	if (Char.frame < 0xF6 || Char.frame > 0x105) return;
 	if (level_kind == 4) ovl_35a88();
 	uint8_t here = get_tile(Char.curr_row, Char.curr_col, Char.room);
-	if (here != 7 && here != 12 && here != 13 && get_tile_n_ahead(1) != 7 && get_tile_n_ahead(1) != 12 && get_tile_n_ahead(1) != 13
-	    && get_tile_infrontof_char() != 7 && get_tile_infrontof_char() != 12 && get_tile_infrontof_char() != 13 && Char.f19 != 0x7C) {
+	if (here != 7 && here != 12 && here != 13 && get_tile_infrontof(1) != 7 && get_tile_infrontof(1) != 12 && get_tile_infrontof(1) != 13
+	    && get_tile_behind_char() != 7 && get_tile_behind_char() != 12 && get_tile_behind_char() != 13 && Char.f19 != 0x7C) {
 		seqtbl_offset_char(0x7C); return;
 	}
 	here = get_tile(Char.curr_row, Char.curr_col, Char.room);
 	if (Char.frame != 0xFB) { control_rest(); return; }
 	if (level_kind == 4) ovl_35a88();
 	if (ctrl1_up == 0 || here == 7) {
-		if (ctrl1_forward < 0 && byte_5cc5 != 0) { control_rest(); seqtbl_offset_char(0x7A); }
+		if (ctrl1_forward < 0 && Char.f0f != 0) { control_rest(); seqtbl_offset_char(0x7A); }
 		else if (ctrl1_backward < 0) { control_rest(); seqtbl_offset_char(0x7B); }
 	} else {
-		uint8_t front = get_tile_infrontof_char(); int16_t d;
+		uint8_t front = get_tile_behind_char(); int16_t d;
 		if (front == 7) d = Char.direction == 0 ? (Char.x - col_x_left[Char.curr_col]) - 0x26 : (col_x_right[Char.curr_col] - Char.x) - 10;
 		else if (front == 12 || front == 13) d = ovl_34350() == 0 ? 0x20 : -0x20;
 		else d = 0x20;
 		if (d >= 0) { seqtbl_offset_char(0x7C); ctrl1_up = control_rest(); if (d < 6) Char.x = char_dx_forward(-(d - 6)); }
 	}
-	if (ctrl1_forward == 0 && byte_5cc5 == 0) byte_5cc5 = 1;
+	if (ctrl1_forward == 0 && Char.f0f == 0) Char.f0f = 1;
 }
 
 /* 2FDF:1530 (031320): climb up from hanging (up pressed) */
@@ -208,7 +208,7 @@ void control_crouched(void)
 	} else {
 		if (ctrl1_forward >= 0) goto done;
 		ctrl1_forward = control_rest();
-		uint8_t t = get_tile_n_ahead(1);
+		uint8_t t = get_tile_infrontof(1);
 		if ((t == 7 || t == 12 || t == 13) && (t != 7 || (curr_modifier & 3) != 3)) {
 			int8_t c = tile_col_in_drawn_room(); int16_t d;
 			if (Char.direction == 0) { d = col_x_left[c] - Char.x; d = (d != -6 && -d > 5) ? d + 6 : 0; }
@@ -244,7 +244,7 @@ void control_hanging(void)
 void control_frame81_0313c6(void)
 {
 	ctrl1_down = control_rest();
-	uint8_t front = get_tile_infrontof_char(), here = get_tile_at_char(); int id, dx = 0;
+	uint8_t front = get_tile_behind_char(), here = get_tile_at_char(); int id, dx = 0;
 	if (tile_is_empty_kind(front) && tile_is_empty_kind(here)) { id = seq_peek_frame_decreases() ? 99 : 0x17; seqtbl_offset_char(id); return; }
 	int here_solid = tile_is_solid_floor(here), front_solid = tile_is_solid_floor(front);
 	if (!here_solid && !front_solid) {
@@ -266,9 +266,9 @@ void control_jump_031062(void) { ctrl1_forward = 1; ctrl1_up = 1; seqtbl_offset_
 /* 2FDF:0A5A (030c4a): turn around (backward pressed) */
 void control_standing_turn(void)
 {
-	ctrl1_backward = control_rest(); byte_5cc5 = 1;
+	ctrl1_backward = control_rest(); Char.f0f = 1;
 	int16_t d = distance_to_edge_weight();
-	if (get_tile_n_ahead(1) == 4 && gate_blocks_0329b6()) {
+	if (get_tile_infrontof(1) == 4 && gate_blocks_0329b6()) {
 		int16_t lim = level_kind == 3 ? 7 : (drawn_room == 9 && level_number == 8) ? -100 : 4;
 		if (d < lim) Char.x = char_dx_forward(d - lim);
 	}
@@ -283,10 +283,10 @@ int control_standing_step(int dist)
 	if (dist == 0) { dist = get_edge_distance(); r = dist; }
 	if (edge_type == 1) dist--;
 	if (dist < 1) {
-		if (byte_5cc5 != 0 && (edge_type != 1 || curr_tile == 12 || curr_tile == 13)) { byte_5cc5 = 0; id = 0x2C; goto set; }
+		if (Char.f0f != 0 && (edge_type != 1 || curr_tile == 12 || curr_tile == 13)) { Char.f0f = 0; id = 0x2C; goto set; }
 		id = 0x2A;
 	} else {
-		byte_5cc5 = 1;
+		Char.f0f = 1;
 		if (dist < 0x1C) {
 			id = dist == 1 ? -1 : dist / 2 + 0x1C; r = dist / 2;
 			if (dist % 2) { Char.x = char_dx_forward(1); r = Char.x; }
@@ -312,7 +312,7 @@ void control_standing_forward(void)
 void control_standing_up(void)
 {
 	if (start_room != drawn_room && Char.charid == 0
-	    && (get_tile_at_char() == 0x11 || get_tile_infrontof_char() == 0x11 || get_tile_n_ahead(1) == 0x11)
+	    && (get_tile_at_char() == 0x11 || get_tile_behind_char() == 0x11 || get_tile_infrontof(1) == 0x11)
 	    && level_door_open_0cfa()) { ovl_30b52(); return; }
 	if (ctrl1_forward != 0) { control_jump_031062(); return; }
 	control_jumpup_grab_031074();
@@ -329,9 +329,9 @@ void control_standing(void)
 		if ((Char.f10 != (uint8_t)-1 || (level_kind == 6 && Char.charid == 1)) && ctrl1_shift == -2
 		    && ctrl1_forward == 0 && ctrl1_backward == 0 && ctrl1_up == 0 && ctrl1_down == 0) {
 			ctrl1_shift = 2; control_rest(); control_standing_shift();
-			kid_842f = find_char_02dcc8(); if (kid_842f == (uint8_t)-1) kid_842f = 0; return;
+			Char.opp_index = find_char_02dcc8(); if (Char.opp_index == (uint8_t)-1) Char.opp_index = 0; return;
 		}
-		if (byte_8459 > 1 && Char.charid != 1 && Char.f24 != 0xD && opp_charid_843c != 6) {
+		if (Opp.f23 > 1 && Char.charid != 1 && Char.f24 != 0xD && Opp.charid != 6) {
 			int d = opp_distance();
 			if (d > -11 && d < 0xD0 && d < 0 && d > -15) { control_standing_turn(); return; }
 		}
@@ -355,4 +355,136 @@ void control_standing(void)
 		if (ctrl1_forward >= 0) { control_standing_up(); return; }
 	}
 	control_jump_031062();
+}
+
+/* ---- sword drawn (Char.f10 == 1): OVL01 2FDF:1BFA and helpers ---- */
+/* 2FDF:1CB2 (031ea2): strike */
+static void sword_strike(void)
+{
+	if (Char.charid == 7 || Char.charid == 8) return;
+	int id;
+	if (Char.frame != 0x9D && Char.frame != 0x9E && Char.frame != 0xAA && Char.frame != 0xAB && Char.frame != 0xA5)
+		id = (Char.frame == 0x96 || Char.frame == 0xA1) ? 0x42 : -1;
+	else if (Char.charid < 2) id = Opp.charid == 0xB ? 0x60 : 0x4B;
+	else if (Char.charid == 10) id = 0x6D;
+	else id = 0x3A;
+	if (id != -1) { seqtbl_offset_char(id); ctrl1_shift = 2; control_rest(); }
+}
+/* 2FDF:1D3E (031f2e): parry */
+static void sword_parry(void)
+{
+	if (Char.charid == 7 || Char.charid == 8) return;
+	int id = 0x3E, replay = 0;
+	if (Char.frame == 0x9E || Char.frame == 0xAA || Char.frame == 0xAB || Char.frame == 0xA8 || Char.frame == 0xA5) {
+		if (Char.charid == 0 || Char.charid == 1) {
+			if (Opp.frame != 0xA8) { if (Opp.frame != 0x97 && Opp.frame != 0x98 && Opp.frame != 0xA2 && Opp.frame == 0x99) replay = 1; }
+			else id = -1;
+		} else {
+			if (opp_distance() < 0x33) { if (Opp.frame != 0x98) id = -1; }
+			else { sword_retreat(); id = -1; }
+		}
+	} else if (Char.frame == 0xA7) id = 0x3D;
+	else id = -1;
+	if (id != -1) { ctrl1_up = 1; seqtbl_offset_char(id); if (replay) play_seq(); }
+}
+/* 2FDF:1516 (031706): advance */
+static void sword_advance(void)
+{
+	if (Char.charid == 7 || Char.charid == 8 || Char.charid == 0xB) return;
+	if (Char.frame != 0x9E && Char.frame != 0xAA && Char.frame != 0xAB) return;
+	seqtbl_offset_char(Char.charid <= 1 ? 0x38 : Char.charid == 10 ? 0x6C : 0x56);
+	ctrl1_forward = control_rest();
+}
+/* 2FDF:14CC (0316bc): retreat */
+void sword_retreat(void)
+{
+	if (Char.charid == 7 || Char.charid == 8 || Char.charid == 0xB) return;
+	if (Char.frame != 0x9E && Char.frame != 0xAA && Char.frame != 0xAB) return;
+	seqtbl_offset_char(Char.charid == 10 ? 0x68 : 0x39);
+	ctrl1_backward = control_rest();
+}
+/* 2FDF:1B6A (031d5a): put the sword away */
+static void sword_sheathe(void)
+{
+	Char.f10 = 0; ctrl1_down = control_rest(); int id;
+	if (Char.charid == 0 || Char.charid == 1) { word_922e = 9; id = char_scan_31bc4() ? 0x5D : 0x5C; }
+	else if (Char.charid == 10) id = 0x5A;
+	else id = 0x4D;
+	seqtbl_offset_char(id);
+}
+/* 2FDF:1C20 (031e10): kid steps toward the opponent before engaging */
+static void sword_kid_engage(void)
+{
+	int d = -1; uint8_t t = get_tile_infrontof(1);
+	if (!tile_is_floor(t) || (t == 4 && gate_blocks_0329b6())) d = 0;
+	else { t = get_tile_infrontof(2); if (!tile_is_floor(t) || (t == 4 && gate_blocks_0329b6())) d = 0x20; }
+	if (Char.f19 == 0x5E) d += 0x12;
+	if (d != -1) { int e = distance_to_edge_weight(); if (e + d < 0x38) Char.x = char_dx_forward(e + d - 0x38); }
+	seqtbl_offset_char(0x7F);
+}
+/* 2FDF:1BB6 (031da6): engage / turn to face */
+static void sword_engage(void)
+{
+	if (Char.charid == 7 || Char.charid == 8) { if (Char.f19 == 0x9C || Char.f19 == 0xA6 || ovl_377c6()) return; seqtbl_offset_char(0x9C); return; }
+	if (Char.charid == 0 || Char.charid == 1) { sword_kid_engage(); return; }
+	if (Char.charid == 10 && Char.frame > 0xD4 && Char.frame < 0xDA) return;
+	seqtbl_offset_char(0x3C);
+}
+/* 2FDF:1AB6 (031ca6): fighting actions from the controls */
+static void sword_actions(void)
+{
+	if (Char.charid == 7 || Char.charid == 8) { ovl_3741a(); return; }
+	if (Char.frame == 0xA1 && ctrl1_shift >= 0) { seqtbl_offset_char(0x39); return; }
+	if (ctrl1_shift == -2) { if (Char.charid == 0 || Char.charid == 1) word_922c = 0xF; sword_strike(); return; }
+	if (ctrl1_down < 0) { if (Char.frame == 0x9E || Char.frame == 0xAA || Char.frame == 0xAB) sword_sheathe(); return; }
+	if (ctrl1_up < 0) { sword_parry(); return; }
+	if (ctrl1_forward < 0) { sword_advance(); return; }
+	if (ctrl1_backward < 0 && ctrl1_shift == 0) sword_retreat();
+}
+/* 2FDF:1BFA */
+void control_2fdf_1bfa(void)
+{
+	if (Char.index == 10) {
+		Kid = Char; int8_t n = -1;
+		if (Char.opp_index != (uint8_t)-1 && Char.opp_index < room_nchars(Char.room)) { load_opp_080a(Char.opp_index); if ((int8_t)Char.f12 > 0) n = Char.opp_index; }
+		if (n == -1) { n = find_char_02dcc8_dir(1); if (n == -1) n = 0; else Char.opp_index = n; }
+		Char.opp_index = n == -1 ? Char.opp_index : n; load_opp_080a(n);
+	}
+	if (Char.action > 1) return;
+	{ int hd = (int8_t)Char.f14; if (hd < 0) hd = -hd; if ((int)Char.f12 <= hd) return; }
+	int fall_through = 1;
+	uint8_t t = get_tile_at_char();
+	if ((t == 0xB || t == 0xF) || Opp.f23 >= 2) {
+		int d = opp_distance();
+		if (d < -10 || d > 0xCF) {
+			if (d >= 0) goto tail;
+			if (d > -5 || (d > -0x1F && (Opp.charid == 7 || Opp.charid == 8))) { sword_actions(); fall_through = 0; goto tail; }
+			if (Char.charid != 0xB) {
+				if ((Char.index == 10 && word_8604 == 0) || Opp.charid == 6
+				    || (Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12) && rtlink_0dd5())) { sword_actions(); fall_through = 0; goto tail; }
+				sword_engage();
+			}
+		} else { sword_actions(); }
+		fall_through = 0;
+	}
+tail:
+	if (Char.index == 10 && ctrl1_backward < 0 && (ctrl1_shift == -1 || ctrl1_shift == 1) && (level_number != 5 || Char.room != 10 || word_927e < 1)) {
+		sword_engage(); ctrl1_shift = 2; ctrl1_backward = control_rest(); word_8604 = word_8604 == 0;
+		Char.opp_index = find_char_02dcc8_dir(~Char.direction); return;
+	}
+	if (fall_through) { if (Char.index == 10 && ctrl1_down < 0) { sword_sheathe(); return; } sword_actions(); }
+}
+
+/* 0AFF:1C2E: control for charids 2.. (guards): frame 0xA6 with down pressed */
+void control_by_charid_cc1e(void)
+{
+	if (Char.frame != 0xA6 || ctrl1_down >= 0) return;
+	if (ctrl1_forward < 0) {
+		uint8_t t = get_tile_behind_char(); uint16_t m = curr_modifier;
+		if (!tile_passable_2f800(m, t)) Char.x = char_dx_forward(5);
+		control_standing_shift();
+		return;
+	}
+	ctrl1_down = 1;
+	seqtbl_offset_char(0x50);
 }

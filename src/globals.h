@@ -33,18 +33,22 @@ void fall_accel(void); void fall_speed(void); void save_char(void); void load_ch
 void load_char_and_opp(int n); int char_out_of_level(void); void load_fram_det_col(void); void rtlink_fatal(int code);
 /* tiles.c */
 extern uint8_t curr_tile; extern uint16_t curr_modifier; extern uint8_t curr_tilepos, curr_room; extern int8_t tile_col, tile_row;
-static const int8_t dir_front[] = {-1, 1};  /* DS:0CFB indexed by direction+1 (-1 left, 0 right) */
+static const int8_t dir_front[] = {-1, 1};   /* DS:0CF8 indexed by direction+1 (-1 left, 0 right) */
+static const int8_t dir_behind[] = {1, -1};  /* DS:0CFA */
 #define level_links(room) (level_roomlinks + (room) * 4)   /* DS:4374 */
 extern uint8_t *level_roomlinks;
 uint8_t level_edge_tile(int8_t row, int8_t col);   /* 0AFF:0174 */
 uint8_t get_tile(int8_t row, int8_t col, uint8_t room); uint8_t get_tile_at_char(void); uint8_t get_tile_above_char(void);
-uint8_t get_tile_infrontof_char(void); uint8_t get_tile_n_ahead(int8_t n); void get_room_address(uint8_t room); uint8_t find_room_of_tile(void);
+uint8_t get_tile_behind_char(void); uint8_t get_tile_infrontof(int8_t n); void get_room_address(uint8_t room); uint8_t find_room_of_tile(void);
 int tile_is_empty_kind(uint8_t t); int tile_is_wall_kind(uint8_t t); int tile_is_floor(uint8_t t); int tile_is_loose_kind(uint8_t t); int tile_is_solid_floor(uint8_t t);
 void seqtbl_offset_char(uint16_t seq_id); void shadow_hook_2f9a2(void);
 /* control.c and its not-yet-reconstructed callees */
 extern int8_t ctrl1_forward, ctrl1_backward, ctrl1_up, ctrl1_down, ctrl1_shift;   /* DS:6122..6126 */
-extern uint8_t frame_dx, frame_flags;      /* DS:5CCA / 5CCC (current frame table entry) */
-extern uint8_t kid_84af, kid_f34; extern int16_t word_3bf62;
+extern frame_type cur_frame;               /* DS:5CC6 */
+#define frame_dx cur_frame.dx
+#define frame_flags cur_frame.flags
+extern const uint8_t *frame_table_kid, *frame_table_guard; void load_frame(void); void determine_col(void);
+extern uint8_t kid_f34; extern int16_t word_3bf62;
 extern int8_t obj_xl;
 void control(void); void control_running(void); void control_turning(void); void control_start_run(void); void control_jumpup(void);
 void control_standing(void); void control_hanging(void); void control_crouched(void); void control_with_sword(void); void control_0d9_0e2(void);
@@ -54,10 +58,13 @@ int is_dead_frame(uint8_t frame); int8_t x_to_col(int16_t x); int16_t dx_weight(
 int can_climb_down_146e(uint16_t mod_here, uint16_t mod_front, uint8_t here, uint8_t front); int tile_passable_2f800(uint16_t mod, uint8_t tile);
 int shadow_seq_2f86a(void); int sword_seq_0317c4(void); void ovl_2f86_0a5c(void); uint8_t find_char_02dcc8(void); void shadow_2fba4(void); void ovl_34024(void);
 void ovl_383fa(void); void ovl_35f5a(void);
-extern uint8_t byte_5cc5; extern const int16_t *col_x_left, *col_x_right;   /* DS:5CC5; column x tables DS:0D06 / 0D08 */
+extern const int16_t *col_x_left, *col_x_right;   /* DS:5CC5; column x tables DS:0D06 / 0D08 */
 void ovl_35a88(void); int ovl_34350(void); int ovl_35240(int a); int ovl_34ab2(void); void control_hanging_climb(void); int seq_peek_frame_decreases(void);
 extern uint16_t word_6d46, word_8a84; int control_sword_check_030e3c(void); void ovl_384e8(void); int ovl_32a0e(void); int8_t tile_col_in_drawn_room(void);
-extern uint8_t byte_2ab4, edge_type, kid_842f, byte_8459, opp_charid_843c, start_room;
+extern uint8_t byte_2ab4, edge_type, start_room;
 int gate_blocks_0329b6(void); void ovl_2f86_08d8(void); int get_edge_distance(void); int level_door_open_0cfa(void); void ovl_30b52(void);
 void control_jumpup_grab_031074(void); int opp_distance(void); void control_standing_turn(void); int control_standing_step(int dist);
 void control_standing_forward(void); void control_standing_up(void);
+extern uint16_t word_922e, word_922c, word_8604, word_927e;
+void sword_retreat(void); int char_scan_31bc4(void); int ovl_377c6(void); void ovl_3741a(void); uint8_t room_nchars(uint8_t room);
+void load_opp_080a(int n); int8_t find_char_02dcc8_dir(int dir); int rtlink_0dd5(void);

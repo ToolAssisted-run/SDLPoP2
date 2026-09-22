@@ -28,3 +28,13 @@ int16_t char_dx_forward(int16_t dx); void char_y_to_floor(void); void seq_sound(
 void play_seq(void);              /* 0AFF:03AA */
 void fall_accel(void); void fall_speed(void); void save_char(void); void load_char(int n); void loadkid(void);
 void load_char_and_opp(int n); int char_out_of_level(void); void load_fram_det_col(void); void rtlink_fatal(int code);
+/* tiles.c */
+extern uint8_t curr_tile; extern uint16_t curr_modifier; extern uint8_t curr_tilepos, curr_room; extern int8_t tile_col, tile_row;
+static const int8_t dir_front[] = {-1, 1};  /* DS:0CFB indexed by direction+1 (-1 left, 0 right) */
+#define level_links(room) (level_roomlinks + (room) * 4)   /* DS:4374 */
+extern uint8_t *level_roomlinks;
+uint8_t level_edge_tile(int8_t row, int8_t col);   /* 0AFF:0174 */
+uint8_t get_tile(int8_t row, int8_t col, uint8_t room); uint8_t get_tile_at_char(void); uint8_t get_tile_above_char(void);
+uint8_t get_tile_infrontof_char(void); uint8_t get_tile_n_ahead(int8_t n); void get_room_address(uint8_t room); uint8_t find_room_of_tile(void);
+int tile_is_empty_kind(uint8_t t); int tile_is_wall_kind(uint8_t t); int tile_is_floor(uint8_t t); int tile_is_loose_kind(uint8_t t); int tile_is_solid_floor(uint8_t t);
+void seqtbl_offset_char(uint16_t seq_id); void shadow_hook_2f9a2(void);

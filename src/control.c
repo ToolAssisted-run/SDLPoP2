@@ -442,18 +442,27 @@ static void sword_actions(void)
 	if (ctrl1_backward < 0 && ctrl1_shift == 0) sword_retreat();
 }
 /* 2FDF:1BFA */
+#ifdef CTL_DEBUG
+#include <stdio.h>
+#define DBG(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DBG(...)
+#endif
 void control_2fdf_1bfa(void)
 {
+	DBG("1bfa: index %u action %u f12 %u f14 %d f10 %u\n", Char.index, Char.action, Char.f12, (int8_t)Char.f14, Char.f10);
 	if (Char.index == 10) {
 		Kid = Char; int8_t n = -1;
 		if (Char.opp_index != (uint8_t)-1 && Char.opp_index < room_nchars(Char.room)) { load_opp_080a(Char.opp_index); if ((int8_t)Char.f12 > 0) n = Char.opp_index; }
 		if (n == -1) { n = find_char_02dcc8_dir(1); if (n == -1) n = 0; else Char.opp_index = n; }
 		Char.opp_index = n == -1 ? Char.opp_index : n; load_opp_080a(n);
 	}
+	DBG("1bfa: after opp: index %u opp_index %u\n", Char.index, Char.opp_index);
 	if (Char.action > 1) return;
 	{ int hd = (int8_t)Char.f14; if (hd < 0) hd = -hd; if ((int)Char.f12 <= hd) return; }
 	int fall_through = 1;
 	uint8_t t = get_tile_at_char();
+	DBG("1bfa: tile %u opp.f23 %u dist %d charid %u\n", t, Opp.f23, opp_distance(), Char.charid);
 	if ((t == 0xB || t == 0xF) || Opp.f23 >= 2) {
 		int d = opp_distance();
 		if (d < -10 || d > 0xCF) {

@@ -17,6 +17,7 @@ static struct { const char *name; int pos; } keymap[] = {   /* oracle key names 
 	{"kp7", 0x54}, {"kp8", 0x55}, {"kp9", 0x56}, {"kp4", 0x58}, {"kp5", 0x59}, {"kp6", 0x5A}, {"kp1", 0x5C}, {"kp2", 0x5D}, {"kp3", 0x5E},
 	{"leftshift", 0x37}, {"rightshift", 0x43}, {"leftctrl", 0x2A}, {"rightctrl", 0x2A}, {"leftalt", 0x45}, {NULL, 0}};
 static struct { int frame, pos, down; } keyev[4096]; static int nkeyev;
+static struct { unsigned hit, off, n; uint8_t b[64]; } pokes[64]; static int npokes;   /* other probepokes at a tick's start */
 static uint8_t *tick_keys, *tick_flags, *tick_set;   /* scripts with per-tick input (probepoke ds_tick N ...) */
 static uint8_t flags_of(const uint8_t *k) { return (k[0x37] ? 2 : 0) | (k[0x43] ? 1 : 0) | (k[0x2A] ? 4 : 0) | (k[0x45] ? 8 : 0); }
 static int same_frame_keys;   /* keys set at the tick's own frame were already seen (1) or not yet (0) */
@@ -115,6 +116,11 @@ int main(int argc, char **argv)
 			if (!tick_keys) tick_keys = calloc(8192, 0x70), tick_flags = calloc(8192, 1), tick_set = calloc(8192, 1);
 			if (phys == 0x3CF50) { for (int q = 0; q < 0x70 && hex[2 * q]; q++) tick_keys[hit * 0x70 + q] = hexval(hex[2 * q]) << 4 | hexval(hex[2 * q + 1]); tick_set[hit] = 1; }
 			else if (phys == 0x417) tick_flags[hit] = hexval(hex[0]) << 4 | hexval(hex[1]);
+			else if (phys >= 0x3B250 && phys < 0x3B250 + 0x10000 && npokes < 64) {   /* other DS state (e.g. POKE_HP) */
+				pokes[npokes].hit = hit; pokes[npokes].off = phys - 0x3B250; pokes[npokes].n = 0;
+				for (int q = 0; hex[2 * q] && q < 64; q++) pokes[npokes].b[pokes[npokes].n++] = hexval(hex[2 * q]) << 4 | hexval(hex[2 * q + 1]);
+				npokes++;
+			}
 			continue; } }
 		if (sscanf(line, "key %d %31s %d", &f, name, &d) != 3) continue;
 		for (int k = 0; keymap[k].name; k++) if (!strcmp(keymap[k].name, name) && nkeyev < 4096) { keyev[nkeyev].frame = f; keyev[nkeyev].pos = keymap[k].pos; keyev[nkeyev++].down = d; }
@@ -200,11 +206,17 @@ int main(int argc, char **argv)
 			if (tick_keys) {   /* the input the script wrote at this tick's start (the last one written before, if none) */
 				int h = tick_ix; while (h > 0 && !tick_set[h]) h--;
 				memcpy(key_table, tick_keys + h * 0x70, 0x70); bios_shift_flags = tick_flags[h]; keys_differ = 0; same_frame_keys = 1;
-			} else keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL, Kid.alive >= 0, tick_ix - 1 < nt && reload_after[tick_ix - 1]); cur_tick_frame = frame; missing_reset();
+			} else keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL, Kid.alive >= 0, tick_ix - 1 < nt && reload_after[tick_ix - 1]); cur_tick_frame = frame; if (getenv("E2E_MISSING") && *missing_log()) printf("missing t%d:%s\n", ticks, missing_log()); missing_reset();
 			if (getenv("E2E_TRACE") && ticks + 1 >= atoi(getenv("E2E_TRACE")) - 8 && ticks + 1 <= atoi(getenv("E2E_TRACE"))) printf("  t%d frame %d: kid alive %d busy %d keyq %d/%d next %.1f\n", ticks + 1, frame, Kid.alive, sound_busy, keyq_next, nkeyq, keyq_next < nkeyq ? keyq[keyq_next] : -1.0);
 			/* a key changing during the tick's own frame reached it or not (the keyboard interrupt vs the tick's place in
 			 * the frame), and the sound queries: when the first choice gives a state the capture does not have, the other
 			 * key timing and other answers are tried */
+			for (int q = 0; q < npokes; q++) if (pokes[q].hit == (unsigned)tick_ix) {   /* through the snapshot image */
+				static uint8_t *img; if (!img) img = malloc(SNAP_SIZE);
+				memcpy(img, mem, SNAP_SIZE); snap_store(img);
+				if (pokes[q].off >= (unsigned)SNAP_BASE && pokes[q].off + pokes[q].n <= (unsigned)(SNAP_BASE + SNAP_SIZE)) memcpy(img + pokes[q].off - SNAP_BASE, pokes[q].b, pokes[q].n);
+				snap_load(img);
+			}
 			static uint8_t *st0; if (!st0) st0 = malloc(state_size());
 			int can_retry = tick_ix - 1 < nt && postmem[tick_ix - 1] != NULL, r;
 			int kq0 = keyq_next, lq0 = libq, sf0 = same_frame_keys; double pu0 = pump_until;

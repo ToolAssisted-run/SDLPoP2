@@ -1,6 +1,7 @@
 /* Explore a level with the core (Go-Explore style): keep the first state that reached each cell (room, row, column),
  * restart from rarely tried cells and play random held inputs. Writes the per-tick inputs that lead to the chosen
  * cell (default: the last new room found; or a given room) as a plan file: one line per tick "x y shift".
+ * EXPLORE_HP=n starts the prince with n hp.
  * usage: explore GAME_DIR LEVEL SEED ITERATIONS OUT.plan [TARGET_ROOM]
  * build: cc -O2 -o explore tools/explore.c src/(all).c -lm */
 #include <stdio.h>
@@ -25,6 +26,7 @@ int main(int argc, char **argv)
 	uint32_t seed = (uint32_t)strtoul(argv[3], NULL, 0);
 	size_t n = pop2_state_size();
 	pop2_new_game(level, seed);
+	if (getenv("EXPLORE_HP")) { Kid.f12 = Kid.f13 = (uint8_t)atoi(getenv("EXPLORE_HP")); }   /* (the oracle script pokes the same at tick 1) */
 	static pop2_input path[4096]; int plen = 0, order = 0, best = -1; int room_seen[33] = {0};
 	#define ADD_CELL(ci) do { cell *c = &cells[ci]; if (!c->state) { c->state = malloc(n); ncells++; c->order = order++; c->room = Kid.room; \
 		if (Kid.room == target || (target < 0 && !room_seen[Kid.room < 33 ? Kid.room : 0])) best = ci; } else free(c->path); \

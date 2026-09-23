@@ -47,9 +47,10 @@ static void record_fixup(level_char_init *rec)
 		if (level.type == 7) rec->type = 7;
 	} else {
 		if (Char.charid == 0xB) beast_record_fixup(rec);   /* 366C:166A */
-		if (Char.charid == 6) ovl_352b4();
+		if (Char.charid == 6) ovl_352b4(rec);   /* 33FD:12E4 */
 	}
 }
+int8_t tilepos_or_30_pub(int8_t row, int8_t col);
 /* 0AFF:0220: tile position of (row, col), 30 outside the grid; row -1 counts down from -1 */
 static int8_t tilepos_or_30(int8_t row, int8_t col)
 {
@@ -59,8 +60,8 @@ static int8_t tilepos_or_30(int8_t row, int8_t col)
 /* 0AFF:07D4 */
 static int8_t row_base(int8_t row) { return row >= 0 ? row * 10 : row * 10 + 9; }
 
-/* OVL01 02E71A: the room a character's out-of-grid position falls in (0 = outside the level); moves Char's coordinates */
-static uint8_t room_of_char(void)
+/* OVL01 02E71A (2D3E:133A): the room a character's out-of-grid position falls in (0 = outside the level); moves Char's coordinates */
+uint8_t room_of_char(void)
 {
 	uint8_t r = Char.room;
 	if (Char.curr_col >= 0 && Char.curr_col < 10 && Char.curr_row >= 0 && Char.curr_row < 3) return r;
@@ -283,6 +284,12 @@ static void pick_pal_slot(uint8_t type)
 	for (int i = 0; i < 2 && Char.pal_slot == 0; i++) if (pal_slots[i] == 0) { pal_slots[i] = type; Char.pal_slot = 4 << i; }
 	if (Char.pal_slot == 0) Char.pal_slot = 4;
 }
+/* 2D3E:0EAC with the level type check (called directly by level 14's guards) */
+void pick_pal_slot_pub(uint8_t type)
+{
+	if (level.type != 0 && level.type != 5 && level.type != 6) { Char.pal_slot = level.type == 2 ? 8 : 4; return; }
+	pick_pal_slot(type);
+}
 /* OVL01 02D444: build chars[] from the drawn room's records */
 void enter_room_chars(void)
 {
@@ -436,3 +443,5 @@ void chars_fell_below(void)
 	}
 }
 int8_t scan_to_wall_pub(int8_t dir, int8_t row, int8_t col, uint8_t room) { return scan_to_wall(dir, row, col, room); }
+int8_t tilepos_or_30_pub(int8_t row, int8_t col) { return tilepos_or_30(row, col); }
+int save_to_record_pub(void) { return save_to_record(); }

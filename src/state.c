@@ -39,6 +39,7 @@ static int16_t room_ptr_tiles, room_ptr_attrs;   /* curr_room_tiles / attrs as o
 static const state_field extra_fields[] = {
 	{"byte_016a", 0x016A, 1, &byte_016a}, {"word_0366", 0x0366, 2, &word_0366}, {"word_087e", 0x087E, 2, &word_087e}, {"word_0880", 0x0880, 2, &word_0880},
 	{"word_0996", 0x0996, 2, &word_0996}, {"word_32d8", 0x0998, 2, &word_32d8}, {"cheat_mode", 0x10C2, 2, &cheat_mode}, {"byte_14a0", 0x14A0, 1, &byte_14a0},
+	{"byte_2b74", 0x2B74, 2, byte_2b74},
 	{"anim_mod", 0x5CF0, 4, &anim_mod}, {"curr_modifier", 0x612F, 2, &curr_modifier}, {"curr_tilepos", 0x6131, 1, &curr_tilepos},
 	{"cur_mob", 0x6662, 13, &cur_mob}, {"cur_mob_index", 0x66C6, 2, &cur_mob_index}, {"cur_trob", 0x6672, 4, &cur_trob}, {"anim_tile", 0x6B72, 1, &anim_tile},
 	{"room_ptr_tiles", 0x613C, 2, &room_ptr_tiles}, {"room_ptr_attrs", 0x613A, 2, &room_ptr_attrs},

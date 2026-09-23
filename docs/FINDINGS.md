@@ -260,10 +260,41 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Rooms 0x10/0x13 (the ship): characters grabbing (0068/0370: DS:6936..693A), the prince's fall caught in the sea
   rooms (0AFF:0D1E). Kind tick 0232 = 01CE (palette) + 03C8 + 0428. Not reconstructed yet.
 
-### 5.10 Level 14 (kind 6; OVL08 33FD)
-- Kind tick 03C6: 0570 (prince in room 2: back to the start via scene 5 and a reload; spirit-body logic), 0640 (room
-  3: guards appear with random choices, 0126/01BA), room sounds (room 8 sets DS:2BB4). Tile anims 0x1F/0x28/0x29/0x2A.
-  Not reconstructed. The climb needs the spirit (> 4 hp); a LEVEL14 start has 3 hp.
+### 5.10 Level 14 (kind 6; OVL08 33FD, final.c)
+- Layout: floating platforms; room 1 (start, row 1 cols 1..5) -> down 2, up 3; 3 -> up 4; 4 -> right 5 -> right 6;
+  6 -> up 7 -> right 8 -> up 10 (a type-0 guard). Rooms 1..8 have FINAL descriptions (ids 0x17..0x1E).
+- Kind tick 33FD:03C6 (DS:0668): 0570: the prince in room 2 with char_x_right <= 0x131 and not in freefall (action 4)
+  is sent back: 045C = scene 5, 169B:018E (DS:2B96 = 0), the full level load 1286:01F2 (kind init included), then
+  035A puts him in room 4 col 5 row 1 facing right (seq 0x37, f10 1, hp_delta = hp, next_room 4). The spirit
+  (charid 1, f19 != 0x47) dies (seq 0x47) when standing (frame flag 0x40) in room 5 col <= 4 while its body (the
+  drawn room's first charid-0 character, 2F86:03CC) lies in room 7 or 8 (room_of_char = 2D3E:133A). 0640: load/save
+  every character, then room 3: 0126/01BA: with no guard (or one done appearing, f19 != 0xEE) one appears on the row
+  the prince is not on (random(0x14) must be 0 when one is there; col 4 or 2 (+4 by random(1))): a new record
+  (type -> charid DS:0096[level.type], hp random(2)+3, seq 0xEE, 2D3E:0EAC palette slot), opp_index set if none.
+  Room sounds (3: 0x10D; 6: 0x10E/0x10C by room 6's count; 7/8: 0x107/0x10C, room 8 sets DS:2BB4 = 1) only with
+  sound on (DS:2B98) and the music (DS:0884) not playing: a sound query.
+- Tile animations (1375:0096 calls 33FD directly): 0x1F 15A2 (counter; background 0x1A: redraws 5..10, stop at 11);
+  0x28 162A (bg 0x19: delay bits 3..10, showing bit 11, frame bits 0..2 = random(5)); 0x29 17AC (bg 0x1C) and 0x2A
+  19B4 (bg 0x1D/0x1E, index < 6 in room 7, >= 6 in room 8): steps bits 4..10 up to 7 / 9 then a random(0x28)+0x28 /
+  +0x50 delay (only when DS:2BA4 and trobs; else start at once), bit 12 kept. Starts (0823:0B78, attr bit 0x1000):
+  room 6 -> 1962 (tile 0x29, index DS:2B74++), rooms 7/8 -> 1B94 (0x2A, DS:2B75++); room hook 0x1C..0x1E (1708)
+  resets DS:2B74 = 0 and DS:2B75 = 0 (room 7) / 6 (room 8). DS:610E (1 during a full redraw) is 0 in tick code.
+- Jaffar = charid 6 (type 3). Room 6 (101A): four stand (frame 0xF) until the prince's body comes 0x12..0x30 px in
+  front (or behind: he turns), then step (seq 0x4B, f10 1); the last one (n == 1) goes (seq 0xF0) and clear_char of
+  seq 0xF0 (0AFF:1BA2 -> 1416) puts him above room 7 (x 0x2C8, row -3). A hit by one (2D3E:1E7D -> 06AE) starts the
+  others. Rooms 7/8 (1186): waypoints DS:1A2E (13 bytes: col, row, dir, x range, per-side catch rows/cols); record
+  +0x11 = mode (1 patrol, 2 chase), aimed waypoint, reached waypoint, y. Patrol (0860) moves away from the prince's
+  catch zone (13A2), chase (0794) towards it; the moves (0AF2/0C4A/0D72/0E8E) drive the prince's own control routines
+  (2FDF:0EF0 forward, 1272 standing jump, 17A6 running jump, 1284 jump up/grab, 1530 climb, 0C90 down, 15D6 release,
+  0F9C step). Casting: when the body is on his row within reach (08C0) he faces it and casts (seq 0xF2): frame 0x11A
+  kills the prince (0FB8). Drawing a sword within 0x3E px sweeps the prince away (seq 0xF1, f10 0xFF). f19 0xF3 at
+  frame 0x15F: counter_5cec++ (the level is won). A dead guard in room 3 (2FDF:0687 -> 0054) turns into a tile 0xA.
+- The spirit (charid 1) with shift in rooms 7/8 (2FDF:19D4 -> 1E4A) casts (seq 0xF2) for 2 hp (needs > 2); frames
+  0x110..0x119 (2FDF:048C -> 1F8A) launch a fireball at 0x119 (1FA0): falling object type 0xC (1375:1B10 -> 1ED0):
+  x speed +-8 growing by 2 to 16, frames 0..3, bursts (wd bit 8, 5 more steps) at a wall (1DC0, 0FB3:290A) or on
+  Jaffar (1CEA, the kind-6 character hook: take_hp(100), seq 0xF3, next_room = his room).
+- Not reconstructed: the drawing hooks (0000, 0330, 1512, 15E8, 16D8, 1898, 1ACA, 1E72); 2FDF:19D4's sword-drawing
+  paths (noted). The climb needs the spirit (> 4 hp at the 8th turn); a LEVEL14 start has 3 hp (captures poke 8).
 
 ### 5.11 Sound and timing dependencies (platform)
 - play_sound (1611:01C6) only queues by priority (DS:0D5D); the frame end starts sounds; "playing" is the driver's
@@ -318,8 +349,9 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
-- Room hooks other than ids 6/0x22 (5.12); level 1 kind tick; level 14 (OVL08); spirit rejoin; story scenes;
-  sound duration model; the prince's drawing-pass hooks; hotkeys besides restart.
+- Room hooks other than ids 6/0x22 (5.12); level 1 kind tick; spirit rejoin; story scenes;
+  sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; 2FDF:19D4 (the prince drawing
+  his sword with shift alone).
 
 ---------------------------------------------------------------------------------------------------------------------
 
@@ -336,3 +368,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - 2026-09-23: 1611:0164 opponent reload after the fight code (fixed the last strict differences); X2_1 crash was
   copy-protection keys on levels 1-2; run_all.sh now covers the X captures too. All captures strict-clean.
 - 2026-09-23: e2e compares frozen ticks too (all identical); X14_1 (level 14 planned run: falls out of the level).
+- 2026-09-23: level 14 (OVL08) reconstructed (final.c): kind tick, tile anims, Jaffar, fireballs; X14_2 (hp poked to 8,
+  explore to room 8) identical; e2e applies DS probepokes (POKE_HP); coretest reaches no unreconstructed routine.

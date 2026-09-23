@@ -347,6 +347,7 @@ static void mob_update(void)
 	case 4: trap_update(); break;
 	case 2: if (level_kind == 3) { rock_fly(); break; }   /* 33FD:02AC */
 		/* fall through */
+	case 0xC: fireball_update(); break;   /* 33FD:1ED0 (OVL08 is the only 33FD overlay with them) */
 	default: ovl_mob_other(cur_mob.type); break;
 	}
 }

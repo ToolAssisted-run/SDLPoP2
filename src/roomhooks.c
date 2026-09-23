@@ -24,8 +24,10 @@ static void room_enter_hook(int16_t bg)
 	case 0x22:                            /* 37F0:001C (OVL14, level 8 room 9): the sword room's music, once */
 		if (word_2bb2 == 0) { if (Kid.curr_col >= 9 && word_2bb0 == 0) { sound_1611_01a8(0x98); word_2bb0 = 1; } else if (Kid.curr_col < 9) sound_1611_01a8(0xFD); }
 		break;
-	case 0: case 0x14: case 0x15: case 0x16: case 0x17: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E:
-	case 0x1F: case 0x20: case 0x21: hook_missing("ROOMHOOK_IN_", bg); break;
+	case 0x17: break;   /* 33FD:145E (OVL08, level 14 room 1): palette, DS:2450 = DS:5CC2 (sound), a digital sound */
+	case 0x19: case 0x1A: case 0x1B: break;   /* 33FD:1494 (OVL08): palettes; rooms 4/3 sounds 0x10C/0x10D */
+	case 0x1C: case 0x1D: case 0x1E: final_room_enter(); break;   /* 33FD:1708 (OVL08, level 14 rooms 6..8) */
+	case 0: case 0x14: case 0x15: case 0x16: case 0x1F: case 0x20: case 0x21: hook_missing("ROOMHOOK_IN_", bg); break;
 	default: break;   /* DS:02E2: none */
 	}
 }

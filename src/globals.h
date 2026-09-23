@@ -104,7 +104,7 @@ extern uint8_t next_room, pal_slots[2], byte_9276; extern int16_t exit_dir; exte
 extern const uint8_t *type_to_charid, *charid_to_type;
 level_char_init *room_char_record(int i, uint8_t room); void change_room(int dir); void check_kid_left_room(void); void apply_hp_deltas(void);
 void set_neighbour_rooms(void); void enter_room_chars(void); void switch_room(void);
-void ovl_37d2a(void); void ovl_352b4(void); int ovl_342b4(void); void ovl_34210(void); void ovl_34958(void); void ovl_34370(void); void ovl_2f9f2(void);
+void ovl_37d2a(void); void ovl_352b4(level_char_init *rec); int ovl_342b4(void); void ovl_34210(void); void ovl_34958(void); void ovl_34370(void); void ovl_2f9f2(void);
 void load_guard_sprites(uint8_t type); void ovl_guard6_sprites(void); int random_2751(int n); level_char_init *ovl_379e8(level_char_init *r); level_char_init *ovl_36ada(level_char_init *r);
 void ovl_36712(void); void ovl_3791e(int a, int idx); void room_music_087e(void); void redraw_room(void); void hp_bar_clear(void); void hp_bar_draw(uint8_t index, int a, uint8_t hp);
 /* guard.c (2D3E:1864 autocontrol, OVL10 366C guard decisions) and play_all_chars */
@@ -200,3 +200,7 @@ extern kid_sprite_t kid_sprite; void head_attach(void); const uint8_t *head_atta
 void dead_char_music(void); uint8_t *find_spawn_pub(int8_t row, uint8_t room); int char_scan_31bc4(void);   /* fight.c, room.c, kid.c */
 void ruins_open_tile7(void);   /* ruins.c */
 extern uint8_t byte_5ce7; extern int16_t room_bg; int room_has_description(uint8_t room); void room_load(uint8_t room); int16_t room_description_bg(uint8_t room);   /* roomhooks.c, glue.c */
+uint8_t room_of_char(void); void pick_pal_slot_pub(uint8_t type); void kind6_tick(void); int control_rest(void);
+void anim_tile1f(void); void anim_tile28(void); void anim_tile29(void); void anim_tile2a(void); void anim_start_final(uint32_t *attrs, int8_t tp, uint8_t room); void final_room_enter(void); extern uint8_t byte_2b74[2];   /* final.c */
+void start_0a_pub(int8_t tp, uint8_t room); int8_t tilepos_or_30_pub(int8_t row, int8_t col); int save_to_record_pub(void); void jaffar_leaves_room6(void); void fireball_update(void); mob_type *find_mob_pub(int n, uint8_t type); void add_mob_pub(void);
+const uint8_t *ds_ptr(uint16_t a);

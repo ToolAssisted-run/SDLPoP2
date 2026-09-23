@@ -12,6 +12,8 @@ for ip, lab in (("05E0", "ds_tick"), ("064F", "ds_postroom"), ("00F5", "ls_a"), 
     out.append("probe 169B %s %s 3DB50 4300\n" % (ip, lab))
 # key table positions (DS:1D00): arrows 58/5A/55/5D, diagonals 54/56/5C/5E (Home PgUp End PgDn)
 pos = {(-1, 0): 0x58, (1, 0): 0x5A, (0, -1): 0x55, (0, 1): 0x5D, (-1, -1): 0x54, (1, -1): 0x56, (-1, 1): 0x5C, (1, 1): 0x5E}
+if os.environ.get("POKE_HP"):   # the prince's hp and max hp (Kid+0x12/0x13, phys 40D98) at the first tick, as explore's EXPLORE_HP
+    hp = int(os.environ["POKE_HP"]); out.append("probepoke ds_tick 1 40D98 %02X%02X\n" % (hp, hp))
 for k, (x, y, sh) in enumerate(ticks, 1):
     table = bytearray(0x70)
     if (x, y) in pos: table[pos[(x, y)]] = 1

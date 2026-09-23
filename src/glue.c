@@ -26,6 +26,7 @@ static void note(const char *s) { strncat(log_, s, sizeof log_ - strlen(log_) - 
 static uint8_t ds_img[0x10000] __attribute__((aligned(2)));   /* the data segment's static part (glue_load_ds_tables) */
 /* DS:0D06 / 0D08: the x of a column's left / right edge (130 + 32*col for cols -5..14; out-of-range columns read the
  * neighbouring data, as in the game) */
+const uint8_t *ds_ptr(uint16_t a) { return ds_img + a; }   /* static DS tables in place */
 const int16_t *col_x_left = (const int16_t *)(ds_img + 0x0D06), *col_x_right = (const int16_t *)(ds_img + 0x0D08);
 int glue_open_seq(const char *seqpath) { return dat_open(&seqdat, seqpath); }
 void glue_init(const char *seqpath, const char *levelbin)
@@ -50,9 +51,9 @@ void shadow_hook_2f9a2(void) { note(" shadow"); }
 void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", code); note(t); }
 /* control.c externs not yet reconstructed */
 uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_6d46, word_8a84;
-int shadow_seq_2f86a(void) { return -1; } int sword_seq_0317c4(void) { note(" sword0317c4?"); return -1; }
-void ovl_2f86_0a5c(void) { turn_flash(); } void shadow_2fba4(void) {} void ovl_34024(void) {}
-void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) { ruins_open_tile7(); }   /* 347C:12C8 (ruins.c) */ int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ int ovl_34ab2(void) { return 0; }
+int shadow_seq_2f86a(void) { return -1; } 
+void ovl_2f86_0a5c(void) { turn_flash(); } void shadow_2fba4(void) {}
+void ovl_383fa(void) { note(" 383fa"); } void ovl_35a88(void) { ruins_open_tile7(); }   /* 347C:12C8 (ruins.c) */ int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ int ovl_34ab2(void) { return 0; }
 int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF:104C */ void ovl_384e8(void) {} int ovl_32a0e(void) { return under_gate(); }   /* 3212:08EE (control.c) */ 
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) { turn_count(); }   /* 2F86:0078 (spirit.c) */
 uint16_t word_922e, word_922c, word_8604, word_927e;
@@ -147,7 +148,7 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 
 /* room.c stubs */
 uint16_t word_68f0;
-void ovl_37d2a(void) { note(" 37d2a"); } void ovl_352b4(void) { note(" 352b4"); } int ovl_342b4(void) { note(" 342b4?"); return -1; } void ovl_34210(void) { note(" 34210"); }
+void ovl_37d2a(void) { note(" 37d2a"); } void ovl_34210(void) { note(" 34210"); }
 void ovl_34958(void) { level6_entrance(); } void ovl_34370(void) { note(" 34370"); } void ovl_2f9f2(void) { note(" 2f9f2"); }
 void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {}
 level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
@@ -160,17 +161,18 @@ void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 
 
 /* guard.c / play_all_chars stubs */
 int ovl_383d2(void) { note(" 383d2?"); return 1; }
-void ovl_shadow_37f0_78(void) { note(" shadow78"); } void ovl_33fd_694(void) { note(" 694?"); } void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
+void ovl_shadow_37f0_78(void) { note(" shadow78"); } void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
 int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */ void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); }
 
 /* fight/tick stubs */
-int ovl_366c_6ac(void) { if (level_kind == 4) return head_hit(); note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } void ovl_33fd_6ae(void) { note(" 6ae?"); }
+int ovl_366c_6ac(void) { if (level_kind == 4) return head_hit(); note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } 
 int ovl_366c_fc(void) { note(" 366c_fc?"); return 0; } void music_1286_07ce(uint8_t k) { (void)k; } void ovl_366c_f24(void) { if (level_kind == 4) head_knock_back(); else note(" f24?"); }
 void anim_tile_other(uint8_t t) { char m[24]; snprintf(m, sizeof m, " ANIM%02X?", t); note(m); }
 void level_kind_tick(void) { if (level_kind == 5) { if (Kid.room == 0x13 || Kid.room == 0x10 || byte_9276 == 10) note(" KIND5?"); for (int i = 0; i < room_nchars(drawn_room); i++) if (chars[i].room == 0x13 || chars[i].room == 0x10 || byte_9276 == i) note(" KIND5c?"); } else if (level_kind == 2) temple_tick();   /* 347C:0FC4 */
   else if (level_kind == 3) { if (level_number == 5 && (drawn_room == 10 || drawn_room == 7 || drawn_room == 12)) note(" KIND3WATER?"); }   /* 33FD:0BEA */
   else if (level_kind == 1) kind1_tick();   /* 33FD:0170 */
   else if (level_kind == 4) {}   /* DS:0654[4] is null: no kind tick */
+  else if (level_kind == 6) kind6_tick();   /* 33FD:03C6 (final.c) */
   else note(" KINDTICK?"); }
 void anim_start_other(uint8_t t, int8_t tp, uint8_t room, int si) { (void)tp; (void)room; (void)si; char m[24]; snprintf(m, sizeof m, " ASTART%02X?", t); note(m); }
 /* mobs stubs */
@@ -181,7 +183,7 @@ void ovl_mob_other(uint8_t t) { if (t == 10 && level_kind == 2) { slab_mob(); re
  char m[24]; snprintf(m, sizeof m, " MOB%u?", t); note(m); } int ovl_torch_347c(int c) { if (level_kind == 2) return temple_torch(c); note(" torch347c?"); return c; }
 int ovl_347c_a0e(void) { return wall_near_blade(); }   /* 347C:0A0E */
 void note_missing(const char *what) { char m[40]; snprintf(m, sizeof m, " %s?", what); note(m); }
-void ovl_347c_e48(void) { slab_step(); } void ovl_kind6_char(void) { note(" kind6?"); }
+void ovl_347c_e48(void) { slab_step(); }
 
 /* the guard sprite/frame file of a level type */
 void glue_select_guard_dat(uint8_t type)

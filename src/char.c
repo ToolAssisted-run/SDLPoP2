@@ -77,7 +77,7 @@ int is_dead_frame(uint16_t f)
 /* 0AFF:1BA2 (sequence opcode FFEF): the character leaves the level */
 void clear_char(void)
 {
-	if (Char.room == 6 && level_kind == 6 && Char.f19 == 0xF0 && Kid.alive < 0) note_missing("33FD_1416");   /* level 14 */
+	if (Char.room == 6 && level_kind == 6 && Char.f19 == 0xF0 && Kid.alive < 0) jaffar_leaves_room6();   /* 33FD:1416 (final.c) */
 	/* 0AFF:1BCE -> 0FB3:25D4 (the hp display) first reloads the character's record, dropping this tick's steps */
 	int8_t idx = (int8_t)Char.index;
 	if (idx == -1) { idx = find_opponent(1); if (idx == -1 && room_nchars(drawn_room) != 0) idx = 0; }

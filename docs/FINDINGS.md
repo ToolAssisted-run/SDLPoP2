@@ -226,7 +226,13 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   leaves the body (2F86:0264: a room record charid 0, type 0xA, seq 0x47) and the prince continues as the spirit
   (charid 1, palette 8, seq 2); otherwise death. Flash frames: 2F86:01FC/0456. The standing handler's tail
   (2FDF:0C23) and turn-run (2FDF:0E18) reset a charid-0 prince's palette slot to 0 when not turning.
-- The reverse (spirit rejoining, 2F86:0344/04CE) and level 14's use are not reconstructed.
+- The body (charid 0, frames 0xB4..0xB6; control 2FDF:09B2) drains the spirit: each tick the prince loses 1 hp (or 1
+  max hp when that would kill) and the body 1 hp. Turns only count from 2FDF:0ED9 while chained: the counter resets
+  when the prince stands (frame 0xF), and not in level 14's rooms 1/2.
+- The spirit crouching within 0x20 px of its body (2F86:000A; distance 040C, 999 on another row, DS:0CFB by
+  direction) lies into it (seq 0x47, f0f 0); on a dead frame with |distance| <= 1 it rejoins (04CE: the body's
+  character is cleared, charid 0, seq 0xE7). The spirit dying (alive > 6, 0344) turns the body into the prince
+  (index 0xA, the spirit's hp) and clears the body's character. 2F86:0142 / 0192 are sounds and palettes.
 
 ### 5.5 Temple (kind 2; OVL05 33FD, OVL07 347C, OVL10 366C)
 - Blades (OVL05), torches, slabs (tile 0x1A -> mob type 10; settled slabs return to the ceiling in the drawing pass,
@@ -320,7 +326,11 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   4 (0x20); RUINS 2 (0x14), 9 (0x22), 11..15 (1..5), 16 (0x15), 27 (0x16); ROOFTOPS 1..5, 10..12, 15, 16, 19 (0x09..0x13,
   no hooks); FINAL 1..8 (0x17..0x1E). Which level uses them is decided by the level's 0xC000 attribute bits.
 - A picked-up item's tile gets 0xC000 only while a description is loaded (0AFF:1548 tests DS:01AC).
-- Implemented: ids 6 and 0x22; the others are logged as missing (ROOMHOOK_IN_xx / ROOMHOOK_OUT_xx).
+- 0x14/0x15 (347C:0226, OVL06): level 9, prince col >= 9 in room 0x10: music 0x5C; col < 5 in room 2, once
+  (DS:2BAE): 0x5B. 0x16 (01EE/0202) and 0x17..0x1B palettes/sounds; 0x1C..0x1E see 5.10; 0x1F (347C:0FB2): col >= 9
+  music 0x5C.
+- Implemented: all but ids 0, 0x20, 0x21 (37F0 overlays), logged as missing (ROOMHOOK_IN_xx / ROOMHOOK_OUT_xx).
+- 33FD:03F2 (OVL05, kinds 2/4): tile 0xC blocks while its modifier & 0x1F is 3..15.
 
 ### 5.13 Drawing pass state
 - The drawing changes game state in places, modelled in game.c: mobs (slab return), the prince's sprite entry
@@ -349,7 +359,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
-- Room hooks other than ids 6/0x22 (5.12); level 1 kind tick; spirit rejoin; story scenes;
+- Room hooks 0, 0x20, 0x21 (37F0 overlays); level 1 kind tick; story scenes;
   sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; 2FDF:19D4 (the prince drawing
   his sword with shift alone).
 
@@ -370,3 +380,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - 2026-09-23: e2e compares frozen ticks too (all identical); X14_1 (level 14 planned run: falls out of the level).
 - 2026-09-23: level 14 (OVL08) reconstructed (final.c): kind tick, tile anims, Jaffar, fireballs; X14_2 (hp poked to 8,
   explore to room 8) identical; e2e applies DS probepokes (POKE_HP); coretest reaches no unreconstructed routine.
+- 2026-09-23: spirit rejoin/death and the body's drain (2F86:000A/040C/04CE/0344, 2FDF:09B2); X14_3 (hp 12, 11 chained
+  turns in room 7) identical; room hooks 0x14..0x16, 0x1F; tile 0xC on kinds 2/4.

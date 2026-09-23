@@ -11,13 +11,6 @@ extern int last_scene; int load_level(int n);
 /* platform: DS:2B98 sound on (the sound query on DS:0884, the music playing, goes through sound_playing(0xFFFF)) */
 __attribute__((weak)) int sound_on(void) { return 1; }
 
-/* 2F86:03CC: the first character of the drawn room with charid 0 (the prince's body), or the count */
-static int8_t body_index(void)
-{
-	int8_t n = room_nchars(drawn_room), i = 0;
-	while (i < n && chars[i].charid != 0) i++;
-	return i;
-}
 /* 0823:0F38 (hp bars): Kid = Char, then the prince's opponent is loaded */
 static void hp_bars_reload(void)
 {

@@ -58,3 +58,63 @@ void turn_count(void)
 	}
 	play_sound(0x5D);
 }
+
+/* 2F86:03CC: the drawn room's first charid-0 character (the prince's body), or the count */
+int8_t body_index(void)
+{
+	int8_t n = room_nchars(drawn_room), i = 0;
+	while (i < n && chars[i].charid != 0) i++;
+	return i;
+}
+/* 2F86:040C: the spirit's x distance to its body (Opp = the body; loads Char = Kid), 999 on another row */
+static int16_t body_distance(void)
+{
+	load_opp_080a(body_index());
+	if (Char.curr_row != Opp.curr_row) return 999;
+	int16_t cx = Char.x - Opp.x;
+	if (Char.direction != Opp.direction || Char.frame == 0xB9) return cx;
+	return cx + (int8_t)ds_byte(0xCFB + Char.direction) * 6;
+}
+/* 2F86:000A (crouching, the spirit): close to the body (< 0x20), it lies down into it (seq 0x47) */
+int shadow_seq_2f86a(void)
+{
+	uint8_t opp = Opp.index; int16_t si = body_distance(); int r = -1;
+	if ((si < 0 ? -si : si) < 0x20) {
+		if (Char.direction != Opp.direction) { Char.direction = ~Char.direction; Char.x = char_dx_forward(6); }
+		Char.x -= si; Char.y--; Char.f0f = 0; Kid = Char; r = 0x47;
+	}
+	load_opp_080a(opp);
+	return r;
+}
+/* 2F86:04CE: the spirit (lying on its body) rejoins it: the body's character is removed, the prince is charid 0 again */
+static void spirit_rejoin(void)
+{
+	if (Opp.charid != 0) return;
+	Kid = Char; load_char(Opp.index); clear_char(); save_char(); loadkid();
+	Char.charid = 0; Char.pal_slot = 0; Char.f0f = 1;
+	seqtbl_offset_char(0xE7); play_seq(); Kid = Char;
+}
+/* 2F86:0344 (the spirit dies): the body becomes the prince again (index 0xA), with the spirit's hp; its character is removed */
+void shadow_2fba4(void)
+{
+	Kid = Char;   /* (0FB3:24EA hp bars) */
+	load_char(body_index());
+	char_type body = Char;
+	Char.index = 0xA; Char.pal_slot = 0; Char.f12 = Kid.f12; Char.f13 = Kid.f13; Char.hp_delta = Kid.hp_delta;
+	Kid = Char; Char = body;
+	clear_char(); loadkid();
+}
+/* 2FDF:09B2 (control, dead frames and 0xB3..0xB7) */
+void control_dead_0307a2(void)
+{
+	if (is_dead_frame(Char.frame)) {
+		if (level_kind == 1 && Char.frame == 0xB9 && Char.f12 != 0) { take_hp(Char.f12); return; }
+		if (Char.charid == 1 && Char.f0f == 0) { int16_t d = body_distance(); if (d >= -1 && d <= 1) spirit_rejoin(); }
+		return;
+	}
+	/* the body lying (0xB4..0xB6): the spirit loses a point of hp (or of the maximum) and the body one */
+	if (Char.charid != 0 || Char.index == 0xA || Char.frame == 0xB3 || Char.frame == 0xB7) return;
+	int8_t idx = (int8_t)Char.index; save_char(); loadkid();
+	if (!take_hp(1)) Char.f13--;
+	Kid = Char; load_char(idx); take_hp(1);
+}

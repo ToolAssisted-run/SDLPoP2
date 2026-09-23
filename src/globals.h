@@ -115,6 +115,7 @@ void char_control_step(void); void play_all_chars(void); void remove_record_pub(
 int ovl_383d2(void); void ovl_shadow_37f0_78(void); void ovl_366c_10cc(void); void ovl_33fd_694(void); void ovl_366c_e0a(void); void ovl_366c_11(void);
 int ovl_36ed6(int16_t d); void dead_char_sound_1611(void); void ovl_15db_64(void); void ovl_37d28(void); void level_kind_hooks_char(void);
 #define word_2ba8 (*(uint16_t *)(tiles0 + 0xE))   /* DS:2BA8 */
+#define word_2bae (*(uint16_t *)(tiles0 + 0x14))   /* DS:2BAE level 9: room 2 music played (347C:0226) */
 #define word_2bb2 (*(uint16_t *)(tiles0 + 0x18))   /* DS:2BB2 level 8: the sword taken */
 #define word_2bb0 (*(uint16_t *)(tiles0 + 0x16))   /* DS:2BB0 level 8: the sword room music played */
 #define word_2ba4 (*(uint16_t *)(tiles0 + 0xA))   /* DS:2BA4: the lateness meter (0..0x14), 169B:05A1 */
@@ -204,3 +205,4 @@ uint8_t room_of_char(void); void pick_pal_slot_pub(uint8_t type); void kind6_tic
 void anim_tile1f(void); void anim_tile28(void); void anim_tile29(void); void anim_tile2a(void); void anim_start_final(uint32_t *attrs, int8_t tp, uint8_t room); void final_room_enter(void); extern uint8_t byte_2b74[2];   /* final.c */
 void start_0a_pub(int8_t tp, uint8_t room); int8_t tilepos_or_30_pub(int8_t row, int8_t col); int save_to_record_pub(void); void jaffar_leaves_room6(void); void fireball_update(void); mob_type *find_mob_pub(int n, uint8_t type); void add_mob_pub(void);
 const uint8_t *ds_ptr(uint16_t a);
+int8_t body_index(void);   /* spirit.c 2F86:03CC */

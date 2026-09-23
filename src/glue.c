@@ -47,19 +47,19 @@ void seq_ctl_1954(void) { drink(); }   /* items.c */
 void ovl_366c_1704(void) { note(" ovl1704"); }
 void flash_on(uint16_t v) { (void)v; note(" flash_on"); } void flash_off(void) { note(" flash_off"); }
 void play_sound(uint16_t n) { (void)n; } void sound_1611_01a8(uint16_t n) { (void)n; } int ovl_366c_11f8(uint8_t r) { (void)r; return 0; }
-void shadow_hook_2f9a2(void) { note(" shadow"); }
+void shadow_hook_2f9a2(void) {}   /* 2F86:0142: level 13 room 4 f24 0xD: 0FB3:294C (a digital sound); palette */
 void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", code); note(t); }
 /* control.c externs not yet reconstructed */
 uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_6d46, word_8a84;
-int shadow_seq_2f86a(void) { return -1; } 
-void ovl_2f86_0a5c(void) { turn_flash(); } void shadow_2fba4(void) {}
+
+void ovl_2f86_0a5c(void) { turn_flash(); } 
 void ovl_383fa(void) { note(" 383fa"); } void ovl_35a88(void) { ruins_open_tile7(); }   /* 347C:12C8 (ruins.c) */ int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ int ovl_34ab2(void) { return 0; }
 int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF:104C */ void ovl_384e8(void) {} int ovl_32a0e(void) { return under_gate(); }   /* 3212:08EE (control.c) */ 
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) { turn_count(); }   /* 2F86:0078 (spirit.c) */
 uint16_t word_922e, word_922c, word_8604, word_927e;
 int ovl_377c6(void) { return level_kind == 4 ? head_biting(Char.index, Char.room) : 0; }   /* 366C:1106 */ void ovl_3741a(void) {} 
 int rtlink_0dd5(void) { return 0; } 
-void control_dead_0307a2(void) { note(" dead0307a2"); } void control_0d9_0e2(void) { note(" 0d9_0e2?"); }
+void control_0d9_0e2(void) { note(" 0d9_0e2?"); }
 
 static uint8_t kidtab[20736];
 void glue_load_exe_tables(const char *exe)
@@ -77,7 +77,7 @@ void glue_load_exe_tables(const char *exe)
 uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR;
 const uint8_t *sword_tables[2];   /* PRINCE.DAT FRAM 1000, 1200 (sword type 2): DS:6110, 1286:0454/0544 */
 void ovl_366c2(void) { head_attach(); }   /* 366C:0002 (heads.c) */ void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return wall_find(Char.room, Char.curr_row) != NULL; }   /* 347C:0526 */
-void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { wall_collision(row, r, f); }   /* 347C:0412 */ int ovl_343c2(void) { note(" 343c2?"); return 0; }
+void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { wall_collision(row, r, f); }   /* 347C:0412 */ int ovl_343c2(void) { if (level_kind == 2 || level_kind == 4) { int m = (uint8_t)curr_modifier & 0x1F; return m >= 3 && m <= 0xF; } note(" 343c2?"); return 0; }   /* 33FD:03F2 (OVL05): tile 0xC blocks while its modifier is 3..15 */
 int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { return wall_edge(dir, room, row); }   /* 347C:0368 */
 int16_t ovl_352ca(void) { return wall_limit(Char.room, Char.curr_row); }   /* 1375:14FC -> 347C:0B0A */ void ovl_3211a(void) { note(" 3211a"); }
 void ovl_348e6(void) { if (level_kind == 4) ruins_crumble(); else note(" CHOMPER"); }   /* 347C:0126 */ void ovl_3564e(void) { note(" 3564e"); }
@@ -149,7 +149,7 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 /* room.c stubs */
 uint16_t word_68f0;
 void ovl_37d2a(void) { note(" 37d2a"); } void ovl_34210(void) { note(" 34210"); }
-void ovl_34958(void) { level6_entrance(); } void ovl_34370(void) { note(" 34370"); } void ovl_2f9f2(void) { note(" 2f9f2"); }
+void ovl_34958(void) { level6_entrance(); } void ovl_34370(void) { note(" 34370"); } void ovl_2f9f2(void) {}   /* 2F86:0192: palette by hp */
 void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {}
 level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
 void ovl_36712(void) { note(" 36712"); } void room_music_087e(void) {} void redraw_room(void) {} void hp_bar_clear(void) {} void hp_bar_draw(uint8_t index, int a, uint8_t hp) { (void)index; (void)a; (void)hp; }

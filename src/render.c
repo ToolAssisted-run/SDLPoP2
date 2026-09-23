@@ -36,8 +36,27 @@ static dat_file *dat_of(const char *name)
 	}
 	return NULL;
 }
+/* images registered into an image set outside its own ids (a room description's images: 26BC:073C) */
+#define EXTRA_MAX 128
+static struct { int chtab, id, res; char dat[32]; image_t *im; } extra[EXTRA_MAX]; static int n_extra;
+void render_register_image(int n, int id, const char *dat, int res)
+{
+	for (int i = 0; i < n_extra; i++) if (extra[i].chtab == n && extra[i].id == id) {
+		if (extra[i].res == res && !strcmp(extra[i].dat, dat)) return;
+		if (extra[i].im) { image_free(extra[i].im); free(extra[i].im); extra[i].im = NULL; }
+		extra[i].res = res; snprintf(extra[i].dat, sizeof extra[i].dat, "%s", dat); return;
+	}
+	if (n_extra == EXTRA_MAX) return;
+	extra[n_extra].chtab = n; extra[n_extra].id = id; extra[n_extra].res = res; extra[n_extra].im = NULL;
+	snprintf(extra[n_extra].dat, sizeof extra[n_extra].dat, "%s", dat); n_extra++;
+}
+static const image_t *decode_res(const char *datname, int res, uint8_t pal_base);
 const image_t *render_image(int n, int id)
 {
+	for (int i = 0; i < n_extra; i++) if (extra[i].chtab == n && extra[i].id == id) {
+		if (!extra[i].im) extra[i].im = (image_t *)decode_res(extra[i].dat, extra[i].res, n >= 0 && n < 8 ? chtabs[n].pal_base : 0);
+		return extra[i].im;
+	}
 	if (n < 0 || n >= 8 || !chtabs[n].dat || id < 0 || id >= CACHE_IDS) return NULL;
 	if (cache[n][id]) return cache[n][id];
 	dat_file *d = dat_of(chtabs[n].dat); if (!d) return NULL;
@@ -48,6 +67,15 @@ const image_t *render_image(int n, int id)
 	if (!r || !image_decode(r, sz, im)) { free(im); return NULL; }
 	if (chtabs[n].pal_base) for (int i = 0; i < im->width * im->height; i++) if (im->pixels[i]) im->pixels[i] = (uint8_t)(im->pixels[i] + chtabs[n].pal_base);   /* (0 stays 0: transparent) */
 	return cache[n][id] = im;
+}
+static const image_t *decode_res(const char *datname, int res, uint8_t pal_base)
+{
+	dat_file *d = dat_of(datname); if (!d) return NULL;
+	uint16_t sz; const uint8_t *r = dat_find(d, "PAHS", (uint16_t)res, &sz);
+	image_t *im = calloc(1, sizeof *im);
+	if (!r || !image_decode(r, sz, im)) { free(im); return NULL; }
+	if (pal_base) for (int i = 0; i < im->width * im->height; i++) if (im->pixels[i]) im->pixels[i] = (uint8_t)(im->pixels[i] + pal_base);
+	return im;
 }
 
 /* ---- table entries ---- */
@@ -94,4 +122,26 @@ void render_draw_table(int n)
 {
 	draw_entry *t = n == 0 ? back_table : fore_table;
 	for (int i = 0; i < table_counts[n]; i++) render_draw_entry(&t[i]);
+}
+
+/* 0FB3:13C2's reorderings before the tables are drawn: 1ECE (desert-less kinds 2, 4, 5) puts the back entries with
+ * piece byte 0 first, 1F68 (level 14 room 1, level 10 room 0x16 in kind 6) the foreground entries of image 0x6372;
+ * both stable */
+static void move_to_front(draw_entry *t, int n, int (*pick)(const draw_entry *))
+{
+	int dst = 0;
+	for (int i = 0; i < n; i++) {
+		if (!pick(&t[i])) continue;
+		if (i != dst) { draw_entry e = t[i]; memmove(&t[dst + 1], &t[dst], (size_t)(i - dst) * sizeof e); t[dst] = e; }   /* (2812:1FE6) */
+		dst++;
+	}
+}
+static int piece0(const draw_entry *e) { return e->piece == 0; }
+static int image6372(const draw_entry *e) { return e->id == 0x6372; }
+void render_sort_tables(void)
+{
+	if (level_kind == 4 || level_kind == 2 || level_kind == 5) move_to_front(back_table, table_counts[0], piece0);   /* 0FB3:1ECE */
+	if ((drawn_room == 1 && level_number == 14) || (drawn_room == 0x16 && level_number == 10)) {   /* 0FB3:1F68 */
+		if (level_kind == 6) move_to_front(fore_table, table_counts[1], image6372);
+	}
 }

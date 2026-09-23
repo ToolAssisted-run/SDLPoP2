@@ -101,14 +101,20 @@ static const dat_file *guard_file_of_type(uint8_t t)
 /* DS:1BB4: resource 755 of the level type's guard file (HEAD.DAT for types 5 and 6, 1286:09C1): where a biting head
  * sits on each of the prince's images (2 bytes: dy, dx) */
 /* 0CD6:02BE: the background id of a room's "CUST" description (resource (room + 159) * 25 of the scenery file), -1 none */
+static const char *const kind_dat[7] = {NULL, "DESERT.DAT", "TEMPLE.DAT", "CAVERNS.DAT", "RUINS.DAT", "ROOFTOPS.DAT", "FINAL.DAT"};
+const char *level_kind_dat(void) { return level_kind < 7 ? kind_dat[level_kind] : NULL; }   /* the level kind's scenery file */
+/* the room's "CUST" description resource, NULL none */
+const uint8_t *room_description_res(uint8_t room, uint16_t *size)
+{
+	static dat_file f[7]; static int8_t ok[7];
+	if (level_kind >= 7 || !kind_dat[level_kind]) return NULL;
+	if (!ok[level_kind]) ok[level_kind] = dat_open(&f[level_kind], game_path(kind_dat[level_kind])) ? 1 : -1;
+	if (ok[level_kind] < 0) return NULL;
+	return dat_find(&f[level_kind], "TSUC", (uint16_t)((room + 0x9F) * 0x19), size);
+}
 int16_t room_description_bg(uint8_t room)
 {
-	static const char *env[7] = {NULL, "DESERT.DAT", "TEMPLE.DAT", "CAVERNS.DAT", "RUINS.DAT", "ROOFTOPS.DAT", "FINAL.DAT"};
-	static dat_file f[7]; static int8_t ok[7];
-	if (level_kind >= 7 || !env[level_kind]) return -1;
-	if (!ok[level_kind]) ok[level_kind] = dat_open(&f[level_kind], game_path(env[level_kind])) ? 1 : -1;
-	if (ok[level_kind] < 0) return -1;
-	uint16_t n; const uint8_t *r = dat_find(&f[level_kind], "TSUC", (uint16_t)((room + 0x9F) * 0x19), &n);
+	uint16_t n; const uint8_t *r = room_description_res(room, &n);
 	return r && n > 1 ? r[1] : -1;
 }
 const uint8_t *head_attach_table(void) { const dat_file *gf = guard_file_of_type(level.type); uint16_t n; return gf ? dat_find(gf, NULL, 755, &n) : NULL; }

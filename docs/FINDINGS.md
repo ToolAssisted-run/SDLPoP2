@@ -463,6 +463,35 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   (2D3E:0E54) when random(3) <= dead characters in the room or another body lies on his tile; not when facing the
   prince's way nor on/before tiles 3/8/4.
 
+### 5.15 Drawing: tables, tiles, descriptions (render*.c; tests/tiletest.c, tools/tilecap.py)
+- Draw tables (seg 39E0): back (table 0, at 0, max 130, count DS:60F0), fore (table 1, at 0xA28, max 100, count
+  DS:60F2), table 3 (seg [26CA]:11F8, max 30), objects (DS:5D3A, 0x17 bytes, max 30). Entry (20 bytes): image set,
+  piece byte, image id, x, y (top left), col (DS:6B6F), row (DS:6B6E) - the drawing globals, not the adder's
+  arguments -, rect top/left/bottom/right (the image box cut to the clip DS:60DE), mode, mirror.
+- Adders 0993:0124/019C (back, piece +1 / +7, 019C skips id 0), 0220 (fore +7), 0330 (fore +0xD; set 1 for tiles
+  0x0A/0x3C, set 0 for 0x16, else 4) take the piece from the piece table DS:[0x1090] (19 bytes per tile type: [0]
+  the entry's piece byte, three {id, x, y}); 0993:0008 fills: y += rowY DS:0D40[row] - image height, x += DS:0D26[col].
+- Image set 4 (the level kind's tiles, first 3500): ids from DS:05AC[kind] on (caverns 99, ruins 89, temple 78,
+  -1 = all for desert/rooftops/final) come from resource id + 200 (0993:0DC8); a description's images are
+  registered at first + object number (26BC:073C).
+- Whole-room build 0FB3:0122: rows 2..0, columns 0..9 (0FB3:01CA: layers 0, 5, 0xB via 03DC, fore 1 via 0858;
+  03DC starts at piece 0594), then row -1 from the room above - or, with a description, 0CD6:0142 clears the
+  row-above cache (tile 0, modifier 0xC000). Drawers per kind: far table DS:[0x6188] by tile type, special DS:618A
+  (caverns 34C1:0686, ruins 34A3:0986, temple 3579:075E) used by 0FB3:0984 for a chomper (tile 4) closing on a
+  character; tile 0x0A (potion) is resident 0FB3:2394 for all kinds but desert/rooftops.
+- 0FB3:13C2 before drawing: 1ECE (kinds 2, 4, 5) moves the back entries with piece byte 0 to the front (stable);
+  1F68 (level 14 room 1) moves the fore entries of image 0x6372 to the front.
+- Descriptions (CUST, 0CD6:0398 load): header 0x1C bytes ([0] count, [1] background, [2] first image resource,
+  [0xE] redraw flag), objects 0x19 bytes ([0] image (0xFF none), [1] y, [3] x, [5] layer, [6] mode, [7] id = first +
+  number, [9] loaded, [0xB] rect (relative to the image, becomes the screen rect cut to the image), [0x14] piece
+  byte). 0FB3:0624 puts the layer's objects in (whole-room build: layers 0/5 at the first tile, 1/2 at col 9 row 0)
+  plus the extra pieces 0x6370..0x6372 (0FB3:228E/22F4: level 9 room 2, level 14 room 1, level 10 room 0x16);
+  layer-0xB objects are placed by the kinds' tile drawers (desert/rooftops/final 33FD, animated by the modifiers;
+  0CD6:007A = an object at a tile). Rooftops' foreground objects go behind the prince (33FD:0000: action 3/4 with
+  boxes meeting; 33FD:0826: during a grab).
+- Verified (tiletest on tilecap captures, entry for entry): every captured room build of levels 1-9 and 14 (caverns,
+  ruins, desert, rooftops, final); temple in progress.
+
 ## 6. The C core (`src/core.h`)
 - `pop2_init(dir)`, `pop2_new_game(level, seed)`, `pop2_frame(&input)` (one tick), `pop2_save/load/hash`,
   `pop2_missing()` (routines not reconstructed that the tick reached).
@@ -558,3 +587,5 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   (first id, count, 16 colours of 6-bit RGB), PALS/PALC palettes, PIEC tile pieces, CUST room descriptions, FRAM,
   FONT, TXT4 texts, _SCR/_PSL/PALT/STRL story scenes (NIS.DAT, TRANS.DAT, FINAL.DAT), _SND sounds. oracle-run has
   `shot F PATH` (TGA, top-down rows, BGR) and `mem F DOMAIN PATH` (4 = video RAM) script commands now.
+- 2026-09-24: renderer tables: whole-room builds of all kinds but temple match the game entry for entry (5.15);
+  level 2's puzzle solved by the fleet explorer and verified (P2_99: 462 ticks identical).

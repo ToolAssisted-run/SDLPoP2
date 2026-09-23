@@ -30,7 +30,8 @@ extern int16_t draw_clip[4];                                    /* DS:60DE top, 
 /* image sets (chtabs) */
 typedef struct chtab_t { const char *dat; uint16_t first; uint8_t pal_base; } chtab_t;
 void render_set_chtab(int n, const char *dat, uint16_t first, uint8_t pal_base);
-const image_t *render_image(int chtab, int id);   /* cached decode; NULL if missing */
+const image_t *render_image(int chtab, int id);
+void render_register_image(int chtab, int id, const char *dat, int res);   /* image `id` of set `chtab` is resource `res` of `dat` */   /* cached decode; NULL if missing */
 
 /* 0993:0008 (register arguments al, dx, bx): fill *e from a piece (image id, x, y) at the current tile, cut to the
  * drawing area; 0 when nothing shows */
@@ -39,3 +40,4 @@ int render_set_entry(draw_entry *e, uint8_t chtab, int16_t id_override, const in
 void render_draw_entry(const draw_entry *e);
 /* 0FB3:0B78: draw table n (0 back, 1 fore) */
 void render_draw_table(int n);
+void render_sort_tables(void);   /* 0FB3:13C2: 1ECE / 1F68 */

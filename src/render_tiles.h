@@ -37,3 +37,24 @@ void draw_tile_0a(tile_args *a);   /* 0FB3:2394 */
 void draw_room_tiles(void);   /* 0FB3:0122 */
 void draw_one_tile(void);     /* 0FB3:01CA */
 int description_row2_check(void);   /* 0CD6:0666 */
+
+extern const kind_drawers kind_caverns, kind_ruins, kind_temple;   /* render_kind3.c / render_kind4.c / render_kind2.c */
+const kind_drawers *kind_drawers_for(int kind);
+/* the drawers several kinds share (the 3443 overlay: tiles 0x0C and 0x0D of ruins and temple), render_kind_common.c */
+void draw_3443_0050(tile_args *a);
+void draw_3443_01d6(tile_args *a);
+
+/* render_desc.c: the drawn room's description */
+void render_desc_load(uint8_t room);   /* 0CD6:0398 */
+int render_desc_loaded(void);
+int render_desc_bg(void);
+void render_desc_objects(uint8_t layer);   /* 0FB3:0624 */
+extern uint16_t word_2ba6;
+void draw_object(int i, uint8_t layer);   /* 0FB3:0712 */
+uint8_t *desc_obj(int i);
+int desc_count(void);
+void desc_obj_image_rect(uint8_t *o);
+void desc_obj_offset(uint8_t *o, int16_t dx, int16_t dy);
+void desc_draw_obj_at(tile_args *a, int i);   /* 0CD6:007A */
+void desc_draw_obj_pair(tile_args *a, int i);
+extern const kind_drawers kind_desert, kind_rooftops, kind_final;   /* render_kind_desc.c */

@@ -18,7 +18,7 @@ uint16_t redraw_all_flag;                  /* DS:610E: a whole-room redraw in pr
 const kind_drawers *tile_drawers;          /* DS:6188: the level kind's tile drawers */
 
 static const uint8_t *room_tiles(uint8_t room) { return room ? level.tiles[room - 1] : tiles0; }   /* DS:2B9A + 30 * room */
-__attribute__((weak)) int description_row2_check(void) { note_missing("0CD6_0666"); return 0; }
+int description_row2_check(void) { return render_desc_loaded() && render_desc_bg() == 0x1F; }   /* 0CD6:0666: background 0x1F */
 
 /* 17C1:03A8: the tile (and modifier) at (col, row) of room, from the caches for columns -1 / 10; room 0 is outside
  * the level: `outside` (with a modifier by level kind) */
@@ -218,8 +218,8 @@ static int first_piece(void)
 	if (room_bg != 0 && draw_row == 2 && !description_row2_check()) return 2;   /* 0CD6:0666 */
 	return 0;
 }
-/* 0FB3:0624 (the tile's own piece comes next): description objects and special parts (not reconstructed yet) */
-static void before_own_piece(uint8_t layer) { (void)layer; if (room_bg != 0) note_missing("DRAW_0624"); }
+/* 0FB3:0624 (the tile's own piece comes next): the room description's objects (render_desc.c) */
+static void before_own_piece(uint8_t layer) { render_desc_objects(layer); }
 /* 0FB3:03DC: the pieces of layer `layer` from the tiles below-left, below, left and this one */
 static void draw_layer(uint8_t layer)
 {
@@ -245,8 +245,49 @@ static void draw_layer(uint8_t layer)
 		if (room_bg == 0 || v == 0 || layer == v || (v == 2 && layer == 5)) call_drawer(&a);
 	}
 }
-/* 0FB3:0984: the chomper tile (4) of caverns and similar specials (not reconstructed yet) */
-static void draw_special(void) { if (cur_tile.tile == 4 || left_tile.tile == 4) note_missing("DRAW_0984"); }
+/* 0FB3:1BF2: the frame's sprite of a character (the sprite list, not reconstructed yet): its record's rect */
+__attribute__((weak)) const int16_t *sprite_rect_of(int kind, uint8_t charid) { (void)kind; (void)charid; return NULL; }
+extern void caverns_teeth(tile_args *a);   /* 34C1:0774 */
+/* a character that the teeth of the chomper at the left tile (4) close on: on this row, in the chomper's column or
+ * the one after this one, not in action 2 or 6 */
+static int bitten(const char_type *c)
+{
+	return left_tile.tile == 4 && c->curr_row == draw_row && (c->curr_col == draw_col - 1 || draw_col - c->curr_col == 2) && c->action != 2 && c->action != 6;
+}
+/* 0FB3:0984: the chomper (4) in front of the character it bites: the kind's special drawer (DS:618A) in layer 2 on
+ * the left tile, clipped to the character's sprite (whole-room builds: to below the row's top); the caverns' teeth
+ * (34C1:0774) while the prince is in frames 0x108..0x10A. (The original loads the characters into Char to test them:
+ * here copies.) */
+static void draw_special(void)
+{
+	tile_args b;
+	if (Kid.frame >= 0x108 && Kid.frame <= 0x10A) {
+		if (level_kind != 3) return;
+		b.layer = 0; b.row = draw_row;
+		if (cur_tile.tile == 4) { b.col = draw_col; b.tile = 0; b.mod = cur_tile.mod; caverns_teeth(&b); }
+		else if (left_tile.tile == 4) { b.col = (int8_t)(draw_col - 1); b.tile = 0; b.mod = left_tile.mod; caverns_teeth(&b); }
+		return;
+	}
+	if (left_tile.tile != 4) return;
+	int16_t save[4]; memcpy(save, draw_clip, sizeof save);
+	const int16_t *sr = NULL; int hit = bitten(&Kid);
+	if (hit) sr = sprite_rect_of(2, 0);
+	else {
+		int n = room_nchars(drawn_room);
+		for (int i = 0; i < n && i < 5 && !hit; i++) if (bitten(&chars[i])) { hit = 1; sr = sprite_rect_of(3, chars[i].charid); }
+	}
+	if (hit) {
+		b.layer = 2; b.col = (int8_t)(draw_col - 1); b.row = draw_row; b.tile = 0; b.mod = left_tile.mod;
+		if (tile_drawers && tile_drawers->special) {
+			if (redraw_all_flag) draw_clip[0] = (int16_t)(0x3F * draw_row + 3);
+			else if (sr) { int16_t r[4]; memcpy(r, draw_clip, sizeof r);
+				draw_clip[0] = r[0] > sr[0] ? r[0] : sr[0]; draw_clip[1] = r[1] > sr[1] ? r[1] : sr[1]; draw_clip[2] = r[2] < sr[2] ? r[2] : sr[2]; draw_clip[3] = r[3] < sr[3] ? r[3] : sr[3];
+				if (draw_clip[0] >= draw_clip[2] || draw_clip[1] >= draw_clip[3]) draw_clip[0] = draw_clip[1] = draw_clip[2] = draw_clip[3] = 0; }
+			if (!(draw_clip[0] >= draw_clip[2] || draw_clip[1] >= draw_clip[3])) tile_drawers->special(&b);
+		}
+	}
+	memcpy(draw_clip, save, sizeof save);
+}
 /* 0FB3:0858: the fore layer (1) of the left tile, this tile and the tile above */
 static void draw_fore(void)
 {
@@ -285,5 +326,12 @@ void draw_room_tiles(void)
 		draw_row = -1;
 		for (draw_col = 0; draw_col < 10; draw_col++) { load_cur_tiles(); draw_one_tile(); }
 		drawn_room = si; set_neighbour_rooms();
-	} else note_missing("DRAW_0CD6_0142");
+	} else for (int i = 0; i < 11; i++) { row_above[i].tile = 0; row_above[i].mod = 0xC000; }   /* 0CD6:0142 (a description room: nothing above) */
+}
+
+/* DS:[0x6188] per level kind (0FB3 loads the kind's overlays): 1 desert, 2 temple, 3 caverns, 4 ruins, 5 rooftops,
+ * 6 the final level */
+const kind_drawers *kind_drawers_for(int kind)
+{
+	switch (kind) { case 1: return &kind_desert; case 2: return &kind_temple; case 3: return &kind_caverns; case 4: return &kind_ruins; case 5: return &kind_rooftops; case 6: return &kind_final; default: return NULL; }
 }

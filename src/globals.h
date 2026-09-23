@@ -200,7 +200,7 @@ int wall_near_blade(void); int16_t wall_limit(uint8_t room, int8_t row); void tr
 extern kid_sprite_t kid_sprite; void head_attach(void); const uint8_t *head_attach_table(void); int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);   /* game.c, heads.c, glue.c */
 void dead_char_music(void); uint8_t *find_spawn_pub(int8_t row, uint8_t room); int char_scan_31bc4(void);   /* fight.c, room.c, kid.c */
 void ruins_open_tile7(void);   /* ruins.c */
-extern uint8_t byte_5ce7; extern int16_t room_bg; int room_has_description(uint8_t room); void room_load(uint8_t room); int16_t room_description_bg(uint8_t room);   /* roomhooks.c, glue.c */
+extern uint8_t byte_5ce7; extern int16_t room_bg; int room_has_description(uint8_t room); void room_load(uint8_t room); int16_t room_description_bg(uint8_t room); const uint8_t *room_description_res(uint8_t room, uint16_t *size); const char *level_kind_dat(void);   /* roomhooks.c, glue.c */
 uint8_t room_of_char(void); void pick_pal_slot_pub(uint8_t type); void kind6_tick(void); int control_rest(void);
 void anim_tile1f(void); void anim_tile28(void); void anim_tile29(void); void anim_tile2a(void); void anim_start_final(uint32_t *attrs, int8_t tp, uint8_t room); void final_room_enter(void); extern uint8_t byte_2b74[2];   /* final.c */
 void start_0a_pub(int8_t tp, uint8_t room); int8_t tilepos_or_30_pub(int8_t row, int8_t col); int save_to_record_pub(void); void jaffar_leaves_room6(void); void fireball_update(void); mob_type *find_mob_pub(int n, uint8_t type); void add_mob_pub(void);

@@ -332,10 +332,25 @@ static void d_12a8(tile_args *a)
 }
 static void d_13(tile_args *a) { d_12a8(a); }
 
-static const kind_drawers caverns = {{
+const kind_drawers kind_caverns = {{
 	[0x00] = d_00, [0x01] = d_floor, [0x02] = d_02, [0x03] = d_03, [0x04] = d_04, [0x08] = d_08, [0x09] = d_09, [0x0A] = draw_tile_0a,
 	[0x0B] = d_c10, [0x0E] = d_0e, [0x10] = d_10, [0x11] = d_11, [0x13] = d_13, [0x14] = d_wall, [0x17] = d_17,
 	[0x18] = d_18, [0x20] = d_20, [0x21] = d_21, [0x22] = d_22, [0x23] = d_23, [0x24] = d_24,
 	/* 0x0A: 0FB3:2394 (resident), 0x12 / 0x1B / 0x2C: the 37F0 overlays (level 5's rooms) */
-}, NULL};
-const kind_drawers *kind_drawers_for(int kind) { return kind == 3 ? &caverns : NULL; }
+}, d_0686};
+/* 34C1:0774: the chomper's teeth in front of the prince in frames 0x108..0x10A (0FB3:0984), where his box (Kid +1B)
+ * meets the screen below 16 above the tile's row: piece 0x37 lowered by min(modifier bits 2..7, 0x32) + 3 */
+void caverns_teeth(tile_args *a)
+{
+	int16_t save[4]; memcpy(save, draw_clip, sizeof save);
+	int16_t r[4]; memcpy(r, screen_rect, sizeof r); r[0] = (int16_t)(0x3F * a->row - 0x10);
+	int16_t kb[4] = {Kid.bbox_top, Kid.bbox_left, Kid.bbox_bottom, Kid.bbox_right};
+	int16_t t = r[0] > kb[0] ? r[0] : kb[0], l = r[1] > kb[1] ? r[1] : kb[1], bo = r[2] < kb[2] ? r[2] : kb[2], ri = r[3] < kb[3] ? r[3] : kb[3];
+	if (t < bo && l < ri) {
+		draw_clip[0] = t; draw_clip[1] = l; draw_clip[2] = bo; draw_clip[3] = ri;
+		int m = (mod_lo(a) & 0xFC) >> 2; if (m > 0x32) m = 0x32;
+		piece_word(0x420, (int16_t)-(m + 3));
+		A_FORE_B(0x37, NOID, a->col, a->row, 0xA, 0);
+	}
+	memcpy(draw_clip, save, sizeof save);
+}

@@ -1,5 +1,6 @@
 /* Kind-3 (caverns) overlay routines (OVL04, loaded at 33FD): falling rocks. */
 #include <stddef.h>
+#include <string.h>
 #include "types.h"
 #include "globals.h"
 
@@ -97,4 +98,120 @@ void rock_fly(void)
 	}
 	if (cur_mob.speed == -2) play_sound(0x52);
 	cur_mob.y = y; cur_mob.x = x;
+}
+
+/* Collapsing floors (tiles 0x17 + 0x18, two columns): each on-screen one owns a 0x65-byte object from the near heap
+ * (slots DS:2B6C, max 4) whose byte 0 is the stage (bit 7: collapsing, bit 6: a variant) followed by 10 sub-animations
+ * of 10 bytes (active word, counter, frame-list index, three words). The trob's state holds the slot. */
+uint16_t floor_ptrs[4];               /* DS:2B6C: heap addresses in the original; here nonzero = in use */
+uint8_t floor_objs[4][0x65];
+static const uint8_t *cav_ds;         /* static DS data: stage table DS:152E (15 x 8), frame lists via DS:15F0 */
+void caverns_set_tables(const uint8_t *ds) { cav_ds = ds; }
+
+/* 33FD:0AB6: start a sub-animation from an 8-byte table entry */
+static void floor_add_sub(uint8_t *obj, uint16_t entry)
+{
+	const uint8_t *e = cav_ds + entry; int i;
+	for (i = 0; i < 10 && (obj[1 + i * 10] | obj[2 + i * 10]); i++) ;
+	if (i >= 10) return;
+	uint8_t *s = obj + i * 10;
+	s[1] = 1; s[2] = 0; s[3] = 0; s[4] = e[1]; memcpy(s + 5, e + 2, 6);
+}
+/* 33FD:097C: reset an object to its type's starting sub-animations */
+static void floor_init(uint8_t *obj, int type)
+{
+	memset(obj, 0, 0x65);
+	if (type == 1) {
+		obj[0] = 3; floor_add_sub(obj, 0x1556); floor_add_sub(obj, 0x154E); obj[0xD] = 1; floor_add_sub(obj, 0x1546); obj[0xD] = 1;
+		floor_add_sub(obj, 0x153E); obj[0x21] = 3; floor_add_sub(obj, 0x1536); obj[0x21] = 3; floor_add_sub(obj, 0x152E); obj[0x21] = 3;
+	} else if (type == 2) {
+		obj[0] = 0xB; floor_add_sub(obj, 0x157E); floor_add_sub(obj, 0x1576); obj[0xD] = 4; floor_add_sub(obj, 0x156E); obj[0x17] = 5;
+	} else {
+		obj[0] = 0; floor_add_sub(obj, 0x152E); floor_add_sub(obj, 0x1536); floor_add_sub(obj, 0x153E); floor_add_sub(obj, 0x1596); obj[0x21] = 5;
+		floor_add_sub(obj, 0x159E); obj[0x2B] = 4;
+	}
+}
+/* 33FD:0804: a free slot (the original stops with an error when all 4 are taken and uses slot 3) */
+static int floor_slot(void) { int i; for (i = 0; i < 4 && floor_ptrs[i]; i++) ; if (i == 4) { note_missing("FLOOR_SLOTS"); i = 3; } return i; }
+/* 33FD:0A54: a collapsing floor comes on screen */
+void floor_room_entry(uint8_t room, int8_t tp)
+{
+	if (get_trob(tp, room)) return;
+	int slot = floor_slot();
+	floor_ptrs[slot] = 1;   /* malloc(0x65) (2812:003B) */
+	floor_init(floor_objs[slot], tp % 3);
+	add_trob(0x17, slot, tp, room);
+}
+/* 33FD:08C4: free every object */
+void floor_free_all(void) { for (int i = 0; i < 4; i++) floor_ptrs[i] = 0; }
+/* 33FD:05AE: animation of tile 0x17 */
+void anim_floor(void)
+{
+	int slot = cur_trob.state & 7;
+	uint8_t *obj = floor_objs[slot];
+	if (!anim_visible_pub()) { floor_ptrs[slot] = 0; return; }   /* free (2812:001A) */
+	int st = obj[0] & 0x3F;
+	if (st == 0x17 || ((obj[0] & 0x80) && st == 3)) {
+		int v = obj[0] & 0x40; floor_init(obj, 0);
+		if (st == 3) obj[0] = v ? 0xC4 : 0x84;
+		return;   /* 33FD:08F4 redraws */
+	}
+	obj[0]++;
+	if ((obj[0] & 0x80) && st < 3) return;
+	if (obj[0] & 0x80) { if (st == 4) { obj[0] &= 0x7F; play_sound(0x61); } st -= 3; }
+	for (int i = 0; i < 10; i++) {
+		uint8_t *s = obj + 1 + i * 10;
+		if (!(s[0] | s[1])) continue;
+		s[2]++;
+		const uint8_t *list = cav_ds + (cav_ds[0x15F0 + 2 * s[3]] | cav_ds[0x15F1 + 2 * s[3]] << 8);
+		uint8_t f = list[(int8_t)s[2]];
+		if (f == 0xFF) { s[0] = s[1] = 0; }
+		else if (f == 0xFE) { s[8] = 1; s[9] = 0; s[2]++; }
+	}
+	for (int i = 0; i < 15; i++) {
+		uint16_t e = 0x152E + i * 8;
+		if ((int8_t)cav_ds[e] > st) break;
+		if ((int8_t)cav_ds[e] == st) floor_add_sub(obj, e);
+	}
+}
+/* 33FD:0878: the trob of the collapsing floor under (row, col, room) (0x18 is its right half) */
+static trob_type *floor_trob(int8_t row, int8_t col, uint8_t room)
+{
+	uint8_t t = get_tile(row, col, room); int8_t tp = curr_tilepos;
+	if (t == 0x18) tp--;
+	trob_type *r = get_trob(tp, room);
+	get_room_address(drawn_room);
+	return r;
+}
+/* 33FD:0754: Char steps on a collapsing floor and goes down with it */
+static void floor_collapse(void)
+{
+	trob_type *t = floor_trob(Char.curr_row, Char.curr_col, Char.room);
+	if (!t) return;
+	floor_objs[t->state][0] = 0x80;
+	if (Char.charid == 0 && random_2751(3) == 0) { seqtbl_offset_char(0x74); floor_objs[t->state][0] |= 0x40; play_sound(0x63); }
+	else { play_sound(Char.charid == 0 ? 0x63 : 0x62); seqtbl_offset_char(0x73); }
+	Char.f23 = 0; Char.f0f = 1; Char.f24 = 5; Char.fall_x = Char.fall_y = 0;
+	take_hp(100); play_seq();
+	if ((t = floor_trob(Char.curr_row, Char.curr_col, Char.room)) != NULL) cur_trob = *t;   /* 33FD:08F4 redraws it */
+}
+/* 33FD:06E6 (kind 3, after a character moves): standing on a collapsing floor's surface */
+void floor_touch_check(void)
+{
+	uint8_t t = get_tile(Char.curr_row, Char.curr_col, Char.room);
+	int16_t surface = 63 * Char.curr_row + 0x29;
+	int16_t d = col_x_left[Char.curr_col] - dx_weight() + 0x1A;
+	if ((t == 0x17 || (t == 0x18 && d >= 0)) && (frame_flags & 0x40) && surface < Char.y && Char.f24 != 5) floor_collapse();
+}
+/* 33FD:0B0E (kind 3, a gate opening, si = its position): a gate rising under the prince in a squeeze */
+int gate_squeeze(int si)
+{
+	int8_t tp = (Kid.curr_row >= 0 ? Kid.curr_row * 10 : Kid.curr_row * 10 + 9) + Kid.curr_col;   /* 0AFF:07D4 */
+	if (cur_trob.room != Kid.room) { if (cur_trob.room == room_L) tp += 10; else if (cur_trob.room == room_R) tp -= 10; else tp = 0x1E; }
+	if (cur_trob.tilepos != tp && cur_trob.tilepos != tp - 1) return si;
+	if (Kid.f24 == 3) { si = 0xC; play_sound(9); }   /* 1375:2546 */
+	else if (Kid.frame == 0x108) si -= door_speed_0776(cur_trob.state) + 2;
+	else if (Kid.frame == 0x109) si = 0x24;
+	else if (Kid.frame == 0x10A) cur_trob.state = 0xFF;   /* 1375:0388 redraws */
+	return si;
 }

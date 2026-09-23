@@ -33,20 +33,29 @@ int main(int argc, char **argv)
 	static uint8_t ram[655360]; FILE *rf = fopen(argv[3], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf); stubs_load_ds_tables(ram);
 	level_roomlinks = (uint8_t *)&level + 0x17BC;
 	FILE *f = fopen(argv[5], "rb"); if (!f) return 2;
+	FILE *hf = argc > 6 ? fopen(argv[6], "rb") : NULL;   /* optional near-heap samples at each tick start (collapsing floors) */
+	static uint8_t heap[0x1000], prev_objs[4][0x65]; uint32_t hsize = 0; uint16_t prev_ptrs[4] = {0}; int prev_ok = 0, prev_n = 0; uint32_t prev_frame = 0;
 	static uint8_t a[SNAP_MAX], b[SNAP_MAX], got[SNAP_MAX]; uint32_t frame, size; int n = 0, bad = 0, busy = 0, skipped = 0;
 	static const char *const room_regions[] = {"Kid", "chars", "level", "drawn_room", "room_L", "room_R", "room_A", "room_B", "room_AL", "room_AR", "room_BL", "room_BR", "next_room", "exit_dir", "pal_slots", "word_922a", NULL};
 	static const char *const chars_regions[] = {"chars", "Kid", "level", "random_seed", "drawn_room", "room_L", "room_R", "word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", NULL};
-	static const char *const tick_regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "random_seed", "drawn_room", "room_L", "room_R", "room_A", "room_B", "next_room", "exit_dir", "pal_slots", "word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", "word_922a", NULL};
+	static const char *const tick_regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "random_seed", "drawn_room", "room_L", "room_R", "room_A", "room_B", "next_room", "exit_dir", "pal_slots", "word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", "word_922a", "floor_ptrs", NULL};
 	const char *const *regions = tick_mode ? tick_regions : chars_mode ? chars_regions : room_regions;
 	int only = getenv("CASE") ? atoi(getenv("CASE")) : 0;
 	while (fread(&frame, 4, 1, f) == 1 && fread(&size, 4, 1, f) == 1 && size <= SNAP_MAX && (SNAP_SIZE = size, SNAP_BASE = 0x6C00 - size, 1) && fread(a, 1, SNAP_SIZE, f) == SNAP_SIZE && fread(b, 1, SNAP_SIZE, f) == SNAP_SIZE && (!tick_mode || (fread(kctl, 1, 8, f) == 8 && fread(kc1, 1, 16, f) == 16))) {
-		n++; stubs_reset(); snap_load(a); stubs_select_guard_dat(level.type); coll_debug = only == n;
+		n++; stubs_reset();
+		if (hf && (fread(&hsize, 4, 1, hf) != 1 || hsize > sizeof heap || fread(heap, 1, hsize, hf) != hsize)) hsize = 0;
+		if (hf && prev_ok && hsize && !memcmp(prev_ptrs, a + 0x2B6C - SNAP_BASE, 8) && snap_diff_heap(prev_ptrs, (const uint8_t (*)[0x65])prev_objs, heap, hsize, 0)) {   /* last tick's objects against this tick's start (when it follows it: same slots) */
+			bad++; if (!only || only == prev_n) { printf("case %d (frame %u): collapsing-floor objects\n", prev_n, prev_frame); snap_diff_heap(prev_ptrs, (const uint8_t (*)[0x65])prev_objs, heap, hsize, 1); }
+		}
+		prev_ok = 0;
+		snap_load(a); if (hsize) snap_load_heap(heap, hsize); stubs_select_guard_dat(level.type); coll_debug = only == n;
 		uint8_t dr0 = drawn_room; int8_t nch = room_nchars(drawn_room);
 		if (tick_mode) { if (tick_body() == -1) { skipped++; continue; } busy += drawn_room != dr0; }
 		else if (chars_mode) { if (nch > 0) busy++; play_all_chars(); }
 		else { check_kid_left_room(); switch_room(); if (drawn_room != dr0) busy++; }
 		memcpy(got, a, SNAP_SIZE); snap_store(got);
 		if (tick_mode) { const char_type *ek = (const char_type *)(b + 0x5B36 - SNAP_BASE); if (ek->alive >= 0 && Kid.alive >= 0) { char_type k = Kid; k.alive = ek->alive; if (!memcmp(&k, ek, 64)) { Kid.alive = ek->alive; snap_store(got); } } }   /* death counter waits for the death sound (not modelled) */
+		memcpy(prev_objs, floor_objs, sizeof prev_objs); memcpy(prev_ptrs, b + 0x2B6C - SNAP_BASE, 8); prev_ok = SNAP_BASE <= 0x2B6C; prev_n = n; prev_frame = frame;
 		int d = snap_diff(got, b, regions, 0);
 		if (d) { bad++; if (!only || only == n) { printf("case %d (frame %u): room %u, %d chars [%s]\n", n, frame, dr0, nch, stubs_log()); snap_diff(got, b, regions, 1); } }
 	}

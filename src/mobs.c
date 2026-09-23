@@ -146,7 +146,7 @@ void anim_gate(void)
 	si += (int8_t)door_speeds_open[st];
 	if (st == 0 || st == 1) {
 		if (si <= 0) { si = 0; gate_done(0); }
-		else if (si < 0xC8) { cur_trob.state = 1; if (level_kind == 3) si = ovl_33fd_b0e(si); }
+		else if (si < 0xC8) { cur_trob.state = 1; if (level_kind == 3) si = gate_squeeze(si); }
 		else if (level_number == 5 && cur_trob.room == 7) si -= (int8_t)door_speeds_open[st];   /* 1375:0ACA: AX still holds the speed: no movement */
 		goto write;
 	}
@@ -408,3 +408,4 @@ int ovl_button22(uint8_t room, int8_t tp)
 mob_type *find_mob_pub(int n, uint8_t type) { return find_mob(n, type); }
 void add_mob_pub(void) { add_mob(); }
 int8_t mob_col_pub(void) { return mob_col(); }
+int door_speed_0776(int st) { return (int8_t)door_speeds_open[st]; }   /* DS:0776 */

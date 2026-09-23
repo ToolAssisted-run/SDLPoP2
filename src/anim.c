@@ -100,6 +100,7 @@ static void animate_tile(void)
 	else if (t == 0x11) anim_exit_door();
 	else if (t == 0x13 || t == 0x20) anim_torch();
 	else if (t == 0x24 && level_kind == 3) anim_rock();   /* 33FD:017C */
+	else if (t == 0x17 && level_kind == 3) anim_floor();   /* 33FD:05AE */
 	else if (t < 4 || t > 0x2C || t == 7 || t == 8 || t == 9 || t == 0xC || t == 0xE || t == 0xF || t == 0x10 || t == 0x12 || t == 0x14 || t == 0x15 || t == 0x16
 	         || t == 0x18 || t == 0x19 || t == 0x1A || t == 0x21 || t == 0x23) cur_trob.state = 0xFF;
 	else anim_tile_other(t);
@@ -140,7 +141,8 @@ void start_room_anims(void)
 		case 0x0A: if (si < 0x21) start_0a(tp, room); break;
 		case 0x13: case 0x20: start_torch(tp, room); break;
 		case 0x02: trap_room_entry(tp, room); break;   /* 186A:0226 (every kind: the tile only exists on kind 3) */
-		case 0x17: case 0x1E: case 0x2C: anim_start_other(t, tp, room, si); break;
+		case 0x17: if (level_kind == 3) { if (si < 0x21) floor_room_entry(room, tp); break; } anim_start_other(t, tp, room, si); break;   /* 33FD:0A54 */
+		case 0x1E: case 0x2C: anim_start_other(t, tp, room, si); break;
 		default: if ((room == 6 || room == 7 || room == 8) && level_kind == 6 && (anim_mod & 0x1000)) anim_start_other(t, tp, room, si); break;
 		}
 	}

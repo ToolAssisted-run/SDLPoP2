@@ -130,7 +130,7 @@ void press_button(int link, uint8_t tile); void press_button_hold(void); void an
 void loose_floor_touch(int8_t arg); void loose_floor_shake(void); void shake_loose_row(int8_t row, uint8_t room); void falling_floors(void);
 int exit_door_speed(int state);
 int ovl_button22(uint8_t room, int8_t tp); void ovl_347c_b3e(uint8_t room, int8_t tp, int k); int ovl_2a31_dad(uint8_t room, int8_t tp); void ovl_33fd_4d0(uint8_t room, int8_t tp);
-int ovl_33fd_b0e(int si); void ovl_347c_e8e(void); void ovl_347c_126(void); void ovl_366c_1294(int8_t row, uint8_t room); void ovl_mob_other(uint8_t type); int ovl_torch_347c(int cur);
+void ovl_347c_e8e(void); void ovl_347c_126(void); void ovl_366c_1294(int8_t row, uint8_t room); void ovl_mob_other(uint8_t type); int ovl_torch_347c(int cur);
 extern uint8_t *curr_room_tiles; extern uint32_t *curr_room_attrs;   /* DS:613C / 613A, set by get_room_address (17C1:0008; room 0 keeps them) */
 /* trap.c */
 void trap_room_entry(int8_t tp, uint8_t room); void trap_catch_check(void); void trap_touch_check(void); void trap_update(void); int ovl_347c_a0e(void); void ovl_366c_13e8(void);
@@ -142,3 +142,5 @@ void skel_ai(void); void skel_collapse(void); void set_revive_timer(uint16_t v, 
 void skel_blade_hit(void); void skel_row_shake(int8_t row, uint8_t room); void guard_ai_pub(void); void char_dies_pub(void); void init_hp_pub(level_char_init *r); int ovl_2a31_ddf(void);
 void add_mob(void); extern mob_type cur_mob; mob_type *find_mob_pub(int n, uint8_t type); int anim_visible_pub(void);
 /* caverns.c */ void rock_drop(uint8_t room, int8_t tp); void anim_rock(void); void rocks_hit_char(void); void rock_fly(void);
+extern uint16_t floor_ptrs[4]; extern uint8_t floor_objs[4][0x65]; void caverns_set_tables(const uint8_t *ds); void floor_room_entry(uint8_t room, int8_t tp);
+void floor_free_all(void); void anim_floor(void); void floor_touch_check(void); int gate_squeeze(int si); int door_speed_0776(int st); trob_type *get_trob(int8_t tp, uint8_t room);

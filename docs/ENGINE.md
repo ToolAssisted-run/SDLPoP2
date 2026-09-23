@@ -197,3 +197,11 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
 - Sprite sizes: chtab 2 = KID.DAT, chtab 3 = the guard DAT (SHAP 751+image, +100 above DS:06BC[type]), chtab 4 =
   the level kind's scenery DAT (DS:059C names: DESERT, TEMPLE, CAVERNS, RUINS, ROOFTOPS, FINAL), SHAP
   3501+image, +200 at or above DS:05AC[kind] (skeleton bones use it: frames 0xCE..0xD1, image+0x68).
+- Collapsing floors (kind 3, tiles 0x17 + 0x18 as one two-column object): on room entry (0823:0B78 -> 33FD:0A54)
+  each gets a 0x65-byte near-heap object (slots DS:2B6C, max 4; type = tilepos % 3) and a trob whose state is the
+  slot. 33FD:05AE steps its stage byte and 10 sub-animations (DS:152E stage table, DS:15F0 frame lists) and frees
+  it off screen. A character whose feet are on it (33FD:06E6) sets it collapsing (0x80, +0x40 for the prince's
+  1-in-3 variant seq 0x74, else seq 0x73) and loses 100 hp. 169B:0FB4 frees all objects at level (re)start.
+  Tests compare slots as in use/free and the objects through a heap probe (DS:A800..B800) at the next tick start.
+- 33FD:0B0E (kind 3): a gate rising at or left of the prince's tile while he squeezes under it (frames
+  0x108..0x10A, f24 3) is slowed, set to 0x24, or stopped. Not covered by a capture yet.

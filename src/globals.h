@@ -164,3 +164,4 @@ extern uint16_t word_0366; int story_scene(int prev, int n);
 void keyboard_controls(const uint8_t *keys, uint8_t flags, int8_t *x, int8_t *y, int8_t *shift);
 /* blades.c */ void blades_set_tables(const uint8_t *ds); void anim_blade(void); void blade_touch(void); void blade_hits(void); int blade_running_here(void); int boxes_overlap_pub(const int16_t *a, const int16_t *b);
 /* temple.c */ int temple_torch(int cur); void slab_step(void); void slab_shake(void); void slab_mob(void); void temple_tick(void);
+/* ruins.c */ void level6_entrance(void); void ruins_crumble(void); void close_entrance_pub(void); void remove_loose_pub(int8_t tp, uint8_t room);

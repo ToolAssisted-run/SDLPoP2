@@ -409,3 +409,4 @@ mob_type *find_mob_pub(int n, uint8_t type) { return find_mob(n, type); }
 void add_mob_pub(void) { add_mob(); }
 int8_t mob_col_pub(void) { return mob_col(); }
 int door_speed_0776(int st) { return (int8_t)door_speeds_open[st]; }   /* DS:0776 */
+void remove_loose_pub(int8_t tp, uint8_t room) { remove_loose(tp, room); }

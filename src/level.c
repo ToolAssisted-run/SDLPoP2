@@ -196,3 +196,4 @@ int play_level(int n)
 	}
 	return n;
 }
+void close_entrance_pub(void) { close_entrance(); }

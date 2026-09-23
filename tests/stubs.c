@@ -112,7 +112,7 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 /* room.c stubs */
 uint16_t word_68f0;
 void ovl_37d2a(void) { note(" 37d2a"); } void ovl_352b4(void) { note(" 352b4"); } int ovl_342b4(void) { note(" 342b4?"); return -1; } void ovl_34210(void) { note(" 34210"); }
-void ovl_34958(void) { note(" 34958"); } void ovl_34370(void) { note(" 34370"); } void ovl_2f9f2(void) { note(" 2f9f2"); }
+void ovl_34958(void) { level6_entrance(); } void ovl_34370(void) { note(" 34370"); } void ovl_2f9f2(void) { note(" 2f9f2"); }
 void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {}
 level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
 void ovl_36712(void) { note(" 36712"); } void room_music_087e(void) {} void redraw_room(void) {} void hp_bar_clear(void) {} void hp_bar_draw(uint8_t index, int a, uint8_t hp) { (void)index; (void)a; (void)hp; }
@@ -138,7 +138,7 @@ void anim_start_other(uint8_t t, int8_t tp, uint8_t room, int si) { (void)tp; (v
 /* mobs stubs */
 void ovl_347c_b3e(uint8_t r, int8_t tp, int k) { (void)r; (void)tp; (void)k; note(" b3e?"); }
 int ovl_2a31_dad(uint8_t r, int8_t tp) { (void)r; (void)tp; note(" dad?"); return -1; }
-void ovl_347c_e8e(void) { slab_shake(); } void ovl_347c_126(void) { note(" 126?"); }
+void ovl_347c_e8e(void) { slab_shake(); } void ovl_347c_126(void) { if (level_kind == 4) ruins_crumble(); else note(" 126?"); }
 void ovl_mob_other(uint8_t t) { if (t == 10 && level_kind == 2) { slab_mob(); return; } char m[24]; snprintf(m, sizeof m, " MOB%u?", t); note(m); } int ovl_torch_347c(int c) { if (level_kind == 2) return temple_torch(c); note(" torch347c?"); return c; }
 int ovl_347c_a0e(void) { note(" a0e?"); return 0; }
 void note_missing(const char *what) { char m[40]; snprintf(m, sizeof m, " %s?", what); note(m); }

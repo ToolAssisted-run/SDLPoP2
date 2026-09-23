@@ -23,6 +23,8 @@ int sound_debug;                                  /* tests: 1 log starts, stops 
 int sound_ambient_enabled = 1;                    /* tests: 0 leaves the ambient sounds (and their random draws) out */
 int (*sound_query_hook)(int what, uint16_t res, int model);   /* tests: replace an answer (what: 0 playing, 1/2 death waits, 3/4 level end music / effect) */
 uint32_t (*sound_clock_hook)(void);               /* platform: the time in microseconds */
+void (*sound_start_hook)(int n);                  /* platform: the sound driver, where the game calls 194C:8092 (resource 10000 + n; src/audio.c audio_request) */
+void (*sound_stop_hook)(int n);                   /* platform: where it calls 194C:83D2 (resource 10000 + n; n -10000: everything; audio_stop) */
 
 /* driver model state (kept in savestates) */
 typedef struct snd_channel { int16_t id; uint32_t end; } snd_channel;
@@ -88,6 +90,7 @@ static int snd_playing(int n)
 /* 194C:8092: the channel of the resource's kind plays it from the start */
 static void snd_start(int n)
 {
+	if (sound_start_hook) sound_start_hook(n);
 	snd_load();
 	if (n < 0 || n >= NSND || !snd_kind[n]) return;
 	snd_channel *c = &snd_ch[snd_kind[n] - 1];
@@ -97,6 +100,7 @@ static void snd_start(int n)
 /* 194C:83D2 with 10000 + n; 0 stops everything */
 static void snd_stop(int n)
 {
+	if (sound_stop_hook) sound_stop_hook(n);
 	for (int k = 0; k < 2; k++) if (n == -10000 || snd_ch[k].id == n) { if ((int32_t)(snd_ch[k].end - now()) > 0) snd_ch[k].end = now(); }
 }
 void sound_stop_all(void) { snd_stop(-10000); }

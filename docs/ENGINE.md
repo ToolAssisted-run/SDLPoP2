@@ -174,7 +174,26 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
   leave rubble (0xE) or break buttons, and hit characters under them (-1 hp for the prince, seq 0x34).
 - Torches (0x13/0x20) start at a random frame on room entry and pick random frames while on screen (kind 3:
   random(8), bumped if equal); tile 0x0A cycles 0..0x1B; the level door (0x11) opens to 0x2A.
-- Level kind 3's 33FD overlay is the file saved as ovl04_33FD. Tile 2 on kind 3 is a falling rock handled by
-  segment 186A (becomes falling object type 4) — not reconstructed yet.
+- Level kind 3's 33FD overlay is the file saved as ovl04_33FD. Tile 2 on kind 3 is a trap handled by segment 186A
+  (trap.c; object type 4).
 - Starting a level directly: `prince yippeeyahoo LEVELn`. From level 3 on, a manual-symbol check appears at
   frame 175 before the level; the capture scripts answer it with the symbol the game expects (TAB x2, ENTER).
+
+## Skeletons and rocks (skeleton.c, caverns.c; verified on level 3)
+- Skeletons are charid 4 (level type 2, SKELETON.DAT) handled by OVL10 (366C). On room entry (366C:1328) a record
+  with y == 1 stands (seq 0x3F); otherwise it lies as bones (seq 0x70 / 0x77, frames 0xCE/0xCF count as dead
+  frames in 0AFF:1AC2), with record +0x13 a revive timer and +0x16 a collapse-stage counter (366C:1220).
+- Each tick on type 2 (366C:0F60) bones in line of sight within 4 columns (8 on level 4 rooms 22..28 except 23,
+  5 elsewhere) get up (seq 0x58, alive -1, sword out) once the stage counter reaches 0; the timer is re-armed
+  with random(30)+15. The routine's SI is an uninitialised stack word that is never reset: records with
+  y == -1 take the previous value (observed nonzero), so those bones rise at once.
+- When the prince dies (alive >= 5) a standing skeleton collapses (366C:1166: seq 0x78, timer 0x78). A sword kill
+  (2D3E:1D74) also collapses it; a wall blade (366C:13E8) takes 1 hp or kills.
+- Kind-3 rocks: a door link to tile 0x24 (when the pressing button's modifier lacks bit 0x800, 1375:139E)
+  releases a rock (33FD:04D0): the tile animates 0..6 (33FD:017C) and a type-2 object flies from x = col*32+30,
+  y = row top - 15 with steps (+18, -11) per tick (33FD:02AC) until it leaves the linked rooms or meets a
+  non-empty tile. Characters whose sprite box (or its sweep along the last step) meets the rock's 4x2 box lose
+  1 hp (33FD:01F4 / 0422); a lethal hit near a ledge knocks them off (seq 0x12).
+- Sprite sizes: chtab 2 = KID.DAT, chtab 3 = the guard DAT (SHAP 751+image, +100 above DS:06BC[type]), chtab 4 =
+  the level kind's scenery DAT (DS:059C names: DESERT, TEMPLE, CAVERNS, RUINS, ROOFTOPS, FINAL), SHAP
+  3501+image, +200 at or above DS:05AC[kind] (skeleton bones use it: frames 0xCE..0xD1, image+0x68).

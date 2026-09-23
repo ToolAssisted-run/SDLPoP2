@@ -160,3 +160,5 @@ int load_level(int n); int play_level(int n); const uint8_t *level_resource(uint
 int bios_key(void);   /* platform: pending keystroke (BIOS code), 0 = none */
 int frame_after_tick(int r);
 extern uint16_t cheat_mode; void frame_wait(void);
+extern uint16_t word_0366; int story_scene(int prev, int n);
+void keyboard_controls(const uint8_t *keys, uint8_t flags, int8_t *x, int8_t *y, int8_t *shift);

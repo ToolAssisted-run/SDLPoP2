@@ -15,18 +15,31 @@ static struct { const char *name; int pos; } keymap[] = {   /* oracle key names 
 	{"kp7", 0x54}, {"kp8", 0x55}, {"kp9", 0x56}, {"kp4", 0x58}, {"kp5", 0x59}, {"kp6", 0x5A}, {"kp1", 0x5C}, {"kp2", 0x5D}, {"kp3", 0x5E},
 	{"leftshift", 0x37}, {"rightshift", 0x43}, {"leftctrl", 0x2A}, {"rightctrl", 0x2A}, {"leftalt", 0x45}, {NULL, 0}};
 static struct { int frame, pos, down; } keyev[4096]; static int nkeyev;
-static void keys_at(int frame)
+static uint8_t flags_of(const uint8_t *k) { return (k[0x37] ? 2 : 0) | (k[0x43] ? 1 : 0) | (k[0x2A] ? 4 : 0) | (k[0x45] ? 8 : 0); }
+static int same_frame_keys;   /* keys set at the tick's own frame were already seen (1) or not yet (0) */
+/* The keys as the tick at `frame` saw them. A key set during the tick's own frame may arrive before or after the tick
+ * (the keyboard interrupt vs the tick's place in the frame): the controls control() received (probe kc_ctrl, 3 bytes,
+ * after the facing flips) decide. */
+static void keys_at(int frame, const uint8_t *seen)
 {
-	memset(key_table, 0, sizeof key_table);
-	for (int i = 0; i < nkeyev && keyev[i].frame <= frame; i++) key_table[keyev[i].pos] = keyev[i].down;
-	bios_shift_flags = (key_table[0x37] ? 2 : 0) | (key_table[0x43] ? 1 : 0) | (key_table[0x2A] ? 4 : 0) | (key_table[0x45] ? 8 : 0);
+	static uint8_t before[0x70], with[0x70];
+	memset(before, 0, sizeof before); memset(with, 0, sizeof with);
+	for (int i = 0; i < nkeyev && keyev[i].frame <= frame; i++) { if (keyev[i].frame < frame) before[keyev[i].pos] = keyev[i].down; with[keyev[i].pos] = keyev[i].down; }
+	int8_t x, y, sh; const uint8_t *pick = with; same_frame_keys = 1;
+	if (seen && memcmp(before, with, sizeof with)) {
+		keyboard_controls(with, flags_of(with), &x, &y, &sh);
+		if (Kid.direction == 0) x = -x;
+		if (word_5d38) y = -y;
+		if ((uint8_t)x != seen[0] || (uint8_t)y != seen[1] || (uint8_t)sh != seen[2]) { pick = before; same_frame_keys = 0; }
+	}
+	memcpy(key_table, pick, sizeof key_table); bios_shift_flags = flags_of(pick);
 }
 /* the BIOS keystroke buffer: every key-down of a non-modifier key queues one keystroke (read by 0823:02BE) */
 static int cur_tick_frame, keybuf_next;
 int bios_key(void)
 {
 	for (; keybuf_next < nkeyev; keybuf_next++) {
-		if (keyev[keybuf_next].frame > cur_tick_frame) return 0;
+		if (keyev[keybuf_next].frame > cur_tick_frame || (keyev[keybuf_next].frame == cur_tick_frame && !same_frame_keys)) return 0;
 		int p = keyev[keybuf_next].pos;
 		if (keyev[keybuf_next].down && p != 0x37 && p != 0x43 && p != 0x2A && p != 0x45) { keybuf_next++; return 0x100 * p; }
 	}
@@ -50,13 +63,14 @@ int main(int argc, char **argv)
 	FILE *ef = fopen(argv[4], "r"); if (!ef) return 2;
 	/* first pass: the prince's death count before and after each tick (the death sound is not modelled: a count that
 	 * did not advance means it was still playing) */
-	static int8_t alive_a[8192], alive_b[8192]; int nt = 0;
+	static int8_t alive_a[8192], alive_b[8192]; static uint8_t kc[8192][3]; static char kc_ok[8192]; int nt = 0;
 	{ static char l2[0x20000]; while (fgets(l2, sizeof l2, ef)) {
 		char *p = strstr(l2, " probe="), *m = strstr(l2, "mem="); if (!p || !m) continue;
 		char nm2[32] = ""; sscanf(strchr(p + 1, ' ') + 1, "%31s", nm2);
+		if (!strcmp(nm2, "kc_ctrl") && nt && !kc_ok[nt - 1]) { for (int q = 0; q < 3; q++) kc[nt - 1][q] = hexval(m[4 + 2 * q]) << 4 | hexval(m[5 + 2 * q]); kc_ok[nt - 1] = 1; continue; }
 		int off = (0x5B36 + 0x11 - 0x2900) * 2; if ((int)strlen(m + 4) < off + 2) continue;
 		int8_t v = (int8_t)(hexval(m[4 + off]) << 4 | hexval(m[5 + off]));
-		if (!strcmp(nm2, "ds_tick") && nt < 8191) { alive_a[nt] = v; alive_b[nt] = -128; nt++; }
+		if (!strcmp(nm2, "ds_tick") && nt < 8191) { alive_a[nt] = v; alive_b[nt] = -128; kc_ok[nt] = 0; nt++; }
 		else if (!strcmp(nm2, "ds_postroom") && nt) alive_b[nt - 1] = v;
 	} rewind(ef); }
 	int tick_ix = 0;
@@ -85,13 +99,13 @@ int main(int argc, char **argv)
 			/* one frame: 169B:0BA6, then the tick with this tick's keys */
 			const char_type *ak = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++;
-			keys_at(frame); cur_tick_frame = frame; stubs_reset();
+			keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL); cur_tick_frame = frame; stubs_reset();
 			frame_begin();
 			int r = tick_main(); ticks++;
 			if (r == 0) { pending = 1; tick_n = ticks; continue; }   /* compared at ds_postroom (169B:064F) */
 			r = frame_after_tick(r); frame_wait();   /* frozen (-2) or quit (-1): no post-tick sample */
 			if (r == -1) { printf("tick %d: level left (-1)\n", ticks); break; }
-			if (r >= 0) { printf("tick %d: level %d (re)starts\n", ticks, r); if (r == 0 || !load_level(r)) break; level_begin(); level_first_room(); restarts++; }
+			if (r >= 0) { printf("tick %d: level %d (re)starts\n", ticks, r); if (r == 0) break; if (!word_5cb6) story_scene((int8_t)word_32d8, r); if (!load_level(r)) break; level_begin(); level_first_room(); restarts++; }
 			continue;
 		}
 		if (strcmp(nm, "ds_postroom") || !pending) continue;
@@ -103,7 +117,7 @@ int main(int argc, char **argv)
 		if (getenv("E2E_ALL") && tick_n >= atoi(getenv("E2E_ALL")) - 2 && tick_n <= atoi(getenv("E2E_ALL"))) { printf("tick %d other state:\n", tick_n); snap_diff(got, mem, extra, 1); }
 		int r = frame_after_tick(0); frame_wait();
 		if (r == -1) { printf("tick %d: level left (-1)\n", tick_n); break; }
-		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0 || !load_level(r)) break; level_begin(); level_first_room(); restarts++; }
+		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0) break; if (!word_5cb6) story_scene((int8_t)word_32d8, r); if (!load_level(r)) break; level_begin(); level_first_room(); restarts++; }
 	}
 	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts; %d ambient random draws synced, %d unmatched\n", ticks, n, bad, first_bad, restarts, ambient_draws, rng_lost);
 	return bad != 0;

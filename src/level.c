@@ -164,10 +164,28 @@ int load_level(int n)
 	level_postprocess(); checkpoint_restore();
 	return 1;
 }
+uint16_t word_0366;   /* DS:0366 */
+/* 0AAC:0120 (the state part of 0AAC:000E, before each level): the story scene after level `prev`, and DS:016A, the
+ * story/timer stage (-1 until the first scene after level 3; the clock runs from 0 on). Returns the scene (0 none). */
+int story_scene(int prev, int n)
+{
+	int si = 0;
+	if ((int8_t)byte_6b6c > 2 && word_0366 == 0) return 0x64;
+	if (byte_6b6c == 0) return 0;
+	if (!(prev != 0 && (n == prev || n == -1)))
+		switch (prev) { case 1: si = 9; break; case 2: si = 0x64; break; case 3: si = 0xA; break; case 5: si = 1; break; case 8: si = 2; break; case 13: si = 3; break; }
+	if (si == 0 && prev >= 4) {
+		if (byte_016a == -1) { si = 0x14; byte_016a = 0; }
+		else { int8_t st = (int8_t)((1 - (int16_t)minutes_left) / 9 + 7); if (st > byte_016a) { si = st + 0x14; byte_016a = st; } }
+	}
+	/* with the cheat word, NISn / TREEn on the command line choose the scene or the stage */
+	return si;
+}
 /* 169B:0070 (after 169B:0006): play levels from n until the player quits; returns 0 or -1 */
 int play_level(int n)
 {
 	while (n > 0 && n <= 14) {
+		if (!word_5cb6) story_scene((int8_t)word_32d8, n);   /* 0AAC:000E: scene (0AAC:0274 shows it) */
 		if (!load_level(n)) return -1;
 		level_begin();
 		int r = level_first_room();

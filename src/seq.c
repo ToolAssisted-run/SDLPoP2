@@ -75,9 +75,8 @@ void play_seq(void)
 		case SEQ_CLR_F19:                            /* 04AA */
 			Char.f19 = 0;
 			break;
-		case SEQ_CLEAR_CHAR:                         /* 04B4 -> 1BA2, then the OP_EC path */
+		case SEQ_CLEAR_CHAR:                         /* 04B4 -> 1BA2, then 0428 (no frame) */
 			clear_char();
-			Char.frame = item;   /* 0AFF:0424 stores the whole word */
 			need_frame = 0;
 			break;
 		case SEQ_LVL6_COUNTER:                       /* 04BC */

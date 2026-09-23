@@ -84,7 +84,8 @@ extern int16_t image_height, image_width, char_x_left, char_x_right, char_x_left
 extern int8_t char_col_left, char_col_right, char_top_row, char_bottom_row;   /* DS:6135.. */
 extern uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR;   /* DS:5CDF.. (861F..8626) */
 #define word_440a (*(int16_t *)((uint8_t *)&level + 0x1852))   /* DS:440A level header: the level has moving walls (temple levels) */
-extern const uint8_t *sword_table;         /* FRAM 1000/1200 resource: 4-byte sword frame entries */
+extern const uint8_t *sword_tables[2];
+#define sword_table (sword_tables[byte_5cba == 2])   /* 4-byte sword frame entries: FRAM 1000, or 1200 for sword type 2 (DS:5CBA) */
 int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);   /* 0993:0FE2 + 26BC:06B6: SHAP header words */
 int8_t col_from_x18(int16_t x18); int8_t y_to_row(int16_t y);
 void load_frame_to_obj(void); void set_char_collision(void); int wall_type(uint8_t t); int can_bump_into_gate(void);
@@ -195,3 +196,5 @@ mob_type *wall_find(uint8_t room, int8_t row); void wall_trigger(uint8_t room, i
 int16_t wall_edge(int8_t dir, uint8_t room, int8_t row); void wall_collision(int8_t row, uint8_t *rooms, uint8_t *flags); int wall_near(int16_t dist);
 int wall_near_blade(void); int16_t wall_limit(uint8_t room, int8_t row); void trap_kill_pub(void); uint16_t ds_word(uint16_t a);
 extern kid_sprite_t kid_sprite; void head_attach(void); const uint8_t *head_attach_table(void); int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);   /* game.c, heads.c, glue.c */
+void dead_char_music(void); uint8_t *find_spawn_pub(int8_t row, uint8_t room); int char_scan_31bc4(void);   /* fight.c, room.c, kid.c */
+void ruins_open_tile7(void);   /* ruins.c */

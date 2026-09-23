@@ -186,3 +186,21 @@ void guards_see_kid(void)
 }
 void char_dies_pub(void) { char_dies(); }
 void save_char_restore_kid_pub(void) { save_char_restore_kid(); }
+/* 1611:0068 (0AFF:1258, a character dead for 6 ticks): the victory music, once (Char+0x0F), unless it would clash */
+void dead_char_music(void)
+{
+	if (Char.f0f == 0) return;
+	int play = 0, si = 0x4A;
+	switch (Char.charid) {
+	case 2: play = Char.alive >= 6; si = 0xD1; break;
+	case 7: case 8: play = !sound_playing(0x2768); si = 0x93; break;
+	case 10: play = !sound_playing(0x27D3); si = 0xC0; break;
+	case 11: Char.f0f = 0; /* fall through */
+	default:
+		play = Kid.alive < 0 && Char.f19 == 0x78 && (int8_t)Char.alive > 4 && !sound_playing(0x275C) && !sound_playing(0x2771) && !sound_playing(0x2772) && Kid.alive < 0;
+		si = 0x4A; break;
+	}
+	if (!play) return;
+	if (!char_scan_31bc4() && !find_spawn_pub(Char.curr_row, Char.room) && level_kind != 5) sound_1611_01a8(si);
+	Char.f0f = 0;
+}

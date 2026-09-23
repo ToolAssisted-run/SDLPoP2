@@ -18,6 +18,10 @@ void load_frame(void)                 /* 0AFF:02AC */
 	case 8: if (f < 0xB7) f += 0x2B; e = guard_frame_table(Char.charid) + f * 7 - 0x413; break;
 	default: return;                  /* 3, 5, 9: unchanged */
 	}
+	/* a character that just left the level (opcode FFEF) can still load its opcode as a frame: the game reads past the
+	 * table (16-bit offsets into other memory); here past the table reads as zeros */
+	static const uint8_t none[7];
+	if (Char.frame >= 0x400) e = none;
 	cur_frame.image = e[0] | (e[1] << 8); cur_frame.sword = e[2] | (e[3] << 8);
 	cur_frame.dx = (int8_t)e[4]; cur_frame.dy = (int8_t)e[5]; cur_frame.flags = e[6];
 }

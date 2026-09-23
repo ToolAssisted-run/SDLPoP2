@@ -76,19 +76,23 @@ int bios_key(void)
 	return got ? 0x100 : 0;
 }
 static int hexval(int c) { return c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10; }
-static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes, timing_flips; int death_sound_playing(int both) { (void)both; return sound_busy; }
+static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes, timing_flips, sound_answers; int death_sound_playing(int both) { (void)both; return sound_busy; }
 /* sounds gating a random draw inside a tick (level 2's room-3 edge, 33FD:02E9): not playing if the capture's
  * post-tick seed lies ahead of ours */
 static uint32_t seed_b[8192]; static int seed_b_ok[8192], cur_tick_ix = -1;
 /* the lateness meter DS:2BA4 at each tick's start: this frame was late if the next tick starts with it higher */
 static uint16_t lag_a[8192]; static int nt_all, pace_ix = -1;
 int frame_on_time(void) { return !(pace_ix >= 0 && pace_ix + 1 < nt_all && lag_a[pace_ix + 1] > word_2ba4); }
+/* the answers to "is sound n playing" (the sound driver's timing is not modelled) in the current tick: by default from
+ * the capture's seed (a random draw follows a "no"); when the tick disagrees with the capture, other answers are tried */
+static int sq_forced, sq_count; static unsigned sq_mask;
 int sound_playing(uint16_t id)
 {
-	(void)id; if (cur_tick_ix < 0 || !seed_b_ok[cur_tick_ix]) return 1;
-	uint32_t s = random_seed, want = seed_b[cur_tick_ix];
-	for (int k = 1; k <= 4; k++) { s = s * 0x343FD + 0x269EC3; if (s == want) return 0; }
-	return 1;
+	(void)id; int r;
+	if (sq_forced) r = (sq_mask >> sq_count) & 1;
+	else if (cur_tick_ix < 0 || !seed_b_ok[cur_tick_ix]) r = 1;
+	else { uint32_t s = random_seed, want = seed_b[cur_tick_ix]; r = 1; for (int k = 1; k <= 4 && r; k++) { s = s * 0x343FD + 0x269EC3; if (s == want) r = 0; } }
+	sq_count++; return r;
 }
 
 int main(int argc, char **argv)
@@ -190,25 +194,28 @@ int main(int argc, char **argv)
 			} else keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL, Kid.alive >= 0, tick_ix - 1 < nt && reload_after[tick_ix - 1]); cur_tick_frame = frame; missing_reset();
 			if (getenv("E2E_TRACE") && ticks + 1 >= atoi(getenv("E2E_TRACE")) - 8 && ticks + 1 <= atoi(getenv("E2E_TRACE"))) printf("  t%d frame %d: kid alive %d busy %d keyq %d/%d next %.1f\n", ticks + 1, frame, Kid.alive, sound_busy, keyq_next, nkeyq, keyq_next < nkeyq ? keyq[keyq_next] : -1.0);
 			/* a key changing during the tick's own frame reached it or not (the keyboard interrupt vs the tick's place in
-			 * the frame): when the choice above gives a state the capture does not have, the other one is tried */
+			 * the frame), and the sound queries: when the first choice gives a state the capture does not have, the other
+			 * key timing and other answers are tried */
 			static uint8_t *st0; if (!st0) st0 = malloc(state_size());
-			int try_other = keys_differ && tick_ix - 1 < nt && postmem[tick_ix - 1], r;
+			int can_retry = tick_ix - 1 < nt && postmem[tick_ix - 1] != NULL, r;
 			int kq0 = keyq_next, lq0 = libq, sf0 = same_frame_keys; double pu0 = pump_until;
-			if (try_other) state_save(st0);
-			frame_begin(); cur_tick_ix = tick_ix - 1;
-			r = tick_main();
-			if (try_other && r == 0) {
-				memcpy(got, postmem[tick_ix - 1], SNAP_SIZE); snap_store(got);
-				if (snap_diff(got, postmem[tick_ix - 1], regions, 0)) {
-					state_load(st0); keyq_next = kq0; libq = lq0; pump_until = pu0; use_keys(!sf0);
-					frame_begin(); r = tick_main();
-					memcpy(got, postmem[tick_ix - 1], SNAP_SIZE); snap_store(got);
-					if (r != 0 || snap_diff(got, postmem[tick_ix - 1], regions, 0)) {   /* neither: keep the first choice */
-						state_load(st0); keyq_next = kq0; libq = lq0; pump_until = pu0; use_keys(sf0);
+			uint8_t kt0[0x70], bf0 = bios_shift_flags; memcpy(kt0, key_table, sizeof kt0);
+			if (can_retry) state_save(st0);
+			cur_tick_ix = tick_ix - 1; sq_forced = 0; sq_count = 0;
+			frame_begin(); r = tick_main();
+			#define TICK_DIFFERS() (memcpy(got, postmem[tick_ix - 1], SNAP_SIZE), snap_store(got), snap_diff(got, postmem[tick_ix - 1], regions, 0))
+			if (can_retry && r == 0 && TICK_DIFFERS()) {
+				int nq = sq_count > 4 ? 4 : sq_count, found = 0;
+				for (int kk = 0; kk < (keys_differ ? 2 : 1) && !found; kk++)
+					for (unsigned mm = 0; mm < (1u << nq) && !found; mm++) {
+						state_load(st0); keyq_next = kq0; libq = lq0; pump_until = pu0; if (kk) use_keys(!sf0); else { memcpy(key_table, kt0, sizeof kt0); bios_shift_flags = bf0; same_frame_keys = sf0; }
+						sq_forced = nq > 0; sq_mask = mm; sq_count = 0;
 						frame_begin(); r = tick_main();
-					} else timing_flips++;
-				}
+						if (r == 0 && !TICK_DIFFERS()) { found = 1; if (kk) timing_flips++; if (nq) sound_answers++; }
+					}
+				if (!found) { state_load(st0); keyq_next = kq0; libq = lq0; pump_until = pu0; memcpy(key_table, kt0, sizeof kt0); bios_shift_flags = bf0; same_frame_keys = sf0; sq_forced = 0; sq_count = 0; frame_begin(); r = tick_main(); }
 			}
+			sq_forced = 0;
 			ticks++; cur_tick_ix = -1;
 			if (r == 0) { pending = 1; tick_n = ticks; continue; }   /* compared at ds_postroom (169B:064F) */
 			r = frame_after_tick(r); frame_wait();   /* frozen (-2) or quit (-1): no post-tick sample */
@@ -230,6 +237,6 @@ int main(int argc, char **argv)
 		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0) break; restarts++; if (!word_5cb6 && (sc = story_scene((int8_t)word_32d8, r))) { scene_played(sc); resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
 	}
 	if (nstrict) { printf("strict:"); for (int i = 0; i < nstrict; i++) if (strict_bad[i]) printf(" %s(%d)", strict[i], strict_bad[i]); printf("\n"); }
-	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts (%d after a story scene, resynced); %d ambient random draws synced, %d unmatched; %d same-frame key timings taken from the capture\n", ticks, n, bad, first_bad, restarts, scenes, ambient_draws, rng_lost, timing_flips);
+	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts (%d after a story scene, resynced); %d ambient random draws synced, %d unmatched; %d same-frame key timings and %d sound answers taken from the capture\n", ticks, n, bad, first_bad, restarts, scenes, ambient_draws, rng_lost, timing_flips, sound_answers);
 	return bad != 0;
 }

@@ -41,7 +41,7 @@ int get_seq_resource(uint16_t id) { return dat_find(&seqdat, "SQES", id, NULL) !
 void seq_reload_current(void) { note(" reload"); }
 int seq_condition(uint16_t c) { char t[32]; snprintf(t, sizeof t, " COND(%u)?", c); note(t); return 0; }
 void seq_jump_to(uint16_t id) { Char.seq_id = id; Char.seq_pos = 0; }
-void clear_char(void) { note(" clear_char"); }
+
 void seq_ctl_1954(void) { drink(); }   /* items.c */
 void ovl_366c_1704(void) { note(" ovl1704"); }
 void flash_on(uint16_t v) { (void)v; note(" flash_on"); } void flash_off(void) { note(" flash_off"); }
@@ -52,7 +52,7 @@ void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", co
 uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_6d46, word_8a84;
 int shadow_seq_2f86a(void) { return -1; } int sword_seq_0317c4(void) { note(" sword0317c4?"); return -1; }
 void ovl_2f86_0a5c(void) { turn_flash(); } void shadow_2fba4(void) {} void ovl_34024(void) {}
-void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) {} int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ int ovl_34ab2(void) { return 0; }
+void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) { ruins_open_tile7(); }   /* 347C:12C8 (ruins.c) */ int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ int ovl_34ab2(void) { return 0; }
 int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF:104C */ void ovl_384e8(void) {} int ovl_32a0e(void) { return under_gate(); }   /* 3212:08EE (control.c) */ 
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) { turn_count(); }   /* 2F86:0078 (spirit.c) */
 uint16_t word_922e, word_922c, word_8604, word_927e;
@@ -68,12 +68,13 @@ void glue_load_exe_tables(const char *exe)
 	fclose(f); frame_table_kid = kidtab;
 	static dat_file princedat, guarddat; uint16_t n;
 	/* sword frames: PRINCE.DAT FRAM 1000 (1286:0544); guard frames: the guard DAT's FRAM table (GUARD.DAT 750 on level 1, DS:0CB8) */
-	sword_table = dat_open(&princedat, game_path("PRINCE.DAT")) ? dat_find(&princedat, "MARF", 1000, &n) : NULL;
+	if (dat_open(&princedat, game_path("PRINCE.DAT"))) { sword_tables[0] = dat_find(&princedat, "MARF", 1000, &n); sword_tables[1] = dat_find(&princedat, "MARF", 1200, &n); }
 	(void)guarddat; frame_table_guard = kidtab;   /* set per level type by glue_select_guard_dat() */
 }
 
 /* collision / kid stubs */
-uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR; const uint8_t *sword_table;
+uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR;
+const uint8_t *sword_tables[2];   /* PRINCE.DAT FRAM 1000, 1200 (sword type 2): DS:6110, 1286:0454/0544 */
 void ovl_366c2(void) { head_attach(); }   /* 366C:0002 (heads.c) */ void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return wall_find(Char.room, Char.curr_row) != NULL; }   /* 347C:0526 */
 void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { wall_collision(row, r, f); }   /* 347C:0412 */ int ovl_343c2(void) { note(" 343c2?"); return 0; }
 int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { return wall_edge(dir, room, row); }   /* 347C:0368 */
@@ -149,7 +150,7 @@ void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 
 /* guard.c / play_all_chars stubs */
 int ovl_383d2(void) { note(" 383d2?"); return 1; }
 void ovl_shadow_37f0_78(void) { note(" shadow78"); } void ovl_33fd_694(void) { note(" 694?"); } void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
-int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) {} void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); }
+int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */ void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); }
 
 /* fight/tick stubs */
 int ovl_366c_6ac(void) { if (level_kind == 4) return head_hit(); note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } void ovl_33fd_6ae(void) { note(" 6ae?"); }

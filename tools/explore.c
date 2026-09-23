@@ -12,8 +12,8 @@
 #include "../src/core.h"
 
 typedef struct { uint8_t *state; pop2_input *path; int len, tries, order; uint8_t room; } cell;
-static cell cells[32 * 4 * 12]; static int ncells;
-static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 31 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return (room * 4 + row + 1) * 12 + col + 1; }
+static cell cells[33 * 4 * 12]; static int ncells;
+static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return (room * 4 + row + 1) * 12 + col + 1; }
 static uint32_t rng = 1;
 static uint32_t rnd(void) { rng = rng * 1103515245u + 12345u; return rng >> 16; }
 
@@ -25,12 +25,12 @@ int main(int argc, char **argv)
 	uint32_t seed = (uint32_t)strtoul(argv[3], NULL, 0);
 	size_t n = pop2_state_size();
 	pop2_new_game(level, seed);
-	static pop2_input path[4096]; int plen = 0, order = 0, best = -1;
+	static pop2_input path[4096]; int plen = 0, order = 0, best = -1; int room_seen[33] = {0};
 	#define ADD_CELL(ci) do { cell *c = &cells[ci]; if (!c->state) { c->state = malloc(n); ncells++; c->order = order++; c->room = Kid.room; \
-		if (target < 0 || Kid.room == target) best = ci; } else free(c->path); \
+		if (Kid.room == target || (target < 0 && !room_seen[Kid.room < 33 ? Kid.room : 0])) best = ci; } else free(c->path); \
 		pop2_save(c->state); c->path = malloc(sizeof(pop2_input) * (plen ? plen : 1)); memcpy(c->path, path, sizeof(pop2_input) * plen); c->len = plen; } while (0)
-	int ci = cell_index(Kid.room, Kid.curr_row, Kid.curr_col); ADD_CELL(ci);
-	int room_seen[32] = {0}; room_seen[Kid.room] = 1; long ticks = 0, deaths = 0;
+	int ci = cell_index(Kid.room, Kid.curr_row, Kid.curr_col); if (ci < 0) { fprintf(stderr, "start outside the grid (room %d row %d col %d)\n", Kid.room, Kid.curr_row, Kid.curr_col); return 2; } ADD_CELL(ci);
+	room_seen[Kid.room < 33 ? Kid.room : 0] = 1; long ticks = 0, deaths = 0;
 	for (int it = 0; it < iters; it++) {
 		/* pick a cell: rarely tried ones first */
 		double tot = 0; for (int i = 0; i < (int)(sizeof cells / sizeof cells[0]); i++) if (cells[i].state) tot += 1.0 / sqrt(cells[i].tries + 1.0);
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 				if (Kid.alive >= 0) { deaths++; t = 60; break; }                                /* dead: not a useful state */
 				int k = cell_index(Kid.room, Kid.curr_row, Kid.curr_col);
 				if (k < 0) continue;
-				if (!cells[k].state || cells[k].len > plen) { if (!room_seen[Kid.room & 31]) { room_seen[Kid.room & 31] = 1; fprintf(stderr, "iteration %d: room %d after %d ticks\n", it, Kid.room, plen); } ADD_CELL(k); }
+				if (!cells[k].state || cells[k].len > plen) { int fresh = !room_seen[Kid.room < 33 ? Kid.room : 0]; ADD_CELL(k); if (fresh) { room_seen[Kid.room < 33 ? Kid.room : 0] = 1; fprintf(stderr, "iteration %d: room %d after %d ticks\n", it, Kid.room, plen); } }
 			}
 		}
 	}
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 	FILE *f = fopen(argv[5], "w"); if (!f) return 2;
 	for (int i = 0; i < cells[best].len; i++) fprintf(f, "%d %d %d\n", cells[best].path[i].x, cells[best].path[i].y, cells[best].path[i].shift);
 	fclose(f);
-	printf("%ld ticks, %ld deaths; %d cells, rooms:", ticks, deaths, ncells); for (int i = 0; i < 32; i++) if (room_seen[i]) printf(" %d", i);
+	printf("%ld ticks, %ld deaths; %d cells, rooms:", ticks, deaths, ncells); for (int i = 0; i < 33; i++) if (room_seen[i]) printf(" %d", i);
 	printf("; plan to room %d: %d ticks\n", cells[best].room, cells[best].len);
 	return 0;
 }

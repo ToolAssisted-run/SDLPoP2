@@ -364,6 +364,7 @@ static uint8_t *find_spawn(int8_t row, uint8_t room)
 	for (int8_t i = 0; i < n; i++) { uint8_t *sp = spawn_entry(i, room); if (spawn_matches(sp, row)) return sp; }
 	return NULL;
 }
+uint8_t *find_spawn_pub(int8_t row, uint8_t room) { return find_spawn(row, room); }
 /* 1375:14C2: first wall column from col in direction dir (stops past the room edge) */
 static int8_t scan_to_wall(int8_t dir, int8_t row, int8_t col, uint8_t room) { do col += dir; while (!tile_is_wall_kind(get_tile(row, col, room)) && col >= 0 && col <= 10); return col; }
 /* 2D3E:0CF8 */

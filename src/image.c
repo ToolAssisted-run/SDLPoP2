@@ -54,13 +54,13 @@ static int image_decode_rows(const uint8_t *res, int size, image_t *img)
 	else if (method == 1) unpack_rle(rows, src, end, total, 0, 0, 0);
 	else if (method == 0) memcpy(rows, src, size - 8 < total ? size - 8 : total);
 	else { free(rows); return 0; }
-	img->width = w; img->height = h; img->depth = 8; img->flags = flags; img->pixels = calloc(1, w * h);
+	img->width = w; img->height = h; img->depth = 8; img->flags = flags; img->pixels = calloc(1, w * h); img->clear = calloc(1, w * h);
 	int p = 0;
 	for (int y = 0; y < h && p + 2 <= total; y++) {
 		int len = rows[p] | rows[p + 1] << 8, q = p + 2, x = 0; len += 2;   /* (the count excludes the word) */
 		while (q < p + len && q < total && x < w) {
 			uint8_t c = rows[q++];
-			if (c & 0x80) { uint8_t v = rows[q++]; for (int i = 0; i <= (c & 0x7F) && x < w; i++) img->pixels[y * w + x++] = v; }
+			if (c & 0x80) { uint8_t v = rows[q++]; for (int i = 0; i <= (c & 0x7F) && x < w; i++) { img->clear[y * w + x] = v == 0; img->pixels[y * w + x++] = v; } }
 			else for (int i = 0; i <= c && x < w && q < total; i++) img->pixels[y * w + x++] = rows[q++];
 		}
 		p += len ? len : 2;
@@ -84,7 +84,7 @@ int image_decode(const uint8_t *res, int size, image_t *img)
 	default: free(packed); return 0;
 	}
 	img->width = w; img->height = h; img->depth = depth; img->flags = flags;
-	img->pixels = malloc(w * h);
+	img->pixels = malloc(w * h); img->clear = NULL;
 	for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) {
 		int bit = x * depth, byte = packed[y * stride + bit / 8], shift = 8 - depth - bit % 8;
 		img->pixels[y * w + x] = (uint8_t)((byte >> shift) & ((1 << depth) - 1));
@@ -92,4 +92,4 @@ int image_decode(const uint8_t *res, int size, image_t *img)
 	free(packed);
 	return 1;
 }
-void image_free(image_t *img) { free(img->pixels); img->pixels = NULL; }
+void image_free(image_t *img) { free(img->pixels); free(img->clear); img->pixels = img->clear = NULL; }

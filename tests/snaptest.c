@@ -21,11 +21,12 @@ int read_input(void)
 }
 /* the sound driver is not modelled: a dead prince's counter that did not advance means the death sound was playing */
 static int sound_busy;
-int death_sound_playing(int both) { (void)both; return sound_busy; }
+static int snap_sound_answer(int what, uint16_t res, int model) { (void)res; (void)model; return what == 0 ? 1 : what <= 2 ? sound_busy : 0; }
 extern int coll_debug;
 int main(int argc, char **argv)
 {
 	if (argc < 6) { fprintf(stderr, "usage: snaptest room|chars SEQUENCE.DAT ram.bin PRINCE.EXE pairs.bin\n"); return 2; }
+	sound_query_hook = snap_sound_answer; sound_ambient_enabled = 0;
 	int chars_mode = !strcmp(argv[1], "chars"); tick_mode = !strcmp(argv[1], "tick"); int start_mode = !strcmp(argv[1], "start"), between_mode = !strcmp(argv[1], "between");
 	glue_init(argv[2], "/dev/null"); glue_load_exe_tables(argv[4]);
 	static uint8_t ram[655360]; FILE *rf = fopen(argv[3], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf); glue_load_ds_tables(ram);

@@ -38,7 +38,9 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 ### Tests (`tests/run_all.sh`)
 - snaptest (tick/chars/room/between modes over DS snapshots), inputtest, e2e (free-running whole runs from the
   captured post-load state and from a cold start), coretest (the API: random play + savestate round trips).
-- e2e `E2E_STRICT=1` compares every mapped field (except DS:2B68 palette and DS:2B9A ambient sound).
+- e2e `E2E_STRICT=1` compares every mapped field (except DS:2B68 palette and, unless E2E_SOUNDMODEL, DS:2B98..2B9B
+  ambient state).
+- tests/run_soundmodel.sh: every capture with the sound model answering (see 5.11).
 - e2e resolves only input/platform ambiguities from the capture, never logic: same-frame key timing and answers to
   "is sound n playing" are retried (state rollback) when the first choice disagrees with the capture; ambient-sound
   random draws are caught up (<= 4) at each tick start; the lateness meter follows the capture; story scenes resync.
@@ -353,12 +355,60 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Not reconstructed: the other drawing hooks (0000, 0330, 1512, 15E8, 16D8, 1898, 1ACA, 1E72).
   The climb needs the spirit (> 4 hp at the 8th turn); a LEVEL14 start has 3 hp (captures poke 8).
 
-### 5.11 Sound and timing dependencies (platform)
-- play_sound (1611:01C6) only queues by priority (DS:0D5D); the frame end starts sounds; "playing" is the driver's
-  (194C:8426). Decisions depending on it: death waits (DS:0882/0884), victory music (+0F), level 2 random draws,
-  gate sounds, level 14 sounds. The core answers through `sound_playing()` (default: playing) and
-  `death_sound_playing()`; a duration model of the digital sounds is still to be built.
-- Lateness meter DS:2BA4 (169B:05A1): gates palette effects and level 14 animation delays; `frame_on_time()`.
+### 5.11 Sound: queue, ambient pieces and the driver's timing (sound.c)
+The game never waits for sound, but it asks the driver whether a sound still plays, and those answers steer the death
+waits, the level end, several room effects and the ambient pieces' random draws (the seed). src/sound.c models it.
+- Queue. play_sound (1611:01C6) sets DS:087E = n unless the queued sound has higher priority (DS:0D5C table, 3 bytes
+  per sound: [0] flag, [1] priority, lower wins; skipped when prio[new] > prio[queued]), feather fall (DS:5D36) runs,
+  or Char.charid == 1 (the shadow). Music: 1611:01A8 sets DS:0880 only when empty (first queued wins); 1611:0002(m)
+  queues word DS:0886[m]. Fall scream 1611:0030(room, passed in al): sound 1 unless level kind 5 in rooms 0xF/0x10/0x13.
+- Start at the pass's end (169B:0AF3 -> 1611:04D0): should_start(DS:0882, DS:087E) (1611:0582): nothing queued -> no;
+  current effect ended -> yes; else by the current one's flag: 0 never interrupted, 1 by a different sound, 2 by any,
+  and only if prio[current] >= prio[new]. Yes -> stop 0882, 0882 = 087E, start. 087E = -1. Then a queued music:
+  stop 0884, 0884 = 0880, start, 1611:0826 (a MIDI resource, byte 0 bit 1, becomes the ambient piece: DS:2B9A = id,
+  DS:2B99 = 0xFF), 0880 = -1. 1611:04D0 does nothing with the command-line word NOSOUNDS (194C:2CEA(DS:096E)).
+- Driver (194C). Channels: DS:2088/208C (0: digital, busy + resource pointer), DS:209E/20A2 (1: MIDI), DS:20B0/20B4
+  (2, unused here). playing(10000 + n) (194C:8426 -> 33CE) = the busy flag of the channel whose current resource is n
+  (id 0: any channel busy); stop(0) (83D2) stops all. DIGISND.DAT and MIDISND.DAT ids are disjoint; digital sounds go
+  to channel 0, MIDI to channel 1, a start replaces the channel's sound. Everything stops on restart (0823:051C), the
+  restart prompt (169B:123E), pause (0823:10D8), level skip (0823:04AF) and the level end (169B:057E) except when
+  going on from levels 5 and 9.
+- Digital lengths: DIGISND header 01, rate word (0x2AF8 = 11000), 08, length word: len / 11000 s (measured: channel-0
+  busy spans match to a frame). Packed samples (byte 3 = 0xFF, no length: 0x20 0x26 0x2F 0x31 0x36 0x258): measured
+  0x31 = 97-98 frames; 0x36 (level 13's moving wall) still playing after 286 frames, a loop it seems.
+- MIDI lengths: MIDISND = byte 2 + a format-0 SMF, 480 PPQ. The driver's tempo meta handler (194C:3171) reads the
+  three tempo bytes as the high byte and then a little-endian word, so 0x0C3500 (75 bpm) plays as 0x0C0035 (786485
+  us per quarter), 0x09A31A as 0x091AA3, 0x0852AE as 0x08AE52: pieces run 1.7% fast, 5.5% fast, 4.3% slow... A 240 Hz
+  interrupt (DS:1FBA = 240, DS:1FBC = 480) adds a 16.16 increment (194C:2FB4 with the 16.16 divide 194C:7C68:
+  trunc(trunc(256e6/240) * 65536 / trunc(tempo * 256 / 480)); runtime DS:1FC0 = 0x28AFF for 75 bpm) until the
+  end-of-track tick. Predicted 441.25 frames for the level-3 pieces: measured 441.
+- Ambient pieces (169B:0AFC -> 1611:03CC(DS:2B98), struct: [0] on = DS:2085 & 2 (DS:2085 = 3 at runtime, set by
+  1611:02AC at program start), [1] variant group, word [2] = the piece): if the prince is in a room, after
+  loadkid, when should_change (1611:0700) and DS:091E[kind] != 0: di = 2FDF:1DD4 (a live opponent in his room;
+  cleared if DS:093A[kind] == 0xFF); special pieces (1611:0606): di and level 5 rooms 10/7/12 -> 0x40, di and
+  chars[0].charid 0xC -> 0xC6, 0xA -> 0xC7, the shadow (Kid charid 1) with f12 > 2 -> 0x3C, level 13 rooms 4/0x1D ->
+  0x3D (variant 0xFF); else the group = di ? DS:093A[kind] : level byte +0x2B1B + room*30 + tilepos (a per-tile
+  table), piece = base[group] + random(count[group]) (tables at words DS:091E[kind] / DS:092C[kind]), the next one
+  if it equals the current (wrapping to base). should_change: off, prince alive (Char.alive >= 0) or silent -> no;
+  the piece ended -> yes; variant 0xFF: no unless level 8 with sound 0xFF playing; then with an opponent: DS:093A >
+  variant; without: no if DS:093A > variant or 0xFF, a guard spawn point in the prince's row (2D3E:0C66), level 8
+  with 0xFF playing; else yes. Silent (1611:0696): prince dead, the level-end music playing (1611:02CE; kind 1 none,
+  2 0x1E, 4 0x1D, else 0x1C), a type-2 level whose chars[0] draws the sword (f19 0x58/0x66/0xD8, 366C:11F8), level 9
+  room 16, level 8 room 9 from column 8.
+- Waits: the death wait (0AFF:1155) holds while DS:0882 plays (except sounds 4, 7, 0x36), and at alive 7 while 0882
+  or 0884 plays; the level end (169B:0541) waits for the level-end music and the same effect rule. Level 14 room
+  sounds need DS:2B98 on and 0884 not playing (33FD:03CF). Level 1's waves use DS:2085 bit 0.
+- Timing model: a pass of the main loop lasts DS:24DE's reload (169B:0BA6: 5, or 6 when Kid+0x10 == 1) ticks of the
+  60 Hz frame timer, one more when late (lateness meter DS:2BA4, `frame_on_time()`); queries inside the tick happen
+  at its start, the starts and the ambient checks at its end (5 ms later in the model).
+- Limits (measured over the captures): the pass's end moves with the drawing time (tens of ms), level 1's timer runs
+  ~3.5% slow (passes average 6.05 frames with the meter at 0: lost timer interrupts, it seems), and a late pass's
+  length is unknown; a piece ending within ~40 ms of a check can go either way.
+- Result: tests/run_soundmodel.sh (E2E_SOUNDMODEL: no answers from the capture): 74 of 154 captures identical in
+  every field for the whole run; the first difference elsewhere is an ambient draw one pass early or late, or a death
+  wait (levels 1, 9, 13). The ordinary e2e keeps taking the capture's answers (sound_query_hook) and stays clean.
+- Audit: with probes on 1611:01FE (accepted effect, ax) and 1611:01BB (music, si), the core's queue events equal the
+  capture's pass by pass (SQ1_2).
 
 ### 5.12 Room descriptions and hooks (roomhooks.c)
 - A room has a description when any of its tiles has attribute bits 0xC000 (0CD6:027A); DS:5CE7 holds this for the
@@ -417,8 +467,8 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - `pop2_init(dir)`, `pop2_new_game(level, seed)`, `pop2_frame(&input)` (one tick), `pop2_save/load/hash`,
   `pop2_missing()` (routines not reconstructed that the tick reached).
 - State = the field table in `src/state.c` (DS-mapped fields + C-only state + the checkpoint copy).
-- Platform hooks (weak): sound_playing, death_sound_playing, level_end_sound_playing, ambient_sound, bios_key,
-  frame_on_time, platform_wait_frame, room_background_id.
+- Platform hooks (weak): bios_key, frame_on_time, platform_wait_frame, room_background_id; sound: the model in
+  sound.c answers, `sound_clock_hook` / `sound_query_hook` let a platform replace its clock or its answers.
 - Speed: ~17k ticks/s with two hashes per tick; explorer ~500k ticks/s.
 
 ## 7. Verification status (2026-09-23)
@@ -434,7 +484,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 
 ## 8. Open list
 - Story scenes;
-  sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; the stubs still logged by
+  sound: packed digital sample lengths (0x20 0x26 0x2F 0x258), draw-time jitter; the prince's drawing-pass hooks; hotkeys besides restart; the stubs still logged by
   note()/note_missing() (see `grep -n 'note(' src/*.c`).
 
 ---------------------------------------------------------------------------------------------------------------------
@@ -481,3 +531,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   0x76, take_hp(100)), 366C:11F8 wired. Silent stubs audited: 366C:0D5A is a bare retf in OVL09 (charids 7/8, correct
   as empty); OVL11 reconstructed later (5.7d).
 - 2026-09-24: level 5 room 3 trap and mouth (OVL11, lever5.c); X5_3 (crouch on the trap, caught) identical.
+- 2026-09-24: sound model (sound.c): queue/priorities/flags (1611), ambient pieces (1611:03CC and helpers), driver
+  channels and lengths; the driver's tempo byte swap (194C:3171) and 240 Hz 16.16 counter (194C:2FB4) explain the
+  MIDI lengths; frame timer reload 5/6 (169B:0BA6). Model-only e2e: 74/154 captures fully identical (35 before the
+  tempo findings); the default suite unchanged.

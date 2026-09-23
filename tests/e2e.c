@@ -77,7 +77,7 @@ int bios_key(void)
 	return got ? 0x100 : 0;
 }
 static int hexval(int c) { return c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10; }
-static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes, timing_flips, sound_answers; int death_sound_playing(int both) { (void)both; return sound_busy; }
+static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes, timing_flips, sound_answers; 
 /* sounds gating a random draw inside a tick (level 2's room-3 edge, 33FD:02E9): not playing if the capture's
  * post-tick seed lies ahead of ours */
 static uint32_t seed_b[8192]; static int seed_b_ok[8192], cur_tick_ix = -1;
@@ -87,17 +87,34 @@ int frame_on_time(void) { return !(pace_ix >= 0 && pace_ix + 1 < nt_all && lag_a
 /* the answers to "is sound n playing" (the sound driver's timing is not modelled) in the current tick: by default from
  * the capture's seed (a random draw follows a "no"); when the tick disagrees with the capture, other answers are tried */
 static int sq_forced, sq_count; static unsigned sq_mask;
-int sound_playing(uint16_t id)
+static int e2e_sound_playing(void)
 {
-	(void)id; int r;
+	int r;
 	if (sq_forced) r = (sq_mask >> sq_count) & 1;
 	else if (cur_tick_ix < 0 || !seed_b_ok[cur_tick_ix]) r = 1;
 	else { uint32_t s = random_seed, want = seed_b[cur_tick_ix]; r = 1; for (int k = 1; k <= 4 && r; k++) { s = s * 0x343FD + 0x269EC3; if (s == want) r = 0; } }
 	sq_count++; return r;
 }
 
+/* E2E_SOUNDMODEL: the core's sound model answers; else the answers come from the capture (the death waits from
+ * the prince's death count, "playing" from the seed, the level end never held) */
+static int e2e_sound_answer(int what, uint16_t res, int model) { (void)res; (void)model; return what == 0 ? e2e_sound_playing() : what <= 2 ? sound_busy : 0; }
+static int cap_frame, cap_prev_frame = -1, clock_mode; static uint32_t hybrid_us;
+/* E2E_SNDCLOCK=1: the capture's frame; 2: 1/12 s per pass unless the capture's pass took longer (7+ frames) */
+static int cap_next_frame = -1; static int last_left1; extern uint32_t snd_start_delay;
+static uint32_t e2e_clock(void)
+{
+	if (clock_mode != 2) return (uint32_t)(cap_frame * (1e6 / 70.086)) + (sound_phase ? snd_start_delay : 0);
+	if (!sound_phase) return hybrid_us;
+	return hybrid_us + snd_start_delay;   /* the pass's end (when the pass ran late, its end came later: not known) */
+}
 int main(int argc, char **argv)
 {
+	int sound_model = getenv("E2E_SOUNDMODEL") != NULL;
+	{ extern int sound_debug; sound_debug = (getenv("SND_LOG") ? 1 : 0) | (getenv("SND_AUDIT") ? 2 : 0); }
+	if (!sound_model) { sound_query_hook = e2e_sound_answer; sound_ambient_enabled = 0; }
+	else if (getenv("E2E_SNDCLOCK")) { sound_clock_hook = e2e_clock; clock_mode = atoi(getenv("E2E_SNDCLOCK")); }
+	{ extern uint32_t snd_start_delay; if (getenv("E2E_SNDDELAY")) snd_start_delay = atoi(getenv("E2E_SNDDELAY")); extern uint32_t snd_midi_extra, snd_digi_extra; if (getenv("E2E_MIDIX")) snd_midi_extra = atoi(getenv("E2E_MIDIX")); if (getenv("E2E_DIGIX")) snd_digi_extra = atoi(getenv("E2E_DIGIX")); }
 	if (argc < 6) { fprintf(stderr, "usage: e2e SEQUENCE.DAT ram.bin PRINCE.EXE events.txt capture.script\n"); return 2; }
 	glue_init(argv[1], "/dev/null"); glue_load_exe_tables(argv[3]);
 	static uint8_t ram[655360]; FILE *rf = fopen(argv[2], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf);
@@ -129,7 +146,7 @@ int main(int argc, char **argv)
 	FILE *ef = fopen(argv[4], "r"); if (!ef) return 2;
 	/* first pass: the prince's death count before and after each tick (the death sound is not modelled: a count that
 	 * did not advance means it was still playing) */
-	static int8_t alive_a[8192], alive_b[8192]; static char reload_after[8192]; static uint8_t *postmem[8192]; static uint8_t kc[8192][3]; static char kc_ok[8192]; int nt = 0;
+	static int tick_frame_a[8192]; static int8_t alive_a[8192], alive_b[8192]; static char reload_after[8192]; static uint8_t *postmem[8192]; static uint8_t kc[8192][3]; static char kc_ok[8192]; int nt = 0;
 	{ static char l2[0x20000]; while (fgets(l2, sizeof l2, ef)) {
 		char *p = strstr(l2, " probe="), *m = strstr(l2, "mem="); if (!p || !m) continue;
 		char nm2[32] = ""; sscanf(strchr(p + 1, ' ') + 1, "%31s", nm2);
@@ -137,7 +154,7 @@ int main(int argc, char **argv)
 		int off = (0x5B36 + 0x11 - 0x2900) * 2; if ((int)strlen(m + 4) < off + 2) continue;
 		int8_t v = (int8_t)(hexval(m[4 + off]) << 4 | hexval(m[5 + off]));
 		if (!strcmp(nm2, "ls_a") && nt) reload_after[nt - 1] = 1;
-		if (!strcmp(nm2, "ds_tick") && nt < 8191) { int lo = (0x2BA4 - 0x2900) * 2; lag_a[nt] = (hexval(m[4 + lo]) << 4 | hexval(m[5 + lo])) | (hexval(m[6 + lo]) << 4 | hexval(m[7 + lo])) << 8; alive_a[nt] = v; alive_b[nt] = -128; kc_ok[nt] = 0; reload_after[nt] = 0; nt++; }
+		if (!strcmp(nm2, "ds_tick") && nt < 8191) { tick_frame_a[nt] = atoi(l2 + 6); int lo = (0x2BA4 - 0x2900) * 2; lag_a[nt] = (hexval(m[4 + lo]) << 4 | hexval(m[5 + lo])) | (hexval(m[6 + lo]) << 4 | hexval(m[7 + lo])) << 8; alive_a[nt] = v; alive_b[nt] = -128; kc_ok[nt] = 0; reload_after[nt] = 0; nt++; }
 		else if (!strcmp(nm2, "ds_postroom") && nt) { if (!postmem[nt - 1] && strlen(m + 4) >= 2 * 0x4300) { postmem[nt - 1] = malloc(0x4300); for (int q = 0; q < 0x4300; q++) postmem[nt - 1][q] = hexval(m[4 + 2 * q]) << 4 | hexval(m[5 + 2 * q]); } alive_b[nt - 1] = v; int so = (0x2B7A - 0x2900) * 2; uint32_t w = 0; for (int q = 3; q >= 0; q--) w = w << 8 | (hexval(m[4 + so + 2 * q]) << 4 | hexval(m[5 + so + 2 * q])); seed_b[nt - 1] = w; seed_b_ok[nt - 1] = 1; }
 	} rewind(ef); }
 	nt_all = nt;
@@ -188,13 +205,21 @@ int main(int argc, char **argv)
 			if (pending) { frame_after_tick(0); frame_wait(); pending = 0; }   /* (a normal tick without its post-tick sample) */
 			/* the ambient sounds (1611:03CC) draw random numbers depending on the sound driver's timing: catch up */
 			uint32_t want = mem[0x2B7A - SNAP_BASE] | mem[0x2B7B - SNAP_BASE] << 8 | mem[0x2B7C - SNAP_BASE] << 16 | (uint32_t)mem[0x2B7D - SNAP_BASE] << 24;
-			int k; uint32_t s = random_seed;
+			int k; if (getenv("SND_AUDIT")) fprintf(stderr, "T %d\n", tick_ix); uint32_t s = random_seed; { extern int32_t amb_margin; last_left1 = amb_margin; } cap_frame = frame; cap_next_frame = tick_ix + 1 < nt ? tick_frame_a[tick_ix + 1] : frame + 6; if (cap_prev_frame >= 0) hybrid_us += frame - cap_prev_frame >= 7 ? (uint32_t)((frame - cap_prev_frame) * (1e6 / 70.086)) : 83333u; cap_prev_frame = frame; if (getenv("E2E_DRIFT")) printf("drift t%d frame %d: %.2f frames\n", ticks, frame, frame - hybrid_us / (1e6 / 70.086));
 			for (k = 0; k <= 4 && s != want; k++) s = s * 0x343FD + 0x269EC3;
-			if (k <= 4) { random_seed = s; ambient_draws += k; } else rng_lost++;
+			if (sound_model) { if (random_seed != want) { rng_lost++;
+				if (getenv("E2E_SNDRESYNC")) {   /* report the draw count's difference and take the capture's seed (and ambient state) */
+					int ahead = -1; uint32_t t = random_seed; for (int q = 1; q <= 4 && ahead < 0; q++) { t = t * 0x343FD + 0x269EC3; if (t == want) ahead = q; }
+					int behind = -1; t = want; for (int q = 1; q <= 4 && behind < 0; q++) { t = t * 0x343FD + 0x269EC3; if (t == random_seed) behind = q; }
+					printf("snd t%d frame %d: left %d/%d prev-end %d: capture %s%d draws; model amb %02X/%02X cur %X ch0 %d ch1 %d, capture amb %02X/%02X cur %X; 0882 %X 0884 %X\n", ticks, frame, snd_ch_left(0), snd_ch_left(1), last_left1, ahead >= 0 ? "+" : "-", ahead >= 0 ? ahead : behind,
+						amb_state[0], amb_state[1], tiles0[0] | tiles0[1] << 8, snd_ch_id(0), snd_ch_id(1), mem[0x2B98 - SNAP_BASE], mem[0x2B99 - SNAP_BASE], mem[0x2B9A - SNAP_BASE] | mem[0x2B9B - SNAP_BASE] << 8, word_0882, word_0884);
+					random_seed = want; memcpy(amb_state, mem + 0x2B98 - SNAP_BASE, 2); memcpy(tiles0, mem + 0x2B9A - SNAP_BASE, 2);
+				} } }
+			else if (k <= 4) { random_seed = s; ambient_draws += k; } else rng_lost++;
 			if (frozen) {   /* a frozen tick (no post-tick sample): compared with this tick's start */
 				static uint8_t *fz; if (!fz) fz = malloc(state_size());
 				frozen = 0; state_save(fz); frame_begin(); memcpy(got, mem, SNAP_SIZE); snap_store(got); state_load(fz); n++; frozen_n++;   /* (the sample is after 169B:0BA6) */
-				if (nstrict) memcpy(got + 0x2B9A - SNAP_BASE, mem + 0x2B9A - SNAP_BASE, 2);
+				if (nstrict && !sound_model) memcpy(got + 0x2B98 - SNAP_BASE, mem + 0x2B98 - SNAP_BASE, 4);
 				static const char *drawn[] = {"obj_x", "obj_y", "obj_id", "obj_chtab", "curr_tile", "curr_room", "tile_col", "tile_row", NULL};   /* the drawing pass's scratch */
 				#define DRAWN(nm) ({ int d_ = 0; for (int j = 0; drawn[j]; j++) if (!strcmp(drawn[j], nm)) d_ = 1; d_; })
 				if (nstrict) for (int i = 0; i < nstrict; i++) { const char *one[2] = {strict[i], NULL}; if (!DRAWN(strict[i]) && snap_diff(got, mem, one, 0) && !strict_bad[i]++ && getenv("E2E_STRICT")[0] == 'v') { printf("strict: %s first differs at frozen tick %d\n", strict[i], ticks); snap_diff(got, mem, one, 1); } }
@@ -251,7 +276,7 @@ int main(int argc, char **argv)
 		const char_type *ek = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 		(void)ek;
 		memcpy(got, mem, SNAP_SIZE); snap_store(got); n++;
-		if (nstrict) memcpy(got + 0x2B9A - SNAP_BASE, mem + 0x2B9A - SNAP_BASE, 2);
+		if (nstrict && !sound_model) memcpy(got + 0x2B98 - SNAP_BASE, mem + 0x2B98 - SNAP_BASE, 4);
 		if (nstrict) for (int i = 0; i < nstrict; i++) { const char *one[2] = {strict[i], NULL}; if (snap_diff(got, mem, one, 0) && !strict_bad[i]++ && getenv("E2E_STRICT")[0] == 'v') { printf("strict: %s first differs at tick %d\n", strict[i], tick_n); snap_diff(got, mem, one, 1); } }
 		if (snap_diff(got, mem, regions, 0)) { bad++; if (!first_bad) first_bad = tick_n; if (bad <= 5) { printf("tick %d (frame %d) [%s]\n", tick_n, frame, missing_log()); snap_diff(got, mem, regions, 1); } }
 		if (getenv("E2E_ALL") && tick_n >= atoi(getenv("E2E_ALL")) - 2 && tick_n <= atoi(getenv("E2E_ALL"))) { printf("tick %d other state:\n", tick_n); snap_diff(got, mem, extra, 1); }

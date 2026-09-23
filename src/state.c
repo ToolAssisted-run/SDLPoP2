@@ -9,7 +9,7 @@ extern int16_t image_height, image_width;
 /* one table drives load, store and diff: DS offset, size, address of the C global */
 extern uint16_t word_5cd8, word_6142, word_6146;
 const state_field snap_fields[] = {
-	{"level", 0x2BB8, sizeof(level_type), &level}, {"tiles0", 0x2B9A, 30, tiles0}, {"coll", 0x2B24, 0x44, &coll},
+	{"level", 0x2BB8, sizeof(level_type), &level}, {"tiles0", 0x2B9A, 30, tiles0}, {"amb_state", 0x2B98, 2, amb_state}, {"coll", 0x2B24, 0x44, &coll},
 	{"Char", 0x5AB6, 64, &Char}, {"Opp", 0x5AF6, 64, &Opp}, {"Kid", 0x5B36, 64, &Kid}, {"chars", 0x5B76, 320, chars},
 	{"word_8604", 0x5CC4, 2, &word_8604}, {"cur_frame", 0x5CC6, 7, &cur_frame}, {"control_x", 0x5CD4, 1, &control_x}, {"control_y", 0x5CD5, 1, &control_y}, {"control_shift", 0x5CD6, 1, &control_shift},
 	{"word_5cd8", 0x5CD8, 2, &word_5cd8}, {"drawn_room", 0x5CDE, 1, &drawn_room},
@@ -34,7 +34,7 @@ const int snap_nfields = sizeof snap_fields / sizeof snap_fields[0];
  * later calls read, and the C side's own state (the checkpoint copy, the collapsing floors) */
 extern mob_type cur_mob; extern int16_t cur_mob_index; extern uint8_t curr_tilepos, anim_tile;
 extern uint8_t byte_2ab4, edge_type, start_room; extern int16_t word_3bf62;
-extern uint16_t word_2baa, word_927e;
+extern uint16_t word_2baa, word_927e; typedef struct snd_channel { int16_t id; uint32_t end; } snd_channel; extern snd_channel snd_ch[2]; extern uint32_t snd_time;
 static int16_t room_ptr_tiles, room_ptr_attrs;   /* curr_room_tiles / attrs as offsets (DS:613C / 613A) */
 static const state_field extra_fields[] = {
 	{"byte_016a", 0x016A, 1, &byte_016a}, {"word_0366", 0x0366, 2, &word_0366}, {"word_087e", 0x087E, 2, &word_087e}, {"word_0880", 0x0880, 2, &word_0880},
@@ -47,7 +47,7 @@ static const state_field extra_fields[] = {
 	{"level_switch", 0, sizeof(int), &level_switch}, {"floor_objs", 0, sizeof floor_objs, floor_objs},
 	{"word_27c0", 0, 2, &word_27c0}, {"counter_27d6", 0, 2, &counter_27d6}, {"flag_5cb9", 0, 1, &flag_5cb9}, {"byte_5cb8", 0, 1, &byte_5cb8},
 	{"is_feather_fall", 0, 2, &is_feather_fall}, {"obj_xl", 0, 1, &obj_xl}, {"word_2baa", 0, 2, &word_2baa}, {"word_37e8", 0, 2, &word_37e8},
-	{"word_927e", 0, 2, &word_927e}, {"byte_2ab4", 0, 1, &byte_2ab4},
+	{"word_927e", 0, 2, &word_927e}, {"word_0882", 0x0882, 2, &word_0882}, {"word_0884", 0x0884, 2, &word_0884}, {"snd_ch", 0, sizeof snd_ch, snd_ch}, {"snd_time", 0, 4, &snd_time}, {"sound_pass_late", 0, sizeof(int), &sound_pass_late}, {"byte_2ab4", 0, 1, &byte_2ab4},
 	{"edge_type", 0, 1, &edge_type}, {"start_room", 0, 1, &start_room}, {"word_3bf62", 0, 2, &word_3bf62},
 };
 #define NX (int)(sizeof extra_fields / sizeof extra_fields[0])

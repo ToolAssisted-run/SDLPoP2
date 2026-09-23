@@ -30,7 +30,7 @@ void char_fell_out(void)
 {
 	fall_accel(); fall_speed();
 	if (level_kind == 5) {
-		if (Char.y < 0x181) { if (Char.charid == 2 && Char.frame != 0xB9 && !sound_playing_8426()) play_sound(0x19); return; }
+		if (Char.y < 0x181) { if (Char.charid == 2 && Char.frame != 0xB9 && !sound_playing(0x2729)) play_sound(0x19); return; }
 		if (drawn_room != 0x13 && drawn_room != 0x10) { play_sound(0); take_hp(100); Char.frame = 0xB9; seq_set_85f8(3); }
 		Char.y = 0x180; Char.fall_y = 0; Char.action = 1;
 		if (Char.charid != 0 && Char.index == Kid.opp_index) Kid.opp_index = find_opponent(Char.direction);
@@ -234,7 +234,7 @@ static void land(void)
 static void check_fall_landing(void)
 {
 	if (word_6142 == 0 && Char.fall_y > 0x1E) {
-		if (Char.charid == 0) { fall_scream_1611_0030(); word_6142 = 1; }
+		if (Char.charid == 0) { fall_scream_room(Char.room); word_6142 = 1; }
 		else if (Char.charid == 2) { play_sound(0x19); if (Char.curr_row > 5) die_at_bottom(); }
 	}
 	if (Char.y < Char.curr_row * 63 + 56) {

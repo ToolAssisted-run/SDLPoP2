@@ -29,7 +29,7 @@ void pop2_new_game_loaded(int lv, uint32_t seed)   /* up to the level load (169B
 	if (!zero) zero = calloc(1, n);
 	state_load(zero); state_load_ds_statics(ram + 0x3B250);   /* the program's memory at start */
 	random_seed = seed; cheat_mode = lv != 1; level_switch = lv != 1; byte_6b6c = (uint8_t)lv; pop2_keystrokes = 0;
-	game_start();
+	sound_init_ambient(); game_start();
 	scene = story_scene((int8_t)word_32d8, lv); scene_played(scene);
 	load_level(lv);
 }

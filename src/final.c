@@ -8,8 +8,7 @@
 extern int last_scene; int load_level(int n);
 #define word_2bb4 (*(uint16_t *)(tiles0 + 0x1A))   /* DS:2BB4: room 8 was reached with the sounds on */
 
-/* platform: DS:2B98 sound on (the sound query on DS:0884, the music playing, goes through sound_playing(0xFFFF)) */
-__attribute__((weak)) int sound_on(void) { return 1; }
+/* platform: DS:2B98 sound on (the sound query on DS:0884, the music playing, goes through music_playing()) */
 
 /* 33FD:035A: the prince stands in room 4, column 5, row 1, facing right */
 static void place_at_room4(void)

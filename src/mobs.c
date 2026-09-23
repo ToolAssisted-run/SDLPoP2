@@ -64,7 +64,7 @@ static int trigger_target(uint8_t button, int8_t tp, uint8_t room, uint8_t t)
 	case 0x11:   /* exit door */
 		if (room == level.start_room || level_number != 8 || byte_5cba == 1) {
 			int r = (*attr_lo(room, tp) & 0xFF) == 0 ? 1 : -1;
-			if (r == 1 && !sound_playing_8426() && level_number != 13) play_sound(0x1B);
+			if (r == 1 && !sound_playing(0x272B) && level_number != 13) play_sound(0x1B);
 			return r;
 		}
 		return -1;

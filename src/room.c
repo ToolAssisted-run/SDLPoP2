@@ -216,7 +216,7 @@ void check_kid_left_room(void)
 	if (Char.room == 0 && Char.alive < 0) {
 		if (level_kind == 5 && exit_dir == 0) { Char.x = char_dx_forward(320); grab_start(); }   /* 33FD:0370 */
 		else {
-			fall_scream_1611_0030();
+			fall_scream_room(drawn_room);
 			if (level_kind != 5) { take_hp(100); Char.frame = 0xB9; seq_set_85f8(3); Kid = Char; apply_hp_deltas(); loadkid(); }
 		}
 	}
@@ -443,7 +443,7 @@ void chars_fell_below(void)
 		load_char(i);
 		if ((uint8_t)Char.direction == 0x56 || Char.y < 0x180 || (level_kind == 5 && Char.index == byte_9276)) continue;
 		if (Char.action != 4 && Char.action != 3 && !(Char.frame >= 0xCA && Char.frame <= 0xD4)) { if (!save_to_record()) save_char(); }
-		else if (room_B == 0) { save_to_record(); if (Char.charid == 2 && !sound_playing_8426()) play_sound(0x19); }   /* falls out of the level */
+		else if (room_B == 0) { save_to_record(); if (Char.charid == 2 && !sound_playing(0x2729)) play_sound(0x19); }   /* falls out of the level */
 		/* 1611:0068 stops its sounds */
 		hp_bar_draw(Char.index, 0, Char.f12);
 		if (Kid.opp_index == Char.index) Kid.opp_index = 0xFF;

@@ -146,14 +146,15 @@ int frame_after_tick(int r)
 		word_5cd8 = 0;
 		return (int8_t)word_32d8 == (int16_t)counter_5cec ? (byte_6b6c ? (int8_t)word_32d8 : 0) : (int8_t)counter_5cec;
 	}
-	if ((int8_t)word_32d8 != (int16_t)counter_5cec && !level_end_sound_playing()) {
+	if ((int8_t)word_32d8 != (int16_t)counter_5cec && !level_end_sound_playing() && !level_end_effect_playing()) {
+		if (counter_5cec == -1 || (level_number != 9 && level_number != 5)) sound_stop_all();   /* (levels 5 and 9 play on) */
 		start_hp = Kid.f13;   /* the next level starts with the prince's hp */
 		checkpoint_free(); return (int8_t)counter_5cec;
 	}
 	int e = frame_end();
 	if (e == -2) {   /* 169B:05A1: DS:2BA4 measures lateness (the frame timer DS:24DE ran out before the frame was done) */
 		if (frame_on_time()) { if (word_2ba4) word_2ba4--; /* 2797:0134: wait for the timer */ }
-		else if ((int16_t)word_2ba4 < 0x14) word_2ba4++;
+		else { if ((int16_t)word_2ba4 < 0x14) word_2ba4++; sound_pass_late = 1; }   /* (the pass took a timer tick more) */
 	}
 	return e;
 }
@@ -162,7 +163,7 @@ uint16_t cheat_mode;   /* DS:10C2: the command line's cheat word was given */
 void frame_wait(void)
 {
 	if (cheat_mode) { loadkid(); /* 18C8:0800 cheat keys, DS:10DA debug line: not reconstructed */ }
-	platform_wait_frame();
+	platform_wait_frame(); sound_pass_done();
 }
 /* one pass of 169B:0505 */
 int play_frame(void) { frame_begin(); int r = frame_after_tick(tick_main()); frame_wait(); return r; }

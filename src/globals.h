@@ -98,7 +98,7 @@ int take_hp(int n); void die_at_bottom(void); void char_fell_out(void); int8_t f
 uint8_t get_tile_above_front(void); uint8_t get_tile_above_behind(void);   /* 0AFF:1514 / 14F6 */
 int play_kid_frame(void); int play_kid_control(void); void kid_post_move(void);
 void ovl_348e6(void); void ovl_3564e(void); void ovl_34724(void); void ovl_37826(void);
-void ovl_349be(void); void fall_scream_1611_0030(void); void sound_194c_83d2(uint16_t n); int sound_playing_8426(void); void level_kind_hooks(void);
+void ovl_349be(void); void sound_194c_83d2(uint16_t n); void level_kind_hooks(void);
 /* room.c (OVL01 2D3E room records, 0823:0E72 room switch, 0FB3:0026) */
 extern uint8_t next_room, pal_slots[2], byte_9276; extern int16_t exit_dir; extern uint16_t word_922a, word_32d8, word_68f0;
 extern const uint8_t *type_to_charid, *charid_to_type;
@@ -219,3 +219,8 @@ void floor_draw_state(void); void trap_draw_state(void);   /* mobs.c */
 void floor_collapse_pub(void);
 int room_draws_sword_pub(uint8_t room);
 void lever5_enter(void); void anim_tile1b(void); extern uint16_t lever5_flag3c, lever5_flag3e;   /* lever5.c */
+/* sound.c: the sound queue, the ambient sounds and the driver's timing model */
+extern uint16_t word_0882, word_0884; extern uint8_t amb_state[2], sound_caps; extern int sound_ambient_enabled;
+extern int (*sound_query_hook)(int what, uint16_t res, int model); extern uint32_t (*sound_clock_hook)(void);
+void sound_stop_all(void); void sound_pass_done(void); int sound_on(void); int sound_digital(void); int music_playing(void);
+void fall_scream_room(uint8_t room); int snd_ch_id(int k); int snd_ch_left(int k); extern int sound_phase, sound_pass_late; int level_end_effect_playing(void); void sound_init_ambient(void);

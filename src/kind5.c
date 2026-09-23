@@ -70,7 +70,7 @@ void kind5_room_palette(uint8_t room)
 void ovl_34210(void)
 {
 	if (Char.x <= 0x201) return;
-	if (sound_on() && !sound_playing(0x2730) && !sound_playing(0x273F)) { play_sound(0x20); return; }
+	if (sound_digital() && !sound_playing(0x2730) && !sound_playing(0x273F)) { play_sound(0x20); return; }
 	for (int n = (int8_t)Char.f12; n > 0; n--) { take_hp(1); Kid = Char; apply_hp_deltas(); hp_bars_reload(); loadkid(); }
 	char_y_to_floor(); seqtbl_offset_char(0x47);
 }

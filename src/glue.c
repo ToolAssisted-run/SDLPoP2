@@ -46,7 +46,7 @@ void seq_jump_to(uint16_t id) { Char.seq_id = id; Char.seq_pos = 0; }
 void seq_ctl_1954(void) { drink(); }   /* items.c */
 void ovl_366c_1704(void) { note(" ovl1704"); }
 void flash_on(uint16_t v) { (void)v; note(" flash_on"); } void flash_off(void) { note(" flash_off"); }
-void play_sound(uint16_t n) { (void)n; } void sound_1611_01a8(uint16_t n) { (void)n; } int ovl_366c_11f8(uint8_t r) { return room_draws_sword_pub(r); }   /* 366C:11F8 (OVL10, guard.c) */
+int ovl_366c_11f8(uint8_t r) { return room_draws_sword_pub(r); }   /* 366C:11F8 (OVL10, guard.c) */
 void shadow_hook_2f9a2(void) {}   /* 2F86:0142: level 13 room 4 f24 0xD: 0FB3:294C (a digital sound); palette */
 void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", code); note(t); }
 /* control.c externs not yet reconstructed */
@@ -82,7 +82,7 @@ int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { return wall_edge(dir, 
 int16_t ovl_352ca(void) { return wall_limit(Char.room, Char.curr_row); }   /* 1375:14FC -> 347C:0B0A */ void ovl_3211a(void) { seqtbl_offset_char(0x76); take_hp(100); }   /* 2FDF:232A: crushed by a caverns gate */
 void ovl_348e6(void) { if (level_kind == 4) ruins_crumble(); else note(" CHOMPER"); }   /* 347C:0126 */ void ovl_3564e(void) { note(" 3564e"); }
 void ovl_34724(void) { if (level_kind == 3) floor_collapse_pub(); else note(" 34724"); }   /* 33FD:0754 (OVL04, caverns.c) */ void ovl_37826(void) { skel_collapse(); }   /* 366C:1166 (skeleton.c) */
-void fall_scream_1611_0030(void) {} void sound_194c_83d2(uint16_t n) { (void)n; } int sound_playing_8426(void) { return 0; }
+
 
 static uint16_t guard_bank2[8];
 const uint16_t *refract_timer; static uint16_t refract_tbl[16];
@@ -212,10 +212,7 @@ void glue_select_guard_dat(uint8_t type)
 	frame_table_guard = f ? f : kidtab;
 }
 
-void seq_music_1611(uint8_t m) { (void)m; } void restart_prompt(void) { note(" restart"); }   /* 1611:0002 death music; 169B:123E prompt */
-__attribute__((weak)) int death_sound_playing(int both) { (void)both; return 0; }
-__attribute__((weak)) int level_end_sound_playing(void) { return 0; }
-__attribute__((weak)) void ambient_sound(void) {}
+void restart_prompt(void) { sound_stop_all(); note(" restart"); }   /* 1611:0002 death music; 169B:123E prompt */
 int pop2_keystrokes;   /* keystrokes waiting (core input) */
 __attribute__((weak)) int bios_key(void) { if (pop2_keystrokes > 0) { pop2_keystrokes--; return 0x100; } return 0; }
 __attribute__((weak)) void platform_wait_frame(void) {}

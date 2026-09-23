@@ -8,3 +8,4 @@ void snap_store(uint8_t *ds);                            /* globals -> snapshot 
 void snap_load_heap(const uint8_t *heap, uint32_t size);
 int  snap_diff_heap(const uint16_t *exp_ptrs, const uint8_t (*objs)[0x65], const uint8_t *heap, uint32_t size, int verbose);
 int  snap_diff(const uint8_t *got, const uint8_t *exp, const char *const *regions, int verbose);   /* compare named regions */
+const char *snap_field_at(uint16_t a, int *off);

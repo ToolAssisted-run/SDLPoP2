@@ -246,3 +246,16 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
   Tiles 0x1C/0x1D cycle like kind 5's 0x25.
 - Button link timers idle at 0xFF and are compared signed (1375:15D4/16BC): a first press adds the button's own
   animation.
+
+## Cold start (verified: every level from zeroed memory)
+- PRINCE.EXE's initialised data segment is file offset 0x3CE40 = DS:0, 0x27BF bytes; the rest of DS is zero at start.
+  The static tables the logic reads (DS:0096, 0672, 1774, 1BB6, ...) come from there.
+- 169B:0006 (game_start) before play_level: DS:2B96 = 0 (four OVL01 initialisers), 5CDC/5CDA/5CE8/5CD0 = 0, and
+  unless DS:5CB6: 75 minutes, 0x2CF ticks, start hp 3 (with the cheat word and a LEVELn switch: the level, 3..12).
+  DS:6B6C is the starting level from the menu (1) or the LEVELn switch (0823:0192, clamped 1..14).
+- The level load (1286:01F2) also sets DS:5CBA by level (1286:0D06: 0xFF level 6, 2 levels 7/8, else 1) and runs the
+  kind's overlay initialiser (1286:03B6): kind 5 OVL02:005A (DS:6937 = 0, 2B68 = 6936 = 0xFF), kind 1 OVL03:0380
+  (DS:2B6B = 0xFF; with room background 6 it draws the puzzle answer) and 33FD:0324 (DS:14A0 = 0xFF). A restart of
+  the same level without a scene reloads through 1286:0332 instead (no kind initialiser).
+- Remaining inputs: the random seed (from the clock at boot), the cheat word (DS:10C2), DS:016A/0366, and the palette
+  slots that story scenes leave behind (DS:5D08).

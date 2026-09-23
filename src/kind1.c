@@ -80,6 +80,16 @@ void anim_gate_kind1(void)
 	else { di++; if (!sound_playing(0x273D)) play_sound(7); }
 	anim_mod = (anim_mod & ~0x1Fu) | (uint16_t)di;
 }
+/* platform: the background id of the room description at DS:01AC (drawing state, not modelled; -1 unknown) */
+__attribute__((weak)) int room_background_id(void) { return -1; }
+/* 33FD:0380 (level load, 1286:03B6): with room background 6 showing, the puzzle's answer is chosen once
+ * (DS:14A0 0..2, 2 = none drawn); the rest draws it */
+void kind1_level_init(void)
+{
+	puzzle_last = -1;
+	if (room_background_id() != 6) return;
+	if (byte_14a0 == 0xFF) { byte_14a0 = random_2751(2); puzzle_answer = random_2751(4) + 1; }
+}
 /* 33FD:002A: with the gate closed, count while only the right tile is down; solved after 0x14 ticks */
 static void puzzle_check(void)
 {

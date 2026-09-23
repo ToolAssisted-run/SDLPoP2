@@ -23,4 +23,7 @@ fi
 if [ "$mode" = tick ]; then
 gcc -O0 -g -Wall -o $W/e2e tests/e2e.c tests/stubs.c tests/snap.c src/*.c
 for x in LSL3r1:ramL3 LSL3skel2:ramL3 E1_1:ram1436 E4_1:ramL3 E6_1:ramL6 E10_1:ramL10 E5_1:ramE5_1 E7_1:ramE7_1 E8_1:ramE8_1 E9_1:ramE9_1 E11_1:ramE11_1 E12_1:ramE12_1 E13_1:ramE13_1 E14_1:ramE14_1 E2_1:ramE2_1; do s=${x%:*}; [ -f $O/$s-snap.txt ] && echo "$s $($W/e2e $S/SEQUENCE.DAT $O/w/${x#*:}.bin $S/PRINCE.EXE $O/$s-snap.txt $O/$s.script 2>/dev/null | tail -1)"; done
+# the same from a cold start: zeroed memory, the static tables from PRINCE.EXE, 169B:0006 and the level load
+# (only the three runtime words and the seed come from the capture; scene leftovers show as palette-slot bytes)
+for x in LSL3r1:ramL3 E1_1:ram1436 E2_1:ramE2_1 E4_1:ramL3 E5_1:ramE5_1 E6_1:ramL6 E7_1:ramE7_1 E8_1:ramE8_1 E9_1:ramE9_1 E10_1:ramL10 E11_1:ramE11_1 E12_1:ramE12_1 E13_1:ramE13_1 E14_1:ramE14_1; do s=${x%:*}; [ -f $O/$s-snap.txt ] && echo "$s cold $(E2E_COLD=1 E2E_EXE_DS=16A:1,10C2:2,366:2 $W/e2e $S/SEQUENCE.DAT $O/w/${x#*:}.bin $S/PRINCE.EXE $O/$s-snap.txt $O/$s.script 2>/dev/null | grep -E '^cold start|^e2e' | cut -d';' -f1 | tr '\n' ' ')"; done
 fi

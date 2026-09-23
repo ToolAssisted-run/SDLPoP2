@@ -85,7 +85,13 @@ int main(int argc, char **argv)
 {
 	if (argc < 6) { fprintf(stderr, "usage: e2e SEQUENCE.DAT ram.bin PRINCE.EXE events.txt capture.script\n"); return 2; }
 	stubs_init(argv[1], "/dev/null"); stubs_load_frame_tables(argv[3]);
-	static uint8_t ram[655360]; FILE *rf = fopen(argv[2], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf); stubs_load_ds_tables(ram);
+	static uint8_t ram[655360]; FILE *rf = fopen(argv[2], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf);
+	if (getenv("E2E_EXE_DS")) {   /* static tables from PRINCE.EXE's data segment (file 0x3CE40 = DS:0), runtime values from the dump */
+		static uint8_t img[655360]; memcpy(img, ram, sizeof img); FILE *xf = fopen(argv[3], "rb"); memset(img + 0x3B250, 0, 0x2900);
+		fseek(xf, 0x3CE40, SEEK_SET); if (fread(img + 0x3B250, 1, 0x27BF, xf) != 0x27BF) return 2; fclose(xf);
+		for (const char *q = getenv("E2E_EXE_DS"); *q; ) { unsigned a0, n0; int used; if (sscanf(q, "%x:%x%n", &a0, &n0, &used) != 2) break; memcpy(img + 0x3B250 + a0, ram + 0x3B250 + a0, n0); q += used; if (*q == ',') q++; }
+		stubs_load_ds_tables(img);
+	} else stubs_load_ds_tables(ram);
 	level_roomlinks = (uint8_t *)&level + 0x17BC;
 	FILE *sf = fopen(argv[5], "r"); char line[65536];
 	while (sf && fgets(line, sizeof line, sf)) {
@@ -125,7 +131,22 @@ int main(int argc, char **argv)
 		if (resync) continue;
 		if (!started) {
 			if (strcmp(nm, "ls_a") || len != 0x4300) continue;
-			SNAP_SIZE = 0x4300; SNAP_BASE = 0x6C00 - SNAP_SIZE; snap_load(mem); stubs_select_guard_dat(level.type);
+			SNAP_SIZE = 0x4300; SNAP_BASE = 0x6C00 - SNAP_SIZE;
+			if (getenv("E2E_COLD")) {   /* a new game from zeroed memory: 169B:0006 then the level load; the seed comes from the capture */
+				static uint8_t zero[0x4300]; snap_load(zero);
+				random_seed = mem[0x2B7A - SNAP_BASE] | mem[0x2B7B - SNAP_BASE] << 8 | mem[0x2B7C - SNAP_BASE] << 16 | (uint32_t)mem[0x2B7D - SNAP_BASE] << 24;
+				int lv = mem[0x43FF - SNAP_BASE]; level_switch = lv != 1; byte_6b6c = lv; game_start(); story_scene(0, lv); load_level(lv);
+				memcpy(got, mem, SNAP_SIZE); snap_store(got);
+				int nd = 0, unk = 0; char last[64] = "";
+				for (int a = 0; a < SNAP_SIZE; a++) if (got[a] != mem[a]) {
+					int off; const char *f = snap_field_at(SNAP_BASE + a, &off);
+					if (!f) { unk++; continue; }
+					if (strcmp(last, f)) { if (nd) printf("\n"); printf("  cold %s:", f); snprintf(last, sizeof last, "%s", f); }
+					if (nd++ < 400) printf(" +%X:%02X!=%02X", off, got[a], mem[a]);
+				}
+				printf("\ncold start: %d differing bytes in known fields\n", nd);
+			} else snap_load(mem);
+			stubs_select_guard_dat(level.type);
 			level_begin(); level_first_room(); started = 1; continue;
 		}
 		if (!strcmp(nm, "ds_tick")) {

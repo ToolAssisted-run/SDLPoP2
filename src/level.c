@@ -151,27 +151,44 @@ void level_begin(void)
 	init_kid(); close_entrance();
 }
 
+static void kind_level_init(void); extern int last_scene;
 /* 1286:01F2 / 02EE: load level n (resource 0x7CF + n, +0x14 with the GAMEPLAY switch), then the checkpoint copy.
  * A different level than the current one drops the checkpoint. */
 int load_level(int n)
 {
-	if (n != (int8_t)word_32d8) checkpoint_free();   /* (unless DS:5CB6) */
+	int changed = n != (int8_t)word_32d8;
+	if (changed) checkpoint_free();   /* (unless DS:5CB6) */
 	word_32d8 = n; counter_5cec = n;
 	uint16_t size; const uint8_t *p = level_resource(0x7CF + n, &size);
 	if (!p) return 0;
 	memcpy(&level, p, size < sizeof level ? size : sizeof level);
 	level_kind = level.hdr_pad2[4]; level_number = level.number;
 	level_postprocess(); checkpoint_restore();
+	/* 1286:0D06: the guards' sword reach (a far override at DS:5AB2 is never set here) */
+	byte_5cba = level_number == 6 ? 0xFF : (level_number == 7 || level_number == 8) ? 2 : 1;
+	if (changed || last_scene) {   /* the full load (1286:01F2); a plain restart reloads through 1286:0332 */
+		kind_level_init();
+		if (level_kind == 1) byte_14a0 = 0xFF;   /* 33FD:0324 (1286:02D9) */
+	}
+	last_scene = 0;
 	return 1;
 }
 uint16_t word_0366;   /* DS:0366 */
+int last_scene;       /* the scene story_scene() chose before this load (the original's 169B:0070 `si`) */
+uint8_t byte_2b68, byte_6937;   /* DS:2B68, DS:6937 (kind 5) */
+/* 1286:03B6: the level kind's overlay initialiser (only the state parts; kinds 2, 3, 4, 6 set nothing compared here) */
+static void kind_level_init(void)
+{
+	if (level_kind == 1) kind1_level_init();   /* 33FD:0380 in OVL03 */
+	else if (level_kind == 5) { byte_6937 = 0; byte_2b68 = 0xFF; byte_9276 = 0xFF; }   /* 33FD:005A in OVL02 */
+}
 /* 0AAC:0120 (the state part of 0AAC:000E, before each level): the story scene after level `prev`, and DS:016A, the
  * story/timer stage (-1 until the first scene after level 3; the clock runs from 0 on). Returns the scene (0 none). */
 int story_scene(int prev, int n)
 {
 	int si = 0;
-	if ((int8_t)byte_6b6c > 2 && word_0366 == 0) return 0x64;
-	if (byte_6b6c == 0) return 0;
+	if ((int8_t)byte_6b6c > 2 && word_0366 == 0) return last_scene = 0x64;
+	if (byte_6b6c == 0) return last_scene = 0;
 	if (!(prev != 0 && (n == prev || n == -1)))
 		switch (prev) { case 1: si = 9; break; case 2: si = 0x64; break; case 3: si = 0xA; break; case 5: si = 1; break; case 8: si = 2; break; case 13: si = 3; break; }
 	if (si == 0 && prev >= 4) {
@@ -179,7 +196,20 @@ int story_scene(int prev, int n)
 		else { int8_t st = (int8_t)((1 - (int16_t)minutes_left) / 9 + 7); if (st > byte_016a) { si = st + 0x14; byte_016a = st; } }
 	}
 	/* with the cheat word, NISn / TREEn on the command line choose the scene or the stage */
+	last_scene = si;
 	return si;
+}
+int level_switch;          /* platform: with the cheat word, a LEVELn switch on the command line (DS:0978 via 194C:2CEA) */
+uint16_t word_2b96;        /* DS:2B96 */
+/* 169B:0006 (before play_level): a new game. 1286:0050 (a drawing buffer) left out; 169B:018E runs four OVL01
+ * initialisers that each clear DS:2B96 */
+void game_start(void)
+{
+	word_2b96 = 0;
+	word_5cdc = word_5cda = word_5ce8 = word_5cd0 = 0;
+	if (word_5cb6) return;
+	minutes_left = 75; clock_ticks = 0x2CF; start_hp = 3;
+	if (cheat_mode && level_switch) { int8_t v = (int8_t)level_number; start_hp = v < 3 ? 3 : v > 12 ? 12 : v; }
 }
 /* 169B:0070 (after 169B:0006): play levels from n until the player quits; returns 0 or -1 */
 int play_level(int n)

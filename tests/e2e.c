@@ -17,6 +17,7 @@ static struct { const char *name; int pos; } keymap[] = {   /* oracle key names 
 	{"kp7", 0x54}, {"kp8", 0x55}, {"kp9", 0x56}, {"kp4", 0x58}, {"kp5", 0x59}, {"kp6", 0x5A}, {"kp1", 0x5C}, {"kp2", 0x5D}, {"kp3", 0x5E},
 	{"leftshift", 0x37}, {"rightshift", 0x43}, {"leftctrl", 0x2A}, {"rightctrl", 0x2A}, {"leftalt", 0x45}, {NULL, 0}};
 static struct { int frame, pos, down; } keyev[4096]; static int nkeyev;
+static uint8_t *tick_keys, *tick_flags, *tick_set;   /* scripts with per-tick input (probepoke ds_tick N ...) */
 static uint8_t flags_of(const uint8_t *k) { return (k[0x37] ? 2 : 0) | (k[0x43] ? 1 : 0) | (k[0x2A] ? 4 : 0) | (k[0x45] ? 8 : 0); }
 static int same_frame_keys;   /* keys set at the tick's own frame were already seen (1) or not yet (0) */
 /* The keys as the tick at `frame` saw them. A key set during the tick's own frame may arrive before or after the tick
@@ -105,6 +106,12 @@ int main(int argc, char **argv)
 	FILE *sf = fopen(argv[5], "r"); char line[65536];
 	while (sf && fgets(line, sizeof line, sf)) {
 		int f, d; char name[32];
+		{ unsigned hit, phys; char hex[600];   /* per-tick input written at the tick's start (plan2script.py) */
+		  if (sscanf(line, "probepoke ds_tick %u %x %599s", &hit, &phys, hex) == 3 && hit < 8192) {
+			if (!tick_keys) tick_keys = calloc(8192, 0x70), tick_flags = calloc(8192, 1), tick_set = calloc(8192, 1);
+			if (phys == 0x3CF50) { for (int q = 0; q < 0x70 && hex[2 * q]; q++) tick_keys[hit * 0x70 + q] = hexval(hex[2 * q]) << 4 | hexval(hex[2 * q + 1]); tick_set[hit] = 1; }
+			else if (phys == 0x417) tick_flags[hit] = hexval(hex[0]) << 4 | hexval(hex[1]);
+			continue; } }
 		if (sscanf(line, "key %d %31s %d", &f, name, &d) != 3) continue;
 		for (int k = 0; keymap[k].name; k++) if (!strcmp(keymap[k].name, name) && nkeyev < 4096) { keyev[nkeyev].frame = f; keyev[nkeyev].pos = keymap[k].pos; keyev[nkeyev++].down = d; }
 	}
@@ -177,7 +184,10 @@ int main(int argc, char **argv)
 			/* one frame: 169B:0BA6, then the tick with this tick's keys */
 			const char_type *ak = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++; pace_ix = tick_ix - 1;
-			keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL, Kid.alive >= 0, tick_ix - 1 < nt && reload_after[tick_ix - 1]); cur_tick_frame = frame; missing_reset();
+			if (tick_keys) {   /* the input the script wrote at this tick's start (the last one written before, if none) */
+				int h = tick_ix; while (h > 0 && !tick_set[h]) h--;
+				memcpy(key_table, tick_keys + h * 0x70, 0x70); bios_shift_flags = tick_flags[h]; keys_differ = 0; same_frame_keys = 1;
+			} else keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL, Kid.alive >= 0, tick_ix - 1 < nt && reload_after[tick_ix - 1]); cur_tick_frame = frame; missing_reset();
 			if (getenv("E2E_TRACE") && ticks + 1 >= atoi(getenv("E2E_TRACE")) - 8 && ticks + 1 <= atoi(getenv("E2E_TRACE"))) printf("  t%d frame %d: kid alive %d busy %d keyq %d/%d next %.1f\n", ticks + 1, frame, Kid.alive, sound_busy, keyq_next, nkeyq, keyq_next < nkeyq ? keyq[keyq_next] : -1.0);
 			/* a key changing during the tick's own frame reached it or not (the keyboard interrupt vs the tick's place in
 			 * the frame): when the choice above gives a state the capture does not have, the other one is tried */

@@ -55,7 +55,7 @@ static void char_dies(void)
 {
 	int si = -1;
 	Char.f23 = 0; Char.f0f = 1;
-	if (Char.charid == 4) ovl_366c_1166();
+	if (Char.charid == 4) skel_collapse();
 	else if (Char.charid == 7 || Char.charid == 8) { Char.direction = ~Kid.direction; Char.f12 = 0; si = 0x9A; }
 	else if (Char.charid == 0xB) si = 0xAE;
 	else if (Char.charid == 6) si = 0xC4;
@@ -184,3 +184,4 @@ void guards_see_kid(void)
 		save_char();
 	}
 }
+void char_dies_pub(void) { char_dies(); }

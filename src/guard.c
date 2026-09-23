@@ -263,7 +263,7 @@ void autocontrol(void)
 	if (word_922e) word_922e--;
 	switch (Char.charid) {
 	case 1: if (Char.room == 4 && level_number == 13) ovl_shadow_37f0_78(); break;
-	case 4: case 10: ovl_366c_10cc(); break;
+	case 4: case 10: skel_ai(); break;
 	case 6: ovl_33fd_694(); break;
 	case 7: case 8: ovl_366c_e0a(); break;
 	case 11: ovl_366c_11(); break;
@@ -289,3 +289,4 @@ void guard_after_seq(void)
 	if (Char.alive < 0x14) Char.alive++;
 }
 void sword_range_pub(int16_t *far_ax, int16_t *near_bx) { sword_range(far_ax, near_bx); }
+void guard_ai_pub(void) { guard_ai(); }

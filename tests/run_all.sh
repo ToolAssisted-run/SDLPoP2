@@ -2,7 +2,7 @@
 # Rebuild the snapshot test and run every capture (level 1: ram1436, level 3: ramL3). usage: tests/run_all.sh [mode]
 set -e
 here=$(cd "$(dirname "$0")" && pwd); W=${WORK:-$HOME/pop2dec/work}; O=$HOME/pop2dec/oracle; S=$HOME/pop2dec/sources/prince2
-export KID_DAT=$S/KID.DAT PRINCE_DAT=$S/PRINCE.DAT GUARD_DAT=$S/GUARD.DAT
+export KID_DAT=$S/KID.DAT PRINCE_DAT=$S/PRINCE.DAT PRINCE2_DIR=$S
 cd "$here/.."
 gcc -O0 -g -Wall -o $W/snaptest tests/snaptest.c tests/stubs.c tests/snap.c src/*.c
 mode=${1:-tick}

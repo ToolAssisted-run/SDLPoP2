@@ -34,9 +34,7 @@ static void kid_crouch(void)
 void control_standing_down(void)
 {
 	ctrl1_down = 1;
-	if (!tile_is_empty_kind(get_tile_infrontof(1))) {
-		if (distance_to_edge_weight() <= 2) { Char.x = char_dx_forward(10); load_fram_det_col(); return; }
-	}
+	if (tile_is_empty_kind(get_tile_infrontof(1)) && distance_to_edge_weight() < 3) { Char.x = char_dx_forward(10); load_fram_det_col(); return; }   /* at the edge: step off */
 	if (!tile_is_empty_kind(get_tile_behind_char())) { kid_crouch(); return; }
 	if (distance_to_edge_weight() < 8) { kid_crouch(); return; }
 	uint8_t front = get_tile_behind_char(); uint16_t front_mod = curr_modifier;
@@ -108,7 +106,7 @@ void control(void)
 {
 	uint16_t frame = Char.frame;
 	if (Char.alive >= 0) {
-		if (Char.charid != 0 && Char.index == Kid.opp_index) Kid.opp_index = find_char_02dcc8();
+		if (Char.charid != 0 && Char.index == Kid.opp_index) Kid.opp_index = find_opponent(1);   /* 2FDF:0655 */
 		if (Char.charid == 1) { if (Char.alive > 6) shadow_2fba4(); }
 		else if (Char.room == 3 && level_kind == 6 && Char.charid == 2) ovl_34024();
 		return;
@@ -374,7 +372,7 @@ void control_standing(void)
 		if ((Char.f10 != (uint8_t)-1 || (level_kind == 6 && Char.charid == 1)) && ctrl1_shift == -2
 		    && ctrl1_forward == 0 && ctrl1_backward == 0 && ctrl1_up == 0 && ctrl1_down == 0) {
 			ctrl1_shift = 2; control_rest(); control_standing_shift();
-			Char.opp_index = find_char_02dcc8(); if (Char.opp_index == (uint8_t)-1) Char.opp_index = 0; return;
+			Char.opp_index = find_opponent(Char.direction); if (Char.opp_index == (uint8_t)-1) Char.opp_index = 0; return;
 		}
 		if (Opp.f23 > 1 && Char.charid != 1 && Char.f24 != 0xD && Opp.charid != 6) {
 			int d = opp_distance();
@@ -499,7 +497,7 @@ void control_2fdf_1bfa(void)
 	if (Char.index == 10) {
 		Kid = Char; int8_t n = -1;
 		if (Char.opp_index != (uint8_t)-1 && Char.opp_index < room_nchars(Char.room)) { load_opp_080a(Char.opp_index); if ((int8_t)Char.f12 > 0) n = Char.opp_index; }
-		if (n == -1) { n = find_char_02dcc8_dir(1); if (n == -1) n = 0; else Char.opp_index = n; }
+		if (n == -1) { n = find_opponent(1); if (n == -1) n = 0; else Char.opp_index = n; }
 		Char.opp_index = n == -1 ? Char.opp_index : n; load_opp_080a(n);
 	}
 	DBG("1bfa: after opp: index %u opp_index %u\n", Char.index, Char.opp_index);
@@ -524,7 +522,7 @@ void control_2fdf_1bfa(void)
 tail:
 	if (Char.index == 10 && ctrl1_backward < 0 && (ctrl1_shift == -1 || ctrl1_shift == 1) && (level_number != 5 || Char.room != 10 || word_927e < 1)) {
 		sword_engage(); ctrl1_shift = 2; ctrl1_backward = control_rest(); word_8604 = word_8604 == 0;
-		Char.opp_index = find_char_02dcc8_dir(~Char.direction); return;
+		Char.opp_index = find_opponent(~Char.direction); return;
 	}
 	if (fall_through) { if (Char.index == 10 && ctrl1_down < 0) { sword_sheathe(); return; } sword_actions(); }
 }

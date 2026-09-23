@@ -99,6 +99,7 @@ static void animate_tile(void)
 	else if (t == 0xB) anim_loose();
 	else if (t == 0x11) anim_exit_door();
 	else if (t == 0x13 || t == 0x20) anim_torch();
+	else if (t == 0x24 && level_kind == 3) anim_rock();   /* 33FD:017C */
 	else if (t < 4 || t > 0x2C || t == 7 || t == 8 || t == 9 || t == 0xC || t == 0xE || t == 0xF || t == 0x10 || t == 0x12 || t == 0x14 || t == 0x15 || t == 0x16
 	         || t == 0x18 || t == 0x19 || t == 0x1A || t == 0x21 || t == 0x23) cur_trob.state = 0xFF;
 	else anim_tile_other(t);
@@ -119,7 +120,7 @@ void animate_tiles(void)
 void add_trob(uint8_t tile, uint8_t state, int8_t tilepos, uint8_t room)
 {
 	for (int i = 0; i < (int16_t)trob_count; i++) if (trobs[i].tilepos == tilepos && trobs[i].room == room) { trobs[i].state = state; return; }   /* 1375:2598 */
-	if (trob_count < 20) { trob_type t = {tilepos, room, state, tile}; trobs[trob_count++] = t; }
+	if (trob_count < 20) { cur_trob = (trob_type){tilepos, room, state, tile}; trobs[trob_count++] = cur_trob; }   /* the new entry is built in cur_trob */
 }
 
 /* 0823:0B78: start the animations of the tiles on screen: the drawn room, the left room's right column and
@@ -145,3 +146,4 @@ void start_room_anims(void)
 	}
 	room_pointers(drawn_room);
 }
+int anim_visible_pub(void) { return anim_visible(); }

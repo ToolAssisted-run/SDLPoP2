@@ -63,7 +63,7 @@ static void trap_kill(void)
 		int seq;
 		if (Char.direction == 0) { seq = (uint16_t)((Char.charid == 0 ? 0xFF79 : 0) + 0xBD); Char.direction = -1; } else seq = (uint16_t)((Char.charid == 0 ? 0xFF77 : 0) + 0xBC);   /* 16-bit: prince 0x36 / 0x33, guard 0xBD / 0xBC */
 		seqtbl_offset_char(seq); play_sound(0x4D); take_hp(100);
-	} else if (Char.charid == 4) ovl_366c_13e8();
+	} else if (Char.charid == 4) skel_blade_hit();
 	else return;
 	play_seq();
 }

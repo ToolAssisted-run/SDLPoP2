@@ -54,9 +54,9 @@ void control(void); void control_running(void); void control_turning(void); void
 void control_standing(void); void control_hanging(void); void control_crouched(void); void control_with_sword(void); void control_0d9_0e2(void);
 void control_dead_0307a2(void); void control_frame81_0313c6(void); void control_standing_down(void); void control_standing_shift(void);
 int control_runjump(int kind); int control_rest(void); void control_jump_031062(void); void control_2fdf_1bfa(void); void control_by_charid_cc1e(void);
-int is_dead_frame(uint8_t frame); int8_t x_to_col(int16_t x); int16_t dx_weight(void); int16_t distance_to_edge(int16_t x); int16_t distance_to_edge_weight(void);
+int is_dead_frame(uint16_t frame); int8_t x_to_col(int16_t x); int16_t dx_weight(void); int16_t distance_to_edge(int16_t x); int16_t distance_to_edge_weight(void);
 int can_climb_down_146e(uint16_t mod_here, uint16_t mod_front, uint8_t here, uint8_t front); int tile_passable_2f800(uint16_t mod, uint8_t tile);
-int shadow_seq_2f86a(void); int sword_seq_0317c4(void); void ovl_2f86_0a5c(void); uint8_t find_char_02dcc8(void); void shadow_2fba4(void); void ovl_34024(void);
+int shadow_seq_2f86a(void); int sword_seq_0317c4(void); void ovl_2f86_0a5c(void); void shadow_2fba4(void); void ovl_34024(void);
 void ovl_383fa(void); void ovl_35f5a(void);
 extern const int16_t *col_x_left, *col_x_right;   /* DS:5CC5; column x tables DS:0D06 / 0D08 */
 void ovl_35a88(void); int ovl_34350(void); int ovl_35240(int a); int ovl_34ab2(void); void control_hanging_climb(void); int seq_peek_frame_decreases(void);
@@ -67,7 +67,7 @@ void control_jumpup_grab_031074(void); int opp_distance(void); void control_stan
 void control_standing_forward(void); void control_standing_up(void);
 extern uint16_t word_922e, word_922c, word_8604, word_927e;
 void sword_retreat(void); int char_scan_31bc4(void); int ovl_377c6(void); void ovl_3741a(void); uint8_t room_nchars(uint8_t room);
-void load_opp_080a(int n); int8_t find_char_02dcc8_dir(int dir); int rtlink_0dd5(void);
+void load_opp_080a(int n); int rtlink_0dd5(void);
 /* collision.c (0993:09B6, OVL01 segment 3212) */
 typedef struct coll_state {                 /* DS:2B24.. as laid out in the DOS data segment */
 	uint8_t above_flags[10];                /* 2B24 */
@@ -105,7 +105,7 @@ level_char_init *room_char_record(int i, uint8_t room); void change_room(int dir
 void set_neighbour_rooms(void); void enter_room_chars(void); void switch_room(void);
 void ovl_37d2a(void); void ovl_352b4(void); int ovl_342b4(void); void ovl_34210(void); void ovl_34958(void); void ovl_34370(void); void ovl_2f9f2(void);
 void load_guard_sprites(uint8_t type); void ovl_guard6_sprites(void); int random_2751(int n); level_char_init *ovl_379e8(level_char_init *r); level_char_init *ovl_36ada(level_char_init *r);
-void ovl_36712(void); void ovl_3791e(int a, int idx); void room_music_087e(void); void redraw_room(void); void hp_bar_clear(void);
+void ovl_36712(void); void ovl_3791e(int a, int idx); void room_music_087e(void); void redraw_room(void); void hp_bar_clear(void); void hp_bar_draw(uint8_t index, int a, uint8_t hp);
 /* guard.c (2D3E:1864 autocontrol, OVL10 366C guard decisions) and play_all_chars */
 extern uint32_t random_seed; extern uint16_t word_68ec; extern uint8_t byte_5cba;
 void guard_set_prob_tables(const uint8_t *ds); int tile_passable_2f800(uint16_t mod, uint8_t tile); void autocontrol(void); void guard_after_seq(void);
@@ -137,3 +137,8 @@ void trap_room_entry(int8_t tp, uint8_t room); void trap_catch_check(void); void
 mob_type *find_mob_pub(int n, uint8_t type); void add_mob_pub(void); int8_t mob_col_pub(void);
 /* hooks.c */
 void level_kind_hooks_char(void); void note_missing(const char *what); void ovl_347c_e48(void); void ovl_33fd_b2(void); void ovl_33fd_118(void); void ovl_kind6_char(void);
+/* skeleton.c */
+void skel_ai(void); void skel_collapse(void); void set_revive_timer(uint16_t v, uint8_t index); void skeleton_wake(void); level_char_init *skel_room_entry(level_char_init *r);
+void skel_blade_hit(void); void skel_row_shake(int8_t row, uint8_t room); void guard_ai_pub(void); void char_dies_pub(void); void init_hp_pub(level_char_init *r); int ovl_2a31_ddf(void);
+void add_mob(void); extern mob_type cur_mob; mob_type *find_mob_pub(int n, uint8_t type); int anim_visible_pub(void);
+/* caverns.c */ void rock_drop(uint8_t room, int8_t tp); void anim_rock(void); void rocks_hit_char(void); void rock_fly(void);

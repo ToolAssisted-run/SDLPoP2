@@ -2,8 +2,8 @@
 #include "types.h"
 #include "globals.h"
 
-/* 33FD:01F4 (kind 3): falling objects of type 2 hitting Char's box; not reconstructed yet */
-static void kind3_objects_hit(void) { for (int i = 0; i < (int16_t)mob_count; i++) if (mobs[i].type == 2 && mobs[i].speed != -1) { note_missing("KIND3_01F4"); return; } }
+/* 33FD:01F4 (kind 3): flying rocks hitting Char (caverns.c) */
+static void kind3_objects_hit(void) { rocks_hit_char(); }
 /* 33FD:06E6 (kind 3): standing on tiles 0x17/0x18; not reconstructed yet (draws random numbers) */
 static void kind3_platform(void)
 {

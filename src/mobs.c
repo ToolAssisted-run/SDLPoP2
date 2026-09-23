@@ -70,7 +70,7 @@ static int trigger_target(uint8_t button, int8_t tp, uint8_t room, uint8_t t)
 		return -1;
 	case 0x19: ovl_347c_b3e(room, tp, button == 5 ? 2 : 1); return -1;
 	case 0x1B: return ovl_2a31_dad(room, tp);
-	case 0x24: if (!(*attr_lo(room, tp) & 0x800)) ovl_33fd_4d0(room, tp); return -1;
+	case 0x24: if (!(curr_modifier & 0x800)) rock_drop(room, tp); return -1;   /* DS:6130 & 8: still the pressing button's modifier */
 	}
 	return -1;
 }
@@ -186,7 +186,7 @@ void shake_loose_row(int8_t row, uint8_t room)
 		uint8_t t = get_tile(row, col, room);
 		if (t == 0x1A) ovl_347c_e8e(); else if (t == 0xB) loose_floor_shake(); else if (t == 0xF) ovl_347c_126();
 	}
-	if (level.type == 2) ovl_366c_1294(row, room);
+	if (level.type == 2) skel_row_shake(row, room);
 	cur_mob = saved;
 }
 /* 1375:17FC: the loose floor falls away */
@@ -196,7 +196,7 @@ static void remove_loose(int8_t tp, uint8_t room)
 	*attr_lo(room, tp) = (level_number == 5 && room == 3) ? 0xC000 : (((uint8_t)*attr_lo(room, tp) & 0x80) + 3);
 }
 /* 1375:19A2 */
-static void add_mob(void) { if (mob_count < 30) mobs[mob_count++] = cur_mob; }
+void add_mob(void) { if (mob_count < 30) mobs[mob_count++] = cur_mob; }
 /* 1375:1744: loose floor animation; at 12 the tile becomes a falling floor */
 void anim_loose(void)
 {
@@ -312,7 +312,7 @@ static void char_hit_by_floor(void)
 	if (take_hp(Char.charid == 0 ? 1 : 100)) {
 		if (Char.charid == 0xB) seqtbl_offset_char(0xA9);
 		else if (Char.charid == 7 || Char.charid == 8) seqtbl_offset_char(0x92);
-		else if (Char.charid == 4) ovl_366c_1166();
+		else if (Char.charid == 4) skel_collapse();
 		else seqtbl_offset_char(0x16);
 		return;
 	}
@@ -345,6 +345,8 @@ static void mob_update(void)
 	switch (cur_mob.type) {
 	case 0: case 1: case 3: mob_fall(); if (cur_mob.speed <= 0) cur_mob.speed++; mob_hits_chars(); break;
 	case 4: trap_update(); break;
+	case 2: if (level_kind == 3) { rock_fly(); break; }   /* 33FD:02AC */
+		/* fall through */
 	default: ovl_mob_other(cur_mob.type); break;
 	}
 }

@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 	const char *const *regions = tick_mode ? tick_regions : chars_mode ? chars_regions : room_regions;
 	int only = getenv("CASE") ? atoi(getenv("CASE")) : 0;
 	while (fread(&frame, 4, 1, f) == 1 && fread(&size, 4, 1, f) == 1 && size <= SNAP_MAX && (SNAP_SIZE = size, SNAP_BASE = 0x6C00 - size, 1) && fread(a, 1, SNAP_SIZE, f) == SNAP_SIZE && fread(b, 1, SNAP_SIZE, f) == SNAP_SIZE && (!tick_mode || (fread(kctl, 1, 8, f) == 8 && fread(kc1, 1, 16, f) == 16))) {
-		n++; stubs_reset(); snap_load(a); coll_debug = only == n;
+		n++; stubs_reset(); snap_load(a); stubs_select_guard_dat(level.type); coll_debug = only == n;
 		uint8_t dr0 = drawn_room; int8_t nch = room_nchars(drawn_room);
 		if (tick_mode) { if (tick_body() == -1) { skipped++; continue; } busy += drawn_room != dr0; }
 		else if (chars_mode) { if (nch > 0) busy++; play_all_chars(); }

@@ -8,7 +8,7 @@ int tick_body(void)
 {
 	falling_floors();                              /* 1375:1A52 */
 	animate_tiles();                               /* 1375:0006 */
-	if (level.type == 2 || chars[0].charid == 10) ovl_366c_f60();
+	if (level.type == 2 || chars[0].charid == 10) skeleton_wake();   /* 366C:0F60 */
 	spawn_guards(drawn_room);                      /* 2D3E:0A4A */
 	guards_see_kid();                              /* 169B:0FF0 */
 	int r = play_kid_frame();

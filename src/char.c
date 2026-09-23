@@ -56,3 +56,21 @@ int opp_distance(void)
 	if (d >= 0 && Char.direction != Opp.direction) return d + 13;
 	return d;
 }
+
+/* 0AFF:1AC2: is this Char's lying-dead frame? */
+int is_dead_frame(uint16_t f)
+{
+	if (f == 0xB9) return 1;
+	switch (Char.charid) {
+	case 0:
+		if (f == 0xF2 || f == 0xF3 || f == 0xB9 || f == 0x10F || f == 0x10A) return 1;
+		return level_number == 5 && Char.room == 3 && Char.alive >= 0 && Char.f24 == 10;
+	case 2:
+		if (level.type == 0) return f == 0xE4;
+		return f == 0xF5 || f == 0xF8 || (f >= 0xFB && f <= 0xFF);
+	case 4: return f == 0xCE || f == 0xCF;
+	case 10: return f == 0xD5;
+	case 0xB: return f == 0x111;
+	}
+	return 0;
+}

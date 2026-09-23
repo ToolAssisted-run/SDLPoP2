@@ -306,7 +306,7 @@ void enter_room_chars(void)
 		else if (lt == 0 || lt == 5 || lt == 6) pick_pal_slot(rec->pal);
 		else Char.pal_slot = 4;
 		if (rec->seq_pos == 0) {
-			if (Char.charid == 4) rec = ovl_379e8(rec);
+			if (Char.charid == 4) rec = skel_room_entry(rec);
 			else if (Char.charid == 7 || Char.charid == 8 || Char.charid == 0xB) rec = ovl_36ada(rec);
 			else if (Char.charid == 10) {
 				if (!tile_is_floor(get_tile_at_char())) { rec->seq_id = 0x6A; Char.f10 = 1; Char.f23 = 3; Char.direction = Char.x < Kid.x ? 0 : -1; }
@@ -326,7 +326,7 @@ void enter_room_chars(void)
 		} else {
 			if (Char.charid == 2) ovl_36712();
 			Char.alive = 7; Char.f0f = 0; Char.f12 = 0; Char.hp_delta = -(int8_t)Char.f13;
-			if (Char.charid == 4 || Char.charid == 10) ovl_3791e(0, Char.index);
+			if (Char.charid == 4 || Char.charid == 10) set_revive_timer(0, Char.index);
 		}
 		if (Char.charid == 6 && Char.f19 == 0xC) Char.action = 4;
 		else { Char.fall_x = Char.fall_y = 0; Char.action = (Char.charid == 7 || Char.charid == 8) ? 0 : 1; }
@@ -416,3 +416,4 @@ void spawn_guards(uint8_t room)
 	if (!sp || !spawn_ok(room, sp)) return;
 	if (sp[4] == 0) { spawn_guard(room, sp); sp[4] = sp[5]; sp[8]--; } else sp[4]--;
 }
+void init_hp_pub(level_char_init *r) { init_hp(r); }

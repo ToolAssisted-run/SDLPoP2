@@ -217,3 +217,4 @@ void shadow13_tick(void); int shadow13_present(void); void anim_tile2b(void); vo
 void floor_draw_state(void); void trap_draw_state(void);   /* mobs.c */
 #define word_4406 (*(uint16_t *)((uint8_t *)&level + 0x184E))   /* DS:4406 */
 void floor_collapse_pub(void);
+int room_draws_sword_pub(uint8_t room);

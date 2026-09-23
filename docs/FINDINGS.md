@@ -468,3 +468,8 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   The pulled F*/R* captures joined tests/run_all.sh.
 - 2026-09-23: fleet round 3 (1M-iteration explorations): 251/252; the one difference is the heap-dependent placeholder
   width above (a character's box for one tick).
+- 2026-09-23: fleet round 4 (explorer cells keyed by the live animation count too): 248/252; fixes: 33FD:09EE (level
+  2: landing from a jump presses the puzzle tiles, was an empty stub), 2FDF:232A (crushed by a caverns gate: seq
+  0x76, take_hp(100)), 366C:11F8 wired. Silent stubs audited: 366C:0D5A is a bare retf in OVL09 (charids 7/8, correct
+  as empty); OVL11 (level 5 room 3, lever/frame 0x127 event, flags in the DS:2B76 heap block +0x3C/+0x3E; 37F0:05E8,
+  04FA, 0676 tile 0x1B) not reconstructed yet, now noted when reached.

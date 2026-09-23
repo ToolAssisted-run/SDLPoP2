@@ -187,6 +187,7 @@ static void guard_unarmed(void)
 }
 /* 366C:11F8 */
 static int room_draws_sword(uint8_t room) { return level_number == 4 && room >= 0x16 && room <= 0x1C && room != 0x17; }
+int room_draws_sword_pub(uint8_t room) { return room_draws_sword(room); }
 /* 366C:0668: a pit in front: maybe jump it (2FDF:17A6), else turn back (seq 0x65) */
 static void guard_pit_ahead(void)
 {

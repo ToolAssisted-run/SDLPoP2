@@ -72,6 +72,12 @@ static int step_tile(int8_t tp)
 	}
 	return r;
 }
+/* 33FD:09EE (0AFF:0C8A, landing from a jump on level 2): the tile last stood on and the tile landed on are pressed */
+void ovl_349be(void)
+{
+	if (puzzle_last != -1 && puzzle_last >= 2 && puzzle_last <= 7) step_tile(puzzle_last + 10);
+	step_tile(Char.curr_col + 10);
+}
 /* 33FD:0538: tile 4 (gate) animation: opens to 0x14 and stops */
 void anim_gate_kind1(void)
 {

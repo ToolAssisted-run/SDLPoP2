@@ -46,7 +46,7 @@ void seq_jump_to(uint16_t id) { Char.seq_id = id; Char.seq_pos = 0; }
 void seq_ctl_1954(void) { drink(); }   /* items.c */
 void ovl_366c_1704(void) { note(" ovl1704"); }
 void flash_on(uint16_t v) { (void)v; note(" flash_on"); } void flash_off(void) { note(" flash_off"); }
-void play_sound(uint16_t n) { (void)n; } void sound_1611_01a8(uint16_t n) { (void)n; } int ovl_366c_11f8(uint8_t r) { (void)r; return 0; }
+void play_sound(uint16_t n) { (void)n; } void sound_1611_01a8(uint16_t n) { (void)n; } int ovl_366c_11f8(uint8_t r) { return room_draws_sword_pub(r); }   /* 366C:11F8 (OVL10, guard.c) */
 void shadow_hook_2f9a2(void) {}   /* 2F86:0142: level 13 room 4 f24 0xD: 0FB3:294C (a digital sound); palette */
 void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", code); note(t); }
 /* control.c externs not yet reconstructed */
@@ -54,10 +54,10 @@ uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_8a84
 
 void ovl_2f86_0a5c(void) { turn_flash(); } 
 void ovl_383fa(void) { note(" 383fa"); } void ovl_35a88(void) { ruins_open_tile7(); }   /* 347C:12C8 (ruins.c) */ int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ 
-int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF:104C */ void ovl_384e8(void) {} int ovl_32a0e(void) { return under_gate(); }   /* 3212:08EE (control.c) */ 
+int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF:104C */ void ovl_384e8(void) { note(" 384e8"); }   /* 37F0:05E8 (OVL11, level 5 room 3: crouching at tile 0x12 -> seq 0x80) */ int ovl_32a0e(void) { return under_gate(); }   /* 3212:08EE (control.c) */ 
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) { turn_count(); }   /* 2F86:0078 (spirit.c) */
 uint16_t word_922e, word_8604, word_927e;
-int ovl_377c6(void) { return level_kind == 4 ? head_biting(Char.index, Char.room) : 0; }   /* 366C:1106 */ void ovl_3741a(void) {} 
+int ovl_377c6(void) { return level_kind == 4 ? head_biting(Char.index, Char.room) : 0; }   /* 366C:1106 */ void ovl_3741a(void) {}   /* 366C:0D5A: a bare retf in OVL09 (the heads levels) */ 
 
 void control_0d9_0e2(void) { note(" 0d9_0e2?"); }
 
@@ -79,10 +79,10 @@ const uint8_t *sword_tables[2];   /* PRINCE.DAT FRAM 1000, 1200 (sword type 2): 
 void ovl_366c2(void) { head_attach(); }   /* 366C:0002 (heads.c) */ void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return wall_find(Char.room, Char.curr_row) != NULL; }   /* 347C:0526 */
 void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { wall_collision(row, r, f); }   /* 347C:0412 */ int ovl_343c2(void) { if (level_kind == 2 || level_kind == 4) { int m = (uint8_t)curr_modifier & 0x1F; return m >= 3 && m <= 0xF; } note(" 343c2?"); return 0; }   /* 33FD:03F2 (OVL05): tile 0xC blocks while its modifier is 3..15 */
 int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { return wall_edge(dir, room, row); }   /* 347C:0368 */
-int16_t ovl_352ca(void) { return wall_limit(Char.room, Char.curr_row); }   /* 1375:14FC -> 347C:0B0A */ void ovl_3211a(void) { note(" 3211a"); }
+int16_t ovl_352ca(void) { return wall_limit(Char.room, Char.curr_row); }   /* 1375:14FC -> 347C:0B0A */ void ovl_3211a(void) { seqtbl_offset_char(0x76); take_hp(100); }   /* 2FDF:232A: crushed by a caverns gate */
 void ovl_348e6(void) { if (level_kind == 4) ruins_crumble(); else note(" CHOMPER"); }   /* 347C:0126 */ void ovl_3564e(void) { note(" 3564e"); }
 void ovl_34724(void) { if (level_kind == 3) floor_collapse_pub(); else note(" 34724"); }   /* 33FD:0754 (OVL04, caverns.c) */ void ovl_37826(void) { skel_collapse(); }   /* 366C:1166 (skeleton.c) */
-void ovl_349be(void) {} void fall_scream_1611_0030(void) {} void sound_194c_83d2(uint16_t n) { (void)n; } int sound_playing_8426(void) { return 0; }
+void fall_scream_1611_0030(void) {} void sound_194c_83d2(uint16_t n) { (void)n; } int sound_playing_8426(void) { return 0; }
 
 static uint16_t guard_bank2[8];
 const uint16_t *refract_timer; static uint16_t refract_tbl[16];

@@ -551,3 +551,10 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   MIDISND byte 0 = 0x82 marks looping pieces (0x21 0x3C 0x3F 0x6A 0xFB 0xFD 0xFF 0x107 0x10C..0x10E). e2e now answers
   sound queries with the model by default (the capture only through the retry on a differing tick): all captures
   strict-clean. The level-14 win itself (counter +1 at Jaffar's seq 0xF3 frame 0x15F) is still unverified.
+- 2026-09-24: video: VGA mode 13h (320x200, 256 colours; DOSBox VRAM chain-4: pixel A at (A & ~3) * 4 + (A & 3)); the
+  game draws into an offscreen buffer in conventional memory at phys 0x4CF22 (64000 bytes, 320 per row), so RAM
+  dumps hold the screen. Images: the PoP1 format (height, width, flags: bits 12..14 depth - 1, 8..11 packing 0 raw,
+  1 RLE, 2 RLE by columns, 3 LZG, 4 LZG by columns; src/image.c). Resource types: SHAP images, SHPL shape-set header
+  (first id, count, 16 colours of 6-bit RGB), PALS/PALC palettes, PIEC tile pieces, CUST room descriptions, FRAM,
+  FONT, TXT4 texts, _SCR/_PSL/PALT/STRL story scenes (NIS.DAT, TRANS.DAT, FINAL.DAT), _SND sounds. oracle-run has
+  `shot F PATH` (TGA, top-down rows, BGR) and `mem F DOMAIN PATH` (4 = video RAM) script commands now.

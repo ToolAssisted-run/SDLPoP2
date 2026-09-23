@@ -9,6 +9,7 @@
 #include "globals.h"
 #include "render.h"
 #include "render_tiles.h"
+#include "render_frame.h"
 
 static uint8_t desc[0x1000];   /* the loaded description (DS:[0x01AC]) */
 static int desc_ok;
@@ -55,7 +56,14 @@ void render_desc_load(uint8_t room)
 	}
 }
 int render_desc_loaded(void) { return desc_ok; }
+/* the drawn room's description resource as loaded (0CD6:02BE: DS:[0x01AC] before the drawing's changes) */
+const uint8_t *render_desc_raw(void) { uint16_t n; const uint8_t *r = room_description_res(drawn_room, &n); return r && n >= 0x1C ? r : NULL; }
+/* the description's runtime state (the game's copy at DS:[0x01AC], for the tests) */
+void render_desc_set(const uint8_t *raw, int len) { if (len > (int)sizeof desc) len = sizeof desc; memcpy(desc, raw, len); desc_ok = 1; }
 int render_desc_bg(void) { return desc_ok ? desc[1] : -1; }
+int16_t render_desc_word(int off) { return desc_ok ? rd(desc + off) : 0; }
+int render_desc_count_raw(void) { return desc_ok ? (int8_t)desc[0] : 0; }
+int render_desc_image_id(int i) { return rd(obj_at(i) + 7); }
 
 /* 33FD:0000 (rooftops): the foreground objects 0x16, 0x17, 0x23, 0x48 go behind the prince while his box
  * (Kid +1B) meets theirs and he is in action 3 or 4 (not image 0x44 in Kid +19) */
@@ -142,6 +150,61 @@ void render_desc_objects(uint8_t layer)
 	if (!si) return;
 	if (desc_ok && room_bg != 0) for (int i = 0; i < (int8_t)desc[0]; i++) draw_object(i, layer);
 	if (layer == 1 || (redraw_all_flag && layer == 0)) draw_extra(layer);
+}
+
+/* 0CD6:06B4 (0FB3:0B78, a whole redraw: before the first back entry with a piece byte): the screen under the objects
+ * of piece byte 2 is saved (0CD6:0002 -> 0993:04F0: id 0x64 + image, kind 2, kept); piece byte 3: the kind's own
+ * (33FD:0770) */
+/* 33FD:0770 (desert, objects of piece byte 3): the screen under six copies of the object's rect, 0x7E lower and 0x40,
+ * 0x60, .. 0xE0 right, saved (id 0x64 + image, kind 3: kept) */
+static void desc_save_kind3(uint8_t *o)
+{
+	if (level_kind != 1) { note_missing("33FD:0770"); return; }
+	int16_t rc[4]; get_rect(o, rc);
+	for (int k = 0; k < 6; k++) {
+		int16_t dx = (int16_t)(0x40 + 0x20 * k), r[4] = {(int16_t)(rc[0] + 0x7E), (int16_t)(rc[1] + dx), (int16_t)(rc[2] + 0x7E), (int16_t)(rc[3] + dx)};   /* 194C:50EC */
+		render_save_under(r[1], r[3], r[0], (int16_t)(r[2] - r[0]), (uint8_t)(o[0] + 0x64), 3);
+	}
+}
+void render_desc_save_under(void)
+{
+	if (!desc_ok) return;
+	for (int i = 0; i < (int8_t)desc[0]; i++) {
+		uint8_t *o = obj_at(i); int16_t r[4]; get_rect(o, r);
+		if (o[0x14] == 2) render_save_under(r[1], r[3], r[0], (int16_t)(r[2] - r[0]), (uint8_t)(o[0] + 0x64), o[0x14]);
+		else if (o[0x14] == 3) desc_save_kind3(o);
+	}
+}
+/* 0FB3:0CBA (drawing an entry of a description image): an object of piece byte 1 has the screen under the entry's
+ * rect saved first (0CD6:0002: id 0x64 + image, kind 1: put back the next frame) */
+void render_desc_entry_saved(uint16_t id, const int16_t *rect)
+{
+	if (!desc_ok) return;
+	int i = (int16_t)id - rd(desc + 2);
+	if (i < 0 || i >= (int8_t)desc[0]) return;
+	uint8_t *o = obj_at(i);
+	if (o[0x14] == 1) render_save_under(rect[1], rect[3], rect[0], (int16_t)(rect[2] - rect[0]), (uint8_t)(o[0] + 0x64), o[0x14]);
+}
+/* 0CD6:0684: the saved screen under object i's image is put back next time (its slot's flag cleared) */
+void render_desc_restore_obj(uint8_t image)
+{
+	int n = 0;
+	for (int k = 0; k < saved_count; k++) if (saved_bgs[k].id == (uint8_t)(image + 0x64) && ++n == 1) { saved_bgs[k].flag = 0; return; }   /* 0993:0646 (the first) */
+}
+
+/* 0CD6:0792(0) (after a whole redraw): the objects of layer 0xB have the back layers under them redrawn next frame
+ * (1375:0F5A with 1375:0DC6; the last object of background 0x21 over DS:1C80) */
+void render_desc_after_redraw(void)
+{
+	if (!desc_ok) return;
+	for (int i = 0; i < (int8_t)desc[0]; i++) {
+		uint8_t *o = obj_at(i);
+		if (o[5] != 0xB) continue;
+		int16_t r[4];
+		if (desc[1] == 0x21) { if ((int8_t)desc[0] - i - 1 != 0) continue; for (int k = 0; k < 4; k++) r[k] = (int16_t)ds_word((uint16_t)(0x1C80 + 2 * k)); }   /* (background 0x21: only the last, over DS:1C80) */
+		else get_rect(o, r);
+		mark_tiles_under(mark_back, r, 0xFF);
+	}
 }
 
 /* ---- for the drawers of the description kinds (render_kind_desc.c) ---- */

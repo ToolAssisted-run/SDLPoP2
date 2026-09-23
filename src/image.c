@@ -41,31 +41,65 @@ static void unpack_lzg(uint8_t *dest, const uint8_t *src, const uint8_t *end, in
 		}
 	}
 }
-/* flags low byte 1 (the 8-bit tile and background images): a word, the unpacked length, then the packing of flags bits 8..11
- * over rows of runs: per row a word (the byte count of the row's packets), then packets: 0..0x7F copy n+1 bytes,
- * 0x80..0xFF repeat the next byte (n & 0x7F) + 1 times (the blitter 2583:0006 reads this form) */
+/* the unpackers' input consumed (194C:7620 / 77CE return it) */
+static int unpack_rle_n(uint8_t *dest, const uint8_t *src, const uint8_t *end, int total)
+{
+	const uint8_t *s0 = src; int pos = 0;
+	while (pos < total && src < end) {
+		int8_t c = (int8_t)*src++;
+		if (c >= 0) for (int i = 0; i <= c && src < end; i++) { if (pos < total) dest[pos] = *src; pos++; src++; }
+		else { uint8_t b = src < end ? *src++ : 0; for (int i = 0; i < -c; i++) { if (pos < total) dest[pos] = b; pos++; } }
+	}
+	return (int)(src - s0);
+}
+static int unpack_lzg_n(uint8_t *dest, const uint8_t *src, const uint8_t *end, int total)
+{
+	const uint8_t *s0 = src; uint8_t win[0x400]; memset(win, 0, sizeof win);
+	int wpos = 0x400 - 0x42, pos = 0; unsigned mask = 0;
+	while (pos < total && src < end) {
+		mask >>= 1;
+		if (!(mask & 0xFF00)) mask = *src++ | 0xFF00u;
+		if (mask & 1) { if (src >= end) break; uint8_t b = *src++; win[wpos] = b; wpos = (wpos + 1) & 0x3FF; dest[pos++] = b; }
+		else {
+			if (src + 1 >= end) break;
+			unsigned w = src[0] << 8 | src[1]; src += 2;
+			int from = w & 0x3FF, len = (w >> 10) + 3;
+			for (int i = 0; i < len && pos < total; i++) { uint8_t b = win[from]; from = (from + 1) & 0x3FF; win[wpos] = b; wpos = (wpos + 1) & 0x3FF; dest[pos++] = b; }
+		}
+	}
+	return (int)(src - s0);
+}
+/* flags low byte 1 (the 8-bit tile and background images): chunks of rows (194C:0ED4: at most 0xE37E / ((width + 1)
+ * * 2) rows each), each a word (its unpacked length) and the rows packed by flags bits 8..11; a row is a word (the
+ * byte count of its packets) and packets: 0..0x7F copy n+1 bytes, 0x80..0xFF repeat the next byte (n & 0x7F) + 1
+ * times (the blitter 2583:0006 reads this form) */
 static int image_decode_rows(const uint8_t *res, int size, image_t *img)
 {
 	int h = res[0] | res[1] << 8, w = res[2] | res[3] << 8, flags = res[4] | res[5] << 8, method = (flags >> 8) & 0xF;
 	if (size < 8 || w <= 0 || h <= 0) return 0;
-	int total = res[6] | res[7] << 8; uint8_t *rows = calloc(1, total + 2);
-	const uint8_t *src = res + 8, *end = res + size;
-	if (method == 3) unpack_lzg(rows, src, end, total, 0, 0, 0);
-	else if (method == 1) unpack_rle(rows, src, end, total, 0, 0, 0);
-	else if (method == 0) memcpy(rows, src, size - 8 < total ? size - 8 : total);
-	else { free(rows); return 0; }
 	img->width = w; img->height = h; img->depth = 8; img->flags = flags; img->pixels = calloc(1, w * h); img->clear = calloc(1, w * h);
-	int p = 0;
-	for (int y = 0; y < h && p + 2 <= total; y++) {
-		int len = rows[p] | rows[p + 1] << 8, q = p + 2, x = 0; len += 2;   /* (the count excludes the word) */
-		while (q < p + len && q < total && x < w) {
-			uint8_t c = rows[q++];
-			if (c & 0x80) { uint8_t v = rows[q++]; for (int i = 0; i <= (c & 0x7F) && x < w; i++) { img->clear[y * w + x] = v == 0; img->pixels[y * w + x++] = v; } }
-			else for (int i = 0; i <= c && x < w && q < total; i++) img->pixels[y * w + x++] = rows[q++];
+	const uint8_t *src = res + 6, *end = res + size;
+	int per = 0xE37E / ((w + 1) * 2); if (per > h) per = h;
+	int y = 0;
+	while (y < h && src + 2 <= end) {
+		int total = src[0] | src[1] << 8; src += 2;
+		uint8_t *rows = calloc(1, total + 2);
+		if (method == 3) src += unpack_lzg_n(rows, src, end, total);
+		else if (method == 1) src += unpack_rle_n(rows, src, end, total);
+		else if (method == 0) { int n = (int)(end - src) < total ? (int)(end - src) : total; memcpy(rows, src, n); src += n; }
+		else { free(rows); return y > 0; }
+		int p = 0, n = h - y < per ? h - y : per;
+		for (int r = 0; r < n && p + 2 <= total; r++, y++) {
+			int len = rows[p] | rows[p + 1] << 8, q = p + 2, x = 0; len += 2;   /* (the count excludes the word) */
+			while (q < p + len && q < total && x < w) {
+				uint8_t c = rows[q++];
+				if (c & 0x80) { uint8_t v = rows[q++]; for (int i = 0; i <= (c & 0x7F) && x < w; i++) { img->clear[y * w + x] = v == 0; img->pixels[y * w + x++] = v; } }
+				else for (int i = 0; i <= c && x < w && q < total; i++) img->pixels[y * w + x++] = rows[q++];
+			}
+			p += len ? len : 2;
 		}
-		p += len ? len : 2;
+		free(rows);
 	}
-	free(rows);
 	return 1;
 }
 int image_decode(const uint8_t *res, int size, image_t *img)

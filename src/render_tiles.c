@@ -308,6 +308,8 @@ static void draw_fore(void)
 	before_own_piece(1);
 }
 void draw_one_tile(void) { draw_layer(0); draw_layer(5); draw_layer(0xB); draw_fore(); }
+void render_draw_layer(uint8_t layer) { draw_layer(layer); }   /* 0FB3:03DC */
+void render_draw_fore(void) { draw_fore(); }                    /* 0FB3:0858 */
 /* 0FB3:0122: the whole room, rows 2..0 then the row above's bottom row */
 void draw_room_tiles(void)
 {

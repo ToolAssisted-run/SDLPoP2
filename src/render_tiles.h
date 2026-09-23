@@ -36,6 +36,8 @@ extern uint8_t *piece_table;   /* DS:[0x1090] (a copy of the level's PIEC resour
 void draw_tile_0a(tile_args *a);   /* 0FB3:2394 */
 void draw_room_tiles(void);   /* 0FB3:0122 */
 void draw_one_tile(void);     /* 0FB3:01CA */
+void render_draw_layer(uint8_t layer);   /* 0FB3:03DC */
+void render_draw_fore(void);             /* 0FB3:0858 */
 int description_row2_check(void);   /* 0CD6:0666 */
 
 extern const kind_drawers kind_caverns, kind_ruins, kind_temple;   /* render_kind3.c / render_kind4.c / render_kind2.c */
@@ -48,6 +50,14 @@ void draw_3443_01d6(tile_args *a);
 void render_desc_load(uint8_t room);   /* 0CD6:0398 */
 int render_desc_loaded(void);
 int render_desc_bg(void);
+int16_t render_desc_word(int off);    /* a word of the description's header */
+int render_desc_count_raw(void);      /* [0] */
+int render_desc_image_id(int i);      /* object i's id in image set 4 */
+void render_desc_save_under(void);    /* 0CD6:06B4 */
+void render_desc_entry_saved(uint16_t id, const int16_t *rect);   /* 0FB3:0CBA */
+void render_desc_set(const uint8_t *raw, int len);   /* (tests: the game's copy) */
+void render_desc_after_redraw(void);  /* 0CD6:0792(0) */
+void render_desc_restore_obj(uint8_t image);   /* 0CD6:0684 */
 void render_desc_objects(uint8_t layer);   /* 0FB3:0624 */
 extern uint16_t word_2ba6;
 void draw_object(int i, uint8_t layer);   /* 0FB3:0712 */

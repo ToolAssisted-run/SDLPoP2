@@ -492,6 +492,70 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - Verified (tiletest on tilecap captures, entry for entry): every captured room build of levels 1-9 and 14 (caverns,
   ruins, desert, rooftops, final); temple in progress.
 
+### 5.16 Drawing: frames (render_frame.c, render_sprites.c, render_hooks.c, render_screen.c, render_palette.c; tests/frametest.c, tools/framecap.py)
+- A frame (169B:0A98): the table counts DS:60F0..60F9 cleared, 0FB3:12F4 fills the tables (1375:1FBA falling
+  objects, 0993:029A the characters with 0823:0F38 the hit points, 0993:05CA, 0FB3:1308 the redraw requests), 13C2
+  draws them (sort 1ECE / 1F68, 0993:0684 puts back the saved screens, tables 0, 3, 1 through 0B78 / 0BFC / 0EE0 /
+  11AE), 218A copies the changed rectangles (DS:27D8 count, DS:27FC, at most 40; a new one merged into the first
+  one it meets after InsetRect -1) to the screen, last first (upside down while DS:5D38 counts: 194C:1346 flips the
+  offscreen buffer around the copies). DS:2450 (the current port) is the offscreen one during 13C2, the screen after.
+- The whole redraw (169B:0430): DS:610E = 1; 0FB3:0002 (0993:075E frees the saved screens, 0FB3:0122, 1375:1476
+  clears the requests); 0CD6:003A (ruins with no room above: DS:0986 erased; rooftops: 33FD:0186 palette); 13C2;
+  0CD6:0792(0) (the description's layer-0xB objects: back layers under them requested, background 0x21 only the
+  last over DS:1C80); DS:610E = 0, 12F4 + 13C2 again; 2D3E:0F50 (guard palettes for types 0/5/6, type 2); the whole
+  screen DS:097E copied (0823:1326); 0FB3:294C.
+- Redraw requests DS:61E4..6662 (above[10], fore2[30], objects-at[30], fore_full[30], fore_part[30], back[30],
+  full[30]) are set by the drawing (1375:0F5A over a box with 0F16 / 0DC6 / 0E12 / 0E56) and also at tick time by
+  the tile animations (1375:01F4..0416) and the overlays; 0FB3:1308 walks them (rows 2..0 then the row above).
+- Frame objects (DS:5D3A, 0x17 bytes): added by 0993:02AE (characters: type = charid for 7/8/0xA/6/1, else 2) and
+  1375:22DC (falling objects); 0FB3:18DE draws those keyed to a tile plus, transitively, every one meeting their
+  rect union (bubble sort 1A68 by the DS:0844 / 0854 type orders), each type by 1C32 (0993:03CC adds a table-3
+  sprite, the overlays' types 0x80.. through their hooks).
+- Saved screens (DS:5FEC count, 6-byte slots at DS:5FEE: bitmap, id, kind, flag): 0993:04F0 saves under every
+  sprite (kind 0), under the description's layer-2 objects at a whole redraw before the first back entry with a
+  piece byte (0CD6:06B4, kind 2, kept), under piece-byte-1 description entries (0FB3:0CBA, kind 1), desert's six
+  copies (33FD:0770, kind 3). 0993:0684 puts back the flag-0 slots last first (kind 2 kept, kept ids < 0x64 flag
+  0); 0993:059E keeps an unchanged character's slots; 0CD6:0684 (tick) re-arms a description object's slot.
+- Blitters: modes 0 / 10 of row-run images (type 2: 2583:0006, mode 10 skips fill runs of 0), 4-bit (type 3:
+  194C:04BA, 0 transparent, color = nibble | 16 * log2(mask); image set 0: 0x8000 -> 0xF0, set 1: 0x4000 -> 0xE0,
+  guards: the sprite's mask), 8-bit (194C:6D42: modes 0 copy, 1 and, 2 or, 3 xor, 4-7 inverted, 8 black
+  silhouette, 10 transparent); modes other than 0/2/3/8/10 draw nothing but still add their dirty rectangle.
+  1-bit images (entry +2 set) paint their pixels in the entry's mode as a color (potion bubbles 0xEA..). Row-run
+  images are converted at load (194C:122C) with the file mask (a pixel's high nibble k -> the k-th set bit; scenery
+  0x3FF0, rooftops 0x7FF0, final 0xFFF0, the pieces 0x6370..0x6372 0xFFFE); big ones are decoded in chunks of
+  0xE37E / ((w + 1) * 2) rows, each its own LZG/RLE stream; resources are read with one extra byte (LZG needs it).
+- KID.DAT 4-bit images get 8-bit colors when first loaded (0993:0E70) with the file mask of that moment (2 = colors
+  0x10..; a sprite's mask set around the load by 0FB3:0EE0 / 2C9C), ids 0x83, 0x84, 0xD8..0xDA preloaded with 2.
+  They are purgeable (194C:1870): under memory pressure a later load reconverts with the then-current mask (seen
+  once, level 11); the memory manager is not modelled.
+- Image sets: 0 PRINCE 1000+n (sword type 2: 1200; type 1 with DS:4410: ids 47..57 -> 1101+i), 1 PRINCE 3000+n,
+  2 KID 25001+n (-0x190 from 0xDE), 3 the guard file 750+n (ranges DS:06BC / 06D2 per type enabled by 1286:07EE ->
+  851+i; charids 10/12 by their own type), 4 the scenery file 3500+n (+200 from DS:05AC[kind]).
+- The palette (0FB3:2B1C: PALC count / PALS colors; while blacked out colors from 0x10 go to the saved copy
+  DS:27DA): level load 1286: PALS 10 at 0 (0FB3:293A), 3000 at 0xE0 (not final), 3500 sub 0 x 0xA0 at 0x40,
+  750 at 0x20 (guard types but 4), KID 25001 sub kind-1 at 0x10. A room switch (0823:0E72 -> 0FB3:29B8): unless
+  already saved (a flash, 2A34, also saves), colors 0x10..0xFF saved and black and the prince's old box (DS:5B62)
+  erased on the current port cut to DS:097E; 294C restores after the redraw. Description rooms' hooks (DS:02FE[bg]
+  -> far pointers from DS:01AA, entry 0 on load 0CD6:02BE, 1 on leave 073A) change palettes: ruins bg 0x16 sub 1
+  (347C:01EE; leave 0202 sub 0 while alive and time left), level 8 bg 0x22 sub 2 (37F0:001C / 0060), final bgs
+  0x17 / 0x19..0x1B / 0x1C..0x1E (33FD:145E / 1494 / 1708: 3500 subs 0/1/2 x 0xC0, PRINCE 1000 x 0xF0 at 0x10,
+  25001 sub 7 at 0x20, 3000 at 0xE0 in rooms 3 / 7 / 8; 145E and 1494 room 4 also fill the offscreen DS:097E),
+  level 5's OVL11 / 12 / 13 (25303 at 0x20 / 3500 sub 1 in room 0xA / the description's first id at 0xE0 and 2000
+  at 0x30; leave: 750 at 0x20 / 3500 sub 0 / 3000 at 0xE0).
+- The status line (drawn straight to the screen): hit points 0FB3:24EA (KID images 0xD8 / 0xD9 from x 2 by 8, the
+  rest to x 0x62 erased below the level's start value DS:6B71), opponents 25D4 (image 0x83 from x 0x134 by -10,
+  heads count two a flask, 0x84 for an odd one; nothing for the prince, riser, shadow, level 5's guards off row 0
+  in rooms 0xA/7/0xC), 259C both, 0823:0F38 each frame on a change and the blinking last flask. Messages: 0FB3:2104
+  erases the whole line, 2136 the message area DS:098E (the whole line while DS:5CDC is 0x258, the countdown after a
+  death); the level's first room (169B:03AE) erases the whole screen (DS:1F2A) or calls 2136(1), then 24EA.
+- Verified (tests/frametest.c on tools/framecap.py captures of all 14 levels, four script seeds): every frame's
+  tables, dirty rectangles and offscreen buffer exact over ~32,000 passes (full mode, from the game state at
+  169B:0A98 with the saved-screen list chained; one pass off: the purge case above); the screen (VGA dumps every
+  3rd frame of one seed, ~13,000 dumps, status line included but for the message text) exact apart from dumps taken
+  mid-copy or within two frames of a tick-time write, and captures made before the msgclral probe.
+- Not reconstructed (logged by note_missing): the level 5 / 8 / 13 overlay objects 37F0:023A / 08D2 / 0782 / 044A /
+  05FC and their images 0x62D7..0x62E2, the tick-time palette animations (37F0:032D, 2699:0048 users).
+
 ## 6. The C core (`src/core.h`)
 - `pop2_init(dir)`, `pop2_new_game(level, seed)`, `pop2_frame(&input)` (one tick), `pop2_save/load/hash`,
   `pop2_missing()` (routines not reconstructed that the tick reached).

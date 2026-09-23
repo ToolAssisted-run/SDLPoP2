@@ -174,3 +174,9 @@ const uint8_t *guard_frame_table(uint8_t charid);   /* platform: FRAM 750 of the
 void anim_tile1e(void); int tile1e_start(uint8_t room, int8_t tp, uint8_t mode); void anim_gate_kind1(void); void kind1_tick(void);
 extern int level_switch; extern uint16_t word_2b96; void game_start(void);   /* level.c 169B:0006 */
 extern int last_scene; extern uint8_t byte_2b68, byte_6937; void kind1_level_init(void); int room_background_id(void);
+void scene_played(int si);   /* level.c */
+/* rooms by number with the game's arithmetic (DS:2B9A + 30*room, DS:2F00 + 0x78*room, level+0x1867 + 0x74*(room-1)):
+ * the link tables allow rooms up to 32, past the 28 the arrays were sized for, running on into the next array */
+#define ROOM_TILES(r) ((uint8_t *)&level + ((int)(r) - 1) * 30)
+#define ROOM_ATTRS(r) ((uint32_t *)((uint8_t *)&level + 0x348 + (int)(r) * 0x78))
+#define ROOM_REC(r)   ((level_room *)((uint8_t *)&level + 0x1867 + ((int)(r) - 1) * 0x74))

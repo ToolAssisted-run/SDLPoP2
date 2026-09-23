@@ -12,8 +12,8 @@ static const uint8_t *exit_door_speeds;   /* DS:0764 */
 static const int16_t *mob_floor_depth;    /* DS:0810: how far below room 0 a falling tile of each type lands */
 void mobs_set_tables(const uint8_t *ds) { door_speeds_close = ds + 0x76C; door_speeds_open = ds + 0x776; exit_door_speeds = ds + 0x764; mob_floor_depth = (const int16_t *)(ds + 0x810); }
 
-static uint8_t *room_tiles(uint8_t room) { return room ? level.tiles[room - 1] : tiles0; }   /* DS:2B9A + room*30 */
-static uint32_t *room_attrs(uint8_t room) { return (uint32_t *)((uint8_t *)&level + 0x348) + room * 30; }   /* DS:2F00 + room*0x78 */
+static uint8_t *room_tiles(uint8_t room) { return room ? ROOM_TILES(room) : tiles0; }   /* DS:2B9A + room*30 */
+static uint32_t *room_attrs(uint8_t room) { return ROOM_ATTRS(room); }   /* DS:2F00 + room*0x78 */
 static uint16_t *attr_lo(uint8_t room, int8_t tp) { return (uint16_t *)&room_attrs(room)[tp]; }
 
 /* door links: level+0x12C0 (DS:3E78), 5 bytes: room, tile position, timer, flag, next (0xFD ends) */

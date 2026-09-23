@@ -42,9 +42,9 @@ int8_t find_opponent(int8_t mode)
 {
 	int8_t best = -1;
 	if (Kid.room == 0 || drawn_room == 0) return -1;
-	int8_t n = level.rooms[Kid.room - 1].nchars;
+	int8_t n = ROOM_REC(Kid.room)->nchars;
 	for (int8_t i = 0; i < n; i++) {
-		const level_char_init *rec = &level.rooms[drawn_room - 1].chars[i];
+		const level_char_init *rec = &ROOM_REC(drawn_room)->chars[i];
 		const char_type *c = &chars[i];
 		int dy = c->y - Kid.y, dx = -1; if (dy < 0) dy = -dy;
 		if (c->alive < 0 && c->charid != 0xB && ((c->charid != 7 && c->charid != 8) || (uint8_t)rec->y != 2)) {
@@ -70,11 +70,11 @@ int char_scan_31bc4(void)
 	char_type saved = Char; int r = 0;
 	loadkid();
 	if (Char.f24 != 0xD && Char.charid != 1 && Char.action != 3 && Char.action != 4 && !is_dead_frame(Char.frame) && Kid.room != 0) {
-		int8_t n = level.rooms[Kid.room - 1].nchars;
+		int8_t n = ROOM_REC(Kid.room)->nchars;
 		for (int8_t i = 0; i < n && r == 0; i++) {
 			load_char(i);
 			if (Char.alive < 0 && Char.f23 > 0 && Char.charid != 0xB) {
-				const level_char_init *rec = Char.room ? &level.rooms[Char.room - 1].chars[Char.index] : 0;
+				const level_char_init *rec = Char.room ? &ROOM_REC(Char.room)->chars[Char.index] : 0;
 				r = !((Char.charid == 7 || Char.charid == 8) && rec && (uint8_t)rec->y != 1 && (uint8_t)rec->y != 3);
 			}
 		}

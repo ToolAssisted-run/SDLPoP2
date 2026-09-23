@@ -8,7 +8,8 @@ uint8_t *curr_room_tiles; uint32_t *curr_room_attrs;   /* DS:613C / 613A */
 /* 17C1:0008 */
 void get_room_address(uint8_t room)
 {
-	if (room) { curr_room_tiles = level.tiles[room - 1]; curr_room_attrs = level.attrs[room]; }
+	/* DS:2B9A + 30*room and DS:2F00 + 0x78*room: rooms 29..32 (the link tables allow 32) run on into the next array */
+	if (room) { curr_room_tiles = ROOM_TILES(room); curr_room_attrs = ROOM_ATTRS(room); }
 }
 /* 0AFF:07D4: tilepos of the first column of a row (negative rows wrap like PoP1's tbl_line) */
 static int8_t row_to_tilepos(int8_t row) { return row >= 0 ? row * 10 : row * 10 + 9; }

@@ -1,3 +1,4 @@
+#include <string.h>
 /* play_seq (DOS 0AFF:03AA): advance Char through its current sequence until a frame is produced.
  * Reconstructed from the disassembly; jump table at cs:03F4 indexed by opcode + 0x18. */
 #include "types.h"
@@ -33,8 +34,8 @@ void seq_sound(uint16_t n)
 
 static uint16_t seq_fetch_word(void)              /* 0AFF:06D4 */
 {
-	const uint16_t *seq = get_seq_words(Char.seq_id);  /* lock_resource(get_seq_resource()) */
-	return seq[Char.seq_pos++];
+	const uint8_t *seq = (const uint8_t *)get_seq_words(Char.seq_id);  /* lock_resource(get_seq_resource()); resources are byte-aligned */
+	uint16_t w; memcpy(&w, seq + 2 * Char.seq_pos++, 2); return w;
 }
 
 void play_seq(void)

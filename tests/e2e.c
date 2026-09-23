@@ -9,6 +9,7 @@
 #include "../src/globals.h"
 #include "../src/glue.h"
 #include "snap.h"
+#include "../src/core.h"
 
 static struct { const char *name; int pos; } keymap[] = {   /* oracle key names -> DS:1D00 key table positions */
 	{"left", 0x58}, {"right", 0x5A}, {"up", 0x55}, {"down", 0x5D}, {"home", 0x54}, {"pageup", 0x56}, {"end", 0x5C}, {"pagedown", 0x5E},
@@ -114,7 +115,7 @@ int main(int argc, char **argv)
 		else if (!strcmp(nm2, "ds_postroom") && nt) { alive_b[nt - 1] = v; int so = (0x2B7A - 0x2900) * 2; uint32_t w = 0; for (int q = 3; q >= 0; q--) w = w << 8 | (hexval(m[4 + so + 2 * q]) << 4 | hexval(m[5 + so + 2 * q])); seed_b[nt - 1] = w; seed_b_ok[nt - 1] = 1; }
 	} rewind(ef); }
 	for (int q = 0; q + 1 < nt; q++) if (alive_b[q] == -128) alive_b[q] = alive_a[q + 1];   /* ticks without a post-tick sample: the next tick's start */
-	int tick_ix = 0;
+	int tick_ix = 0, sc;
 	static char big[0x20000]; static uint8_t mem[0x4300], got[0x4300];
 	static const char *const regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "random_seed", "drawn_room", "room_L", "room_R", "room_A", "room_B", "next_room", "exit_dir",
 		"word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", "floor_ptrs", "kid_ctrl1_saved", "minutes_left", "clock_ticks", NULL};
@@ -133,9 +134,10 @@ int main(int argc, char **argv)
 			if (strcmp(nm, "ls_a") || len != 0x4300) continue;
 			SNAP_SIZE = 0x4300; SNAP_BASE = 0x6C00 - SNAP_SIZE;
 			if (getenv("E2E_COLD")) {   /* a new game from zeroed memory: 169B:0006 then the level load; the seed comes from the capture */
-				static uint8_t zero[0x4300]; snap_load(zero);
-				random_seed = mem[0x2B7A - SNAP_BASE] | mem[0x2B7B - SNAP_BASE] << 8 | mem[0x2B7C - SNAP_BASE] << 16 | (uint32_t)mem[0x2B7D - SNAP_BASE] << 24;
-				int lv = mem[0x43FF - SNAP_BASE]; level_switch = lv != 1; byte_6b6c = lv; game_start(); story_scene(0, lv); load_level(lv);
+				uint32_t seed = mem[0x2B7A - SNAP_BASE] | mem[0x2B7B - SNAP_BASE] << 8 | mem[0x2B7C - SNAP_BASE] << 16 | (uint32_t)mem[0x2B7D - SNAP_BASE] << 24;
+				int lv = mem[0x43FF - SNAP_BASE]; char dir[512]; snprintf(dir, sizeof dir, "%s", argv[3]); *strrchr(dir, '/') = 0;
+				if (!pop2_init(dir)) return 2;
+				pop2_new_game_loaded(lv, seed);   /* up to the level load (the ls_a probe); level_begin follows below */
 				memcpy(got, mem, SNAP_SIZE); snap_store(got);
 				int nd = 0, unk = 0; char last[64] = "";
 				for (int a = 0; a < SNAP_SIZE; a++) if (got[a] != mem[a]) {
@@ -166,7 +168,7 @@ int main(int argc, char **argv)
 			if (r == 0) { pending = 1; tick_n = ticks; continue; }   /* compared at ds_postroom (169B:064F) */
 			r = frame_after_tick(r); frame_wait();   /* frozen (-2) or quit (-1): no post-tick sample */
 			if (r == -1) { printf("tick %d: level left (-1)\n", ticks); break; }
-			if (r >= 0) { printf("tick %d: level %d (re)starts\n", ticks, r); if (r == 0) break; restarts++; if (!word_5cb6 && story_scene((int8_t)word_32d8, r)) { resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
+			if (r >= 0) { printf("tick %d: level %d (re)starts\n", ticks, r); if (r == 0) break; restarts++; if (!word_5cb6 && (sc = story_scene((int8_t)word_32d8, r))) { scene_played(sc); resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
 			continue;
 		}
 		if (strcmp(nm, "ds_postroom") || !pending) continue;
@@ -178,7 +180,7 @@ int main(int argc, char **argv)
 		if (getenv("E2E_ALL") && tick_n >= atoi(getenv("E2E_ALL")) - 2 && tick_n <= atoi(getenv("E2E_ALL"))) { printf("tick %d other state:\n", tick_n); snap_diff(got, mem, extra, 1); }
 		int r = frame_after_tick(0); frame_wait();
 		if (r == -1) { printf("tick %d: level left (-1)\n", tick_n); break; }
-		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0) break; restarts++; if (!word_5cb6 && story_scene((int8_t)word_32d8, r)) { resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
+		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0) break; restarts++; if (!word_5cb6 && (sc = story_scene((int8_t)word_32d8, r))) { scene_played(sc); resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
 	}
 	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts (%d after a story scene, resynced); %d ambient random draws synced, %d unmatched\n", ticks, n, bad, first_bad, restarts, scenes, ambient_draws, rng_lost);
 	return bad != 0;

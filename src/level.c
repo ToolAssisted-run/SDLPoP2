@@ -14,6 +14,9 @@ static struct {
 	uint8_t tiles[0x3C0], attrs[0xF00], records[0xE80], spawns[0x440];   /* level +0, +0x3C0, +0x1867, +0x26F9 (rooms 1..32) */
 } cp;
 #define LV ((uint8_t *)&level)
+size_t checkpoint_state_size(void) { return sizeof cp; }
+void checkpoint_state_save(uint8_t *buf) { memcpy(buf, &cp, sizeof cp); }
+void checkpoint_state_load(const uint8_t *buf) { memcpy(&cp, buf, sizeof cp); }
 static const uint8_t *checkpoint_table(void) { return LV + 0x26E7; }   /* DS:529F: two (room, tile) pairs */
 
 /* 0D5E:10B4: gates in the copy become open (or shut when animating), exit doors open */
@@ -211,11 +214,17 @@ void game_start(void)
 	minutes_left = 75; clock_ticks = 0x2CF; start_hp = 3;
 	if (cheat_mode && level_switch) { int8_t v = (int8_t)level_number; start_hp = v < 3 ? 3 : v > 12 ? 12 : v; }
 }
+/* the state a shown scene leaves behind (0AAC:0274 shows it; the NIS themselves are not reconstructed): scene 0x64
+ * is the copy protection (0D5E:1288), asked once per game unless in a demo; it is taken as answered */
+void scene_played(int si)
+{
+	if (si == 0x64 && word_0366 == 0 && !word_2ba8) word_0366 = 1;
+}
 /* 169B:0070 (after 169B:0006): play levels from n until the player quits; returns 0 or -1 */
 int play_level(int n)
 {
 	while (n > 0 && n <= 14) {
-		if (!word_5cb6) story_scene((int8_t)word_32d8, n);   /* 0AAC:000E: scene (0AAC:0274 shows it) */
+		if (!word_5cb6) scene_played(story_scene((int8_t)word_32d8, n));   /* 0AAC:000E: scene (0AAC:0274 shows it) */
 		if (!load_level(n)) return -1;
 		level_begin();
 		int r = level_first_room();

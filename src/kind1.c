@@ -12,7 +12,7 @@ uint8_t byte_14a0 = 0xFF;                     /* DS:14A0 */
 /* platform: 194C:8426 is sound `id` still playing (default: yes, so no sound-gated random draws) */
 __attribute__((weak)) int sound_playing(uint16_t id) { (void)id; return 1; }
 
-static uint16_t *attr16(uint8_t room, int8_t tp) { return (uint16_t *)&level.attrs[room][tp]; }
+static uint16_t *attr16(uint8_t room, int8_t tp) { return (uint16_t *)&ROOM_ATTRS(room)[tp]; }
 /* 1375:25D6: the n-th live animation of a tile */
 static trob_type *nth_trob(uint8_t tile, int n)
 {

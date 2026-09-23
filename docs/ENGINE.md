@@ -273,3 +273,13 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
   upper half.
 - The DS "room 0" tiles (DS:2B9A..2BB7) overlap real variables: 2B9A ambient sound, 2BA2 input device, 2BA4 lateness,
   2BA8 demo, 2BAA, 2BAE..2BB2, 2BB4.
+- The drawing pass changes state in places, modelled in game.c: settled temple slabs return to the ceiling
+  (347C:0C22 via the mob list, 1375:1FBA), and the prince's sprite position is kept (0993:07F8 -> the sprite list
+  DS:5D3A) because a biting head (charids 7/8, f24 1) sits on it (366C:0002, offsets from the guard file's
+  resource 755).
+- Temple sliding walls (walls.c): tile 0x19 buttons start a type-6 falling object that pushes, stops or crushes the
+  prince and blocks him in the collision rows (see the file for the entry points). DS:440A (level+0x1852) enables it.
+- Potions and swords (items.c): shift while standing at one picks it up (2FDF:104C/10BE); the drink effect runs at the
+  sequence's opcode (0AFF:1954): heal, life (+1 max, full), feather fall (DS:5D36), upside down, poison, 6th kind.
+- Known small difference: after two guards follow the prince into a new room, the tick's last character loop leaves
+  the scratch record Char on the other guard (E10_6, two ticks; no lasting state).

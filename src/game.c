@@ -40,6 +40,18 @@ void frame_begin(void)
 }
 
 void draw_chars_state(void);
+kid_sprite_t kid_sprite;   /* the prince's entry of the frame's sprite list (DS:5D3A..), read by biting heads */
+/* 0993:07F8 / 0C04 (the prince's pass of the drawing): only where his sprite goes (chtab 2, layer = his charid 0),
+ * computed without touching the tick's state */
+static void kid_sprite_state(void)
+{
+	kid_sprite.valid = 0;
+	if (Kid.room == 0 || Kid.room != drawn_room || Kid.frame == 0 || Kid.charid != 0) return;
+	char_type save = Char; frame_type cf = cur_frame; int16_t ox = obj_x, oy = obj_y, oid = obj_id; uint8_t oc = obj_chtab;
+	Char = Kid; load_frame_to_obj();
+	if (obj_chtab == 2) { kid_sprite.valid = 1; kid_sprite.x = obj_x < 0 ? obj_x - 1 : obj_x; kid_sprite.y = obj_y; kid_sprite.image = (uint16_t)obj_id; }   /* 0AFF:08D0 */
+	Char = save; cur_frame = cf; obj_x = ox; obj_y = oy; obj_id = oid; obj_chtab = oc;
+}
 /* 1375:1FBA (0FB3:12F4 draws the mobs before the characters): the state their drawing changes */
 static void draw_mobs_state(void)
 {
@@ -55,7 +67,7 @@ uint8_t byte_6b6c;                                   /* DS:6B6C */
 void toggle_upside_down_pub(void);
 static void toggle_upside_down(void) { word_5d38 = word_5d38 ? 0 : 0x438; play_sound(word_5d38 ? 0x99 : 0x9A); word_5cce = 1; }
 /* 169B:0430: redraw everything (state side: flags cleared, DS:68EA = 2) */
-static void redraw_all(void) { word_5cee = 0; if (!word_2b92) { draw_mobs_state(); draw_chars_state(); } word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
+static void redraw_all(void) { word_5cee = 0; if (!word_2b92) { draw_mobs_state(); kid_sprite_state(); draw_chars_state(); } word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
 /* 169B:0A30: after each tick: drawing, the upside-down countdown and the message / restart countdown. -2 go on, -1 leave */
 int frame_end(void)
 {
@@ -63,7 +75,7 @@ int frame_end(void)
 	if (word_2b90) { redraw_all(); word_2b90 = 0; }
 	else if (word_5cee) { drawn_room = next_room; redraw_all(); }
 	else if (word_5cce) { word_5cce = 0; redraw_all(); }
-	else { draw_mobs_state(); draw_chars_state(); if (word_5d38) { if (word_5d38 == 1) toggle_upside_down(); else if (Kid.alive < 0) word_5d38--; } }
+	else { draw_mobs_state(); kid_sprite_state(); draw_chars_state(); if (word_5d38) { if (word_5d38 == 1) toggle_upside_down(); else if (Kid.alive < 0) word_5d38--; } }
 	ambient_sound();   /* 1611:04D0 / 1611:03CC(DS:2B98): the level's ambient sounds pick random variants when none is playing */
 	if (word_5cda == 1) {
 		if (word_5cdc == 0x24 || word_5cdc == 0x258) { byte_6b6c = 0; return -1; }   /* the countdown after a death ran out */

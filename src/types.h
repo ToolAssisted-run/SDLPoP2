@@ -82,6 +82,7 @@ typedef struct level_type {
 	level_room rooms[28];          /* 0x1867 rooms 1..28 */
 	uint8_t  region_2517[0x9E1];   /* 0x2517 zero in level 1 (ends at 0x2EF8 = 12024) */
 } level_type;
+typedef struct kid_sprite_t { int16_t valid, x, y; uint16_t image; } kid_sprite_t;
 #pragma pack(pop)
 
 typedef struct __attribute__((packed)) mob_type { int16_t x, y; uint8_t room; int16_t speed, w7; uint8_t type, row; int16_t wd; } mob_type;   /* 13 bytes, DS:293E */

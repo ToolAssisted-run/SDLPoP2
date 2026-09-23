@@ -194,3 +194,4 @@ void slab_draw_state(void);   /* temple.c */
 mob_type *wall_find(uint8_t room, int8_t row); void wall_trigger(uint8_t room, int8_t tp, int k); void wall_move(void); void wall_push_kid(void);
 int16_t wall_edge(int8_t dir, uint8_t room, int8_t row); void wall_collision(int8_t row, uint8_t *rooms, uint8_t *flags); int wall_near(int16_t dist);
 int wall_near_blade(void); int16_t wall_limit(uint8_t room, int8_t row); void trap_kill_pub(void); uint16_t ds_word(uint16_t a);
+extern kid_sprite_t kid_sprite; void head_attach(void); const uint8_t *head_attach_table(void); int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);   /* game.c, heads.c, glue.c */

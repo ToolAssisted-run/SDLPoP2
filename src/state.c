@@ -42,7 +42,7 @@ static const state_field extra_fields[] = {
 	{"anim_mod", 0x5CF0, 4, &anim_mod}, {"curr_modifier", 0x612F, 2, &curr_modifier}, {"curr_tilepos", 0x6131, 1, &curr_tilepos},
 	{"cur_mob", 0x6662, 13, &cur_mob}, {"cur_mob_index", 0x66C6, 2, &cur_mob_index}, {"cur_trob", 0x6672, 4, &cur_trob}, {"anim_tile", 0x6B72, 1, &anim_tile},
 	{"room_ptr_tiles", 0x613C, 2, &room_ptr_tiles}, {"room_ptr_attrs", 0x613A, 2, &room_ptr_attrs},
-	{"level_kind", 0, 1, &level_kind}, {"level_number", 0, 1, &level_number}, {"frame_delay", 0, 2, &frame_delay}, {"last_scene", 0, sizeof(int), &last_scene},
+	{"kid_sprite", 0, sizeof(kid_sprite_t), &kid_sprite}, {"level_kind", 0, 1, &level_kind}, {"level_number", 0, 1, &level_number}, {"frame_delay", 0, 2, &frame_delay}, {"last_scene", 0, sizeof(int), &last_scene},
 	{"level_switch", 0, sizeof(int), &level_switch}, {"floor_objs", 0, sizeof floor_objs, floor_objs},
 	{"word_27c0", 0, 2, &word_27c0}, {"counter_27d6", 0, 2, &counter_27d6}, {"flag_5cb9", 0, 1, &flag_5cb9}, {"byte_5cb8", 0, 1, &byte_5cb8},
 	{"is_feather_fall", 0, 2, &is_feather_fall}, {"obj_xl", 0, 1, &obj_xl}, {"word_2baa", 0, 2, &word_2baa}, {"word_37e8", 0, 2, &word_37e8},

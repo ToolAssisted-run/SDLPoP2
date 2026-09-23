@@ -296,3 +296,21 @@ static const uint8_t *hd_ds;
 void heads_set_tables(const uint8_t *ds) { hd_ds = ds; }
 uint8_t ds_byte(uint16_t a) { return hd_ds[a]; }
 uint16_t ds_word(uint16_t a) { return hd_ds[a] | hd_ds[a + 1] << 8; }
+/* 366C:0002 (load_frame_to_obj of a biting head, f24 1): the head sits on the prince where his sprite was drawn last
+ * (the frame's sprite list, 0FB3:1BF2 looking for chtab 2 layer 0) */
+void head_attach(void)
+{
+	const uint8_t *tab = head_attach_table();
+	if (!kid_sprite.valid || !tab) return;
+	uint16_t img = kid_sprite.image;
+	int8_t a;
+	if (Char.direction != Kid.direction) a = (int8_t)tab[img * 2 + 1];
+	else {
+		int16_t hgt, w = 0; res_image_size(3, obj_id, &hgt, &w);   /* 0993:0FE2 on the head's image */
+		a = (int8_t)-(int8_t)((Char.charid == 7 ? 0xA : 0x10) + tab[img * 2 + 1] + (uint8_t)w);
+	}
+	if (Char.charid == 8) a += 6;
+	if (Char.direction == 0) a = -a;
+	obj_x = a + kid_sprite.x; obj_y = (int8_t)tab[img * 2] + kid_sprite.y;
+	Char.x = obj_x + 0x82;
+}

@@ -74,7 +74,7 @@ void glue_load_exe_tables(const char *exe)
 
 /* collision / kid stubs */
 uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR; const uint8_t *sword_table;
-void ovl_366c2(void) { note(" 366c2"); } void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return wall_find(Char.room, Char.curr_row) != NULL; }   /* 347C:0526 */
+void ovl_366c2(void) { head_attach(); }   /* 366C:0002 (heads.c) */ void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return wall_find(Char.room, Char.curr_row) != NULL; }   /* 347C:0526 */
 void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { wall_collision(row, r, f); }   /* 347C:0412 */ int ovl_343c2(void) { note(" 343c2?"); return 0; }
 int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { return wall_edge(dir, room, row); }   /* 347C:0368 */
 int16_t ovl_352ca(void) { return wall_limit(Char.room, Char.curr_row); }   /* 1375:14FC -> 347C:0B0A */ void ovl_3211a(void) { note(" 3211a"); }
@@ -96,6 +96,9 @@ static const dat_file *guard_file_of_type(uint8_t t)
 	if (!ok[t]) ok[t] = dat_open(&f[t], game_path(guard_names[t])) ? 1 : -1;
 	return ok[t] > 0 ? &f[t] : NULL;
 }
+/* DS:1BB4: resource 755 of the level type's guard file (HEAD.DAT for types 5 and 6, 1286:09C1): where a biting head
+ * sits on each of the prince's images (2 bytes: dy, dx) */
+const uint8_t *head_attach_table(void) { const dat_file *gf = guard_file_of_type(level.type); uint16_t n; return gf ? dat_find(gf, NULL, 755, &n) : NULL; }
 const uint8_t *guard_frame_table(uint8_t charid)
 {
 	uint8_t t = (charid == 10 || charid == 12) ? charid_to_type[charid] : level.type;

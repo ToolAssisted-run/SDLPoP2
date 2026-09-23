@@ -19,3 +19,8 @@ for s in D E F G H1 H2 H3 H4 L3loose7 L3loose22 L3btn10 L3btn3 L3r1 L3r2 L3skel1
 	echo "$s $($W/snaptest between $S/SEQUENCE.DAT $ram $S/PRINCE.EXE $W/between$s.bin 2>/dev/null | tail -1)"
 done
 fi
+# end to end: from the oracle's snapshot after the level load, everything in C with the script's keys (LS* captures)
+if [ "$mode" = tick ]; then
+gcc -O0 -g -Wall -o $W/e2e tests/e2e.c tests/stubs.c tests/snap.c src/*.c
+for s in LSL3r1 LSL3skel2; do [ -f $O/$s-snap.txt ] && echo "$s $($W/e2e $S/SEQUENCE.DAT $O/w/ramL3.bin $S/PRINCE.EXE $O/$s-snap.txt $O/$s.script 2>/dev/null | tail -1)"; done
+fi

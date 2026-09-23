@@ -205,3 +205,23 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
   Tests compare slots as in use/free and the objects through a heap probe (DS:A800..B800) at the next tick start.
 - 33FD:0B0E (kind 3): a gate rising at or left of the prince's tile while he squeezes under it (frames
   0x108..0x10A, f24 3) is slowed, set to 0x24, or stopped. Not covered by a capture yet.
+
+## Level loop, frame, input (level.c, game.c, input.c, kidctl.c; verified end to end on level 3)
+- 169B:0070 plays levels: 1286:01F2 loads resource 0x7CF+n (12025 bytes at DS:2BB8), clears bit 7 of tile-7
+  attributes and restores a checkpoint copy; 169B:00F5..0135 (level_begin) resets records, collisions, the saved
+  controls and the per-kind state, places the prince (start tile, or the checkpoint; hp DS:6B71) and closes the
+  entrance door; 169B:03AE shows the first room. 169B:0505 then repeats: 0BA6 (hp deltas cleared, previous boxes
+  kept), the tick 05E0, the level-end / restart checks, 0A30 (tick counter, redraws, upside-down and message
+  countdowns, ambient sounds) and 18C8:0008 (with the cheat word: Char = Kid, cheat keys).
+- The tick: 169B:05E0 ends after 0823:0E72 with 2D3E:0FB0 (characters fallen below the room go back to their
+  records) and the clock 0823:0D5A (DS:5CD2 minutes, 719 ticks each; DS:016A < 0 stops it: the cheat start).
+- Input: 0823:10A0 clears next_room and the controls, reads the keyboard (three 3x3 key grids in the key table
+  DS:1D00 by position: keypad/arrows, W E R/S D F/X C V, U I O/J K L/M , .; shift -1, ctrl -2, alt nothing) or the
+  joystick, then 0823:02BE: after the prince died (alive > 6) any keystroke or the action button restarts the level
+  (DS:5CD8 -> 169B:120C). 0AFF:11F8 turns the controls into press states (-1 new, 1 consumed, 0 up; the prince's
+  are kept at DS:6128) and runs control() with forward/back swapped when he faces right (0AFF:1336).
+- Death: 0AFF:10E8 counts a dead prince's alive 0..7 while the death sounds are not playing, then arms the
+  600-tick countdown (DS:5CDA/5CDC); a keystroke restarts earlier.
+- 0AFF:000C: a missing left/right neighbour resolves to room 0 with the column wrapped to 0..9.
+- Not deterministic from game state alone: the ambient sounds (1611:03CC) and the death-sound waits depend on the
+  sound driver's timing (platform hooks ambient_sound(), death_sound_playing()).

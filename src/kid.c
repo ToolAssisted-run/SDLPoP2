@@ -339,6 +339,10 @@ int play_kid_frame(void)
 	if (play_kid_control() == -1) r = -1;
 	else if (word_5cd8 == 0) { play_seq(); if (Char.frame != 0) kid_post_move(); r = 0; }
 	else r = 1;
+	if ((int8_t)byte_5cbb >= 0) {   /* 169B:0798: the level's entrance sound after the first ticks */
+		if (byte_5cbb == 0 && Kid.alive < 0 && Kid.action != 3 && Kid.action != 4) play_sound(0x1A);
+		byte_5cbb--;
+	}
 done:
 	Kid = Char; return r;
 }

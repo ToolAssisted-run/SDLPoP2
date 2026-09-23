@@ -154,3 +154,9 @@ void checkpoint_save(int n); void checkpoint_restore(void); void checkpoint_free
 void chars_fell_below(void);
 int tick_main(void); int tick_tail(void);
 extern uint16_t word_2b90, word_2b92, word_5cee, word_5cce; extern uint8_t byte_6b6c; int frame_end(void);
+int level_first_room(void); int play_frame(void); int level_end_sound_playing(void);   /* platform: 1611:02CE / 194C:8426 on DS:0882 */
+void ambient_sound(void);   /* platform (sound timing): may call random_2751 */
+int load_level(int n); int play_level(int n); const uint8_t *level_resource(uint16_t id, uint16_t *size); void platform_wait_frame(void);   /* platform: DAT resource, frame pacing */
+int bios_key(void);   /* platform: pending keystroke (BIOS code), 0 = none */
+int frame_after_tick(int r);
+extern uint16_t cheat_mode; void frame_wait(void);

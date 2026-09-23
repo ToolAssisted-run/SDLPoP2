@@ -54,6 +54,7 @@ int frame_end(void)
 	else if (word_5cee) { drawn_room = next_room; redraw_all(); }
 	else if (word_5cce) { word_5cce = 0; redraw_all(); }
 	else { draw_chars_state(); if (word_5d38) { if (word_5d38 == 1) toggle_upside_down(); else if (Kid.alive < 0) word_5d38--; } }
+	ambient_sound();   /* 1611:04D0 / 1611:03CC(DS:2B98): the level's ambient sounds pick random variants when none is playing */
 	if (word_5cda == 1) {
 		if (word_5cdc == 0x24 || word_5cdc == 0x258) { byte_6b6c = 0; return -1; }   /* the countdown after a death ran out */
 		return -2;   /* 0FB3:2136 clears the message */
@@ -81,3 +82,38 @@ void draw_chars_state(void)
 		save_char();
 	}
 }
+
+/* 169B:03AE: the first room of a level (or after a restart); -1 = leave */
+int level_first_room(void)
+{
+	next_room = Kid.room;
+	switch_room();   /* 0823:0E72 (returns -2) */
+	/* 0AAC:00AE / 0FB3:2136: level name or message cleared; 0FB3:24EA hp display */
+	word_5cdc = word_5cda = 0; redraw_all(); frame_delay = 5;
+	return -2;
+}
+/* 169B:0505 after the tick up to 0823:0E72 (tick_main's result r): the rest of the tick, the level-end and restart
+ * checks and 169B:0A30. -2 go on, -1 leave the level, else the next level's number */
+int frame_after_tick(int r)
+{
+	if (r == 0) r = tick_tail();
+	if (r != 0 && r != -2) return r;   /* 169B:05E0 returns -2 for a normal and for a frozen tick */
+	if (word_5cd8) {   /* 169B:120C: restart (or the level a restore picked) */
+		word_5cd8 = 0;
+		return (int8_t)word_32d8 == (int16_t)counter_5cec ? (byte_6b6c ? (int8_t)word_32d8 : 0) : (int8_t)counter_5cec;
+	}
+	if ((int8_t)word_32d8 != (int16_t)counter_5cec && !level_end_sound_playing()) {
+		start_hp = Kid.f13;   /* the next level starts with the prince's hp */
+		checkpoint_free(); return (int8_t)counter_5cec;
+	}
+	return frame_end();
+}
+uint16_t cheat_mode;   /* DS:10C2: the command line's cheat word was given */
+/* 18C8:0008 (end of every 169B:0505 pass): with cheats on, the prince is loaded into Char and the cheat keys read */
+void frame_wait(void)
+{
+	if (cheat_mode) { loadkid(); /* 18C8:0800 cheat keys, DS:10DA debug line: not reconstructed */ }
+	platform_wait_frame();
+}
+/* one pass of 169B:0505 */
+int play_frame(void) { frame_begin(); int r = frame_after_tick(tick_main()); frame_wait(); return r; }

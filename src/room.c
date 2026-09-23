@@ -342,6 +342,7 @@ void switch_room(void)
 	drawn_room = next_room;
 	set_neighbour_rooms();
 	redraw_room();                   /* 0FB3:29B8, 0CD6:02BE, 1286:0AB2 sprites */
+	word_5cee = 1;                   /* 0823:0EB4: the frame ends with a full redraw (169B:0A54) */
 	loadkid();
 	start_room_anims();              /* 0823:0B78 */
 	pal_slots[0] = pal_slots[1] = 0;

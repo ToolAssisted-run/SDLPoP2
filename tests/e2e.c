@@ -1,0 +1,110 @@
+/* Free-running end-to-end test: start from the oracle's snapshot right after the level load (probe ls_a at
+ * 169B:00F5), then run level_begin, the first room and whole frames in C with the capture script's keys, and
+ * compare every tick (after 0823:0E72) with the oracle's ds_postroom snapshot. Nothing is reloaded on the way.
+ * usage: e2e SEQUENCE.DAT ram.bin PRINCE.EXE events.txt capture.script */
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "../src/types.h"
+#include "../src/globals.h"
+#include "stubs.h"
+#include "snap.h"
+
+static struct { const char *name; int pos; } keymap[] = {   /* oracle key names -> DS:1D00 key table positions */
+	{"left", 0x58}, {"right", 0x5A}, {"up", 0x55}, {"down", 0x5D}, {"home", 0x54}, {"pageup", 0x56}, {"end", 0x5C}, {"pagedown", 0x5E},
+	{"kp7", 0x54}, {"kp8", 0x55}, {"kp9", 0x56}, {"kp4", 0x58}, {"kp5", 0x59}, {"kp6", 0x5A}, {"kp1", 0x5C}, {"kp2", 0x5D}, {"kp3", 0x5E},
+	{"leftshift", 0x37}, {"rightshift", 0x43}, {"leftctrl", 0x2A}, {"rightctrl", 0x2A}, {"leftalt", 0x45}, {NULL, 0}};
+static struct { int frame, pos, down; } keyev[4096]; static int nkeyev;
+static void keys_at(int frame)
+{
+	memset(key_table, 0, sizeof key_table);
+	for (int i = 0; i < nkeyev && keyev[i].frame <= frame; i++) key_table[keyev[i].pos] = keyev[i].down;
+	bios_shift_flags = (key_table[0x37] ? 2 : 0) | (key_table[0x43] ? 1 : 0) | (key_table[0x2A] ? 4 : 0) | (key_table[0x45] ? 8 : 0);
+}
+/* the BIOS keystroke buffer: every key-down of a non-modifier key queues one keystroke (read by 0823:02BE) */
+static int cur_tick_frame, keybuf_next;
+int bios_key(void)
+{
+	for (; keybuf_next < nkeyev; keybuf_next++) {
+		if (keyev[keybuf_next].frame > cur_tick_frame) return 0;
+		int p = keyev[keybuf_next].pos;
+		if (keyev[keybuf_next].down && p != 0x37 && p != 0x43 && p != 0x2A && p != 0x45) { keybuf_next++; return 0x100 * p; }
+	}
+	return 0;
+}
+static int hexval(int c) { return c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10; }
+static int sound_busy, ambient_draws, rng_lost, restarts; int death_sound_playing(int both) { (void)both; return sound_busy; }
+
+int main(int argc, char **argv)
+{
+	if (argc < 6) { fprintf(stderr, "usage: e2e SEQUENCE.DAT ram.bin PRINCE.EXE events.txt capture.script\n"); return 2; }
+	stubs_init(argv[1], "/dev/null"); stubs_load_frame_tables(argv[3]);
+	static uint8_t ram[655360]; FILE *rf = fopen(argv[2], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf); stubs_load_ds_tables(ram);
+	level_roomlinks = (uint8_t *)&level + 0x17BC;
+	FILE *sf = fopen(argv[5], "r"); char line[65536];
+	while (sf && fgets(line, sizeof line, sf)) {
+		int f, d; char name[32];
+		if (sscanf(line, "key %d %31s %d", &f, name, &d) != 3) continue;
+		for (int k = 0; keymap[k].name; k++) if (!strcmp(keymap[k].name, name) && nkeyev < 4096) { keyev[nkeyev].frame = f; keyev[nkeyev].pos = keymap[k].pos; keyev[nkeyev++].down = d; }
+	}
+	FILE *ef = fopen(argv[4], "r"); if (!ef) return 2;
+	/* first pass: the prince's death count before and after each tick (the death sound is not modelled: a count that
+	 * did not advance means it was still playing) */
+	static int8_t alive_a[8192], alive_b[8192]; int nt = 0;
+	{ static char l2[0x20000]; while (fgets(l2, sizeof l2, ef)) {
+		char *p = strstr(l2, " probe="), *m = strstr(l2, "mem="); if (!p || !m) continue;
+		char nm2[32] = ""; sscanf(strchr(p + 1, ' ') + 1, "%31s", nm2);
+		int off = (0x5B36 + 0x11 - 0x2900) * 2; if ((int)strlen(m + 4) < off + 2) continue;
+		int8_t v = (int8_t)(hexval(m[4 + off]) << 4 | hexval(m[5 + off]));
+		if (!strcmp(nm2, "ds_tick") && nt < 8191) { alive_a[nt] = v; alive_b[nt] = -128; nt++; }
+		else if (!strcmp(nm2, "ds_postroom") && nt) alive_b[nt - 1] = v;
+	} rewind(ef); }
+	int tick_ix = 0;
+	static char big[0x20000]; static uint8_t mem[0x4300], got[0x4300];
+	static const char *const regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "random_seed", "drawn_room", "room_L", "room_R", "room_A", "room_B", "next_room", "exit_dir",
+		"word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", "floor_ptrs", "kid_ctrl1_saved", "minutes_left", "clock_ticks", NULL};
+	static const char *const extra[] = {"coll", "prev_coll_flags", "curr_row_coll_flags", "Char", "Opp", "cur_frame", "obj_x", "obj_y", "obj_id", "obj_chtab", "char_x_left", "char_x_right", "char_top_y", "char_col_left", "char_col_right",
+		"char_top_row", "char_bottom_row", "tile_col", "tile_row", "curr_tile", "curr_room", "knock", "word_8a84", "word_6142", "word_5cd8", "ctrl1_forward", "ctrl1_backward", "ctrl1_up", "ctrl1_down", "ctrl1_shift", "byte_9276", "word_5ce8", "tick", "word_5d38", NULL};
+	int started = 0, n = 0, bad = 0, first_bad = 0, pending = 0, ticks = 0, tick_n = 0;
+	while (fgets(big, sizeof big, ef)) {
+		char *lab = strstr(big, " probe="); if (!lab) continue;
+		int frame = atoi(big + 6); char *m = strstr(big, "mem="); char nm[32] = ""; sscanf(strchr(lab + 1, ' ') + 1, "%31s", nm);
+		int len = 0; if (m) for (char *p = m + 4; p[0] && p[1] && p[0] != '\n' && len < (int)sizeof mem; p += 2) mem[len++] = hexval(p[0]) << 4 | hexval(p[1]);
+		if (!started) {
+			if (strcmp(nm, "ls_a") || len != 0x4300) continue;
+			SNAP_SIZE = 0x4300; SNAP_BASE = 0x6C00 - SNAP_SIZE; snap_load(mem); stubs_select_guard_dat(level.type);
+			level_begin(); level_first_room(); started = 1; continue;
+		}
+		if (!strcmp(nm, "ds_tick")) {
+			if (pending) { frame_after_tick(0); frame_wait(); pending = 0; }   /* (a normal tick without its post-tick sample) */
+			/* the ambient sounds (1611:03CC) draw random numbers depending on the sound driver's timing: catch up */
+			uint32_t want = mem[0x2B7A - SNAP_BASE] | mem[0x2B7B - SNAP_BASE] << 8 | mem[0x2B7C - SNAP_BASE] << 16 | (uint32_t)mem[0x2B7D - SNAP_BASE] << 24;
+			int k; uint32_t s = random_seed;
+			for (k = 0; k <= 4 && s != want; k++) s = s * 0x343FD + 0x269EC3;
+			if (k <= 4) { random_seed = s; ambient_draws += k; } else rng_lost++;
+			/* one frame: 169B:0BA6, then the tick with this tick's keys */
+			const char_type *ak = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
+			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++;
+			keys_at(frame); cur_tick_frame = frame; stubs_reset();
+			frame_begin();
+			int r = tick_main(); ticks++;
+			if (r == 0) { pending = 1; tick_n = ticks; continue; }   /* compared at ds_postroom (169B:064F) */
+			r = frame_after_tick(r); frame_wait();   /* frozen (-2) or quit (-1): no post-tick sample */
+			if (r == -1) { printf("tick %d: level left (-1)\n", ticks); break; }
+			if (r >= 0) { printf("tick %d: level %d (re)starts\n", ticks, r); if (r == 0 || !load_level(r)) break; level_begin(); level_first_room(); restarts++; }
+			continue;
+		}
+		if (strcmp(nm, "ds_postroom") || !pending) continue;
+		pending = 0;
+		const char_type *ek = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
+		(void)ek;
+		memcpy(got, mem, SNAP_SIZE); snap_store(got); n++;
+		if (snap_diff(got, mem, regions, 0)) { bad++; if (!first_bad) first_bad = tick_n; if (bad <= 5) { printf("tick %d (frame %d) [%s]\n", tick_n, frame, stubs_log()); snap_diff(got, mem, regions, 1); } }
+		if (getenv("E2E_ALL") && tick_n >= atoi(getenv("E2E_ALL")) - 2 && tick_n <= atoi(getenv("E2E_ALL"))) { printf("tick %d other state:\n", tick_n); snap_diff(got, mem, extra, 1); }
+		int r = frame_after_tick(0); frame_wait();
+		if (r == -1) { printf("tick %d: level left (-1)\n", tick_n); break; }
+		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0 || !load_level(r)) break; level_begin(); level_first_room(); restarts++; }
+	}
+	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts; %d ambient random draws synced, %d unmatched\n", ticks, n, bad, first_bad, restarts, ambient_draws, rng_lost);
+	return bad != 0;
+}

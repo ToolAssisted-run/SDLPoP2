@@ -41,3 +41,16 @@ __attribute__((weak)) int read_input(void)   /* weak: the snapshot tests feed ca
 	int si = hotkeys_02be();
 	return si ? si : (int8_t)control_shift;
 }
+
+uint16_t word_2baa;   /* DS:2BAA */
+/* 0823:02BE, the part that matters for play: a key or the action button after the prince died (or during a demo)
+ * asks for the level to restart (DS:5CD8). The hotkeys themselves (pause, sound, restart, save) are not here yet. */
+int hotkeys_02be(void)
+{
+	int di = bios_key(), restart = 0;
+	if (control_shift != 0 || di != 0) {
+		if ((minutes_left != 0 && Kid.alive > 6) || word_2ba8) { restart = 1; if (word_2ba8) word_2baa = 1; }
+	}
+	if (restart && !word_5ce8 && !(drawn_room == 4 && level_number == 13)) word_5cd8 = 1;   /* (level 13 room 4: 2A31:0E11 decides) */
+	return di;
+}

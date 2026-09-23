@@ -13,19 +13,24 @@ void get_room_address(uint8_t room)
 /* 0AFF:07D4: tilepos of the first column of a row (negative rows wrap like PoP1's tbl_line) */
 static int8_t row_to_tilepos(int8_t row) { return row >= 0 ? row * 10 : row * 10 + 9; }
 
-/* 0AFF:000C: resolve tile_col/tile_row into the neighbouring room through roomlinks[curr_room] */
+/* 0AFF:000C: resolve tile_col/tile_row into the neighbouring room through roomlinks[curr_room]. A missing left/right
+ * neighbour gives room 0 with the column wrapped back into 0..9 (the row is still followed first). */
 uint8_t find_room_of_tile(void)
 {
-	uint8_t next = curr_room;
+	int8_t adj = 0; uint8_t next = curr_room;
 	if (tile_col < 0) {
-		if (curr_room && (next = level_links(curr_room)[0]) != 0) { tile_col += 10; curr_room = next; return find_room_of_tile(); }
-	} else if (tile_col > 9) {
-		if (curr_room && (next = level_links(curr_room)[1]) != 0) { tile_col -= 10; curr_room = next; return find_room_of_tile(); }
+		adj = 10;
+		if (curr_room && (next = level_links(curr_room)[0]) != 0) { tile_col += 10; adj = 0; curr_room = next; find_room_of_tile(); }
+	} else if (tile_col >= 10) {
+		adj = -10;
+		if (curr_room && (next = level_links(curr_room)[1]) != 0) { tile_col -= 10; adj = 0; curr_room = next; find_room_of_tile(); }
 	}
 	if (curr_room) {
-		if (tile_row < 0) { tile_row += 3; next = level_links(curr_room)[2]; curr_room = next; return find_room_of_tile(); }
-		if (tile_row > 2) { tile_row -= 3; next = level_links(curr_room)[3]; curr_room = next; return find_room_of_tile(); }
+		if (tile_row < 0) { tile_row += 3; next = curr_room = level_links(curr_room)[2]; find_room_of_tile(); }
+		else if (tile_row >= 3) { tile_row -= 3; next = curr_room = level_links(curr_room)[3]; find_room_of_tile(); }
 	}
+	if (next == 0 && curr_room != 0) curr_room = 0;
+	if (tile_col < 0 || tile_col >= 10) tile_col += adj;
 	return curr_room;
 }
 

@@ -150,3 +150,31 @@ void level_begin(void)
 	Kid.hp_delta = 0; chars[0].direction = 0x56;
 	init_kid(); close_entrance();
 }
+
+/* 1286:01F2 / 02EE: load level n (resource 0x7CF + n, +0x14 with the GAMEPLAY switch), then the checkpoint copy.
+ * A different level than the current one drops the checkpoint. */
+int load_level(int n)
+{
+	if (n != (int8_t)word_32d8) checkpoint_free();   /* (unless DS:5CB6) */
+	word_32d8 = n; counter_5cec = n;
+	uint16_t size; const uint8_t *p = level_resource(0x7CF + n, &size);
+	if (!p) return 0;
+	memcpy(&level, p, size < sizeof level ? size : sizeof level);
+	level_kind = level.hdr_pad2[4]; level_number = level.number;
+	level_postprocess(); checkpoint_restore();
+	return 1;
+}
+/* 169B:0070 (after 169B:0006): play levels from n until the player quits; returns 0 or -1 */
+int play_level(int n)
+{
+	while (n > 0 && n <= 14) {
+		if (!load_level(n)) return -1;
+		level_begin();
+		int r = level_first_room();
+		if (r == -1) return -1;
+		do r = play_frame(); while (r == -2);
+		if (r == -1) return -1;
+		n = r;
+	}
+	return n;
+}

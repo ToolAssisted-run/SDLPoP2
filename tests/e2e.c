@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include "../src/types.h"
 #include "../src/globals.h"
-#include "stubs.h"
+#include "../src/glue.h"
 #include "snap.h"
 
 static struct { const char *name; int pos; } keymap[] = {   /* oracle key names -> DS:1D00 key table positions */
@@ -84,14 +84,14 @@ int sound_playing(uint16_t id)
 int main(int argc, char **argv)
 {
 	if (argc < 6) { fprintf(stderr, "usage: e2e SEQUENCE.DAT ram.bin PRINCE.EXE events.txt capture.script\n"); return 2; }
-	stubs_init(argv[1], "/dev/null"); stubs_load_frame_tables(argv[3]);
+	glue_init(argv[1], "/dev/null"); glue_load_exe_tables(argv[3]);
 	static uint8_t ram[655360]; FILE *rf = fopen(argv[2], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf);
 	if (getenv("E2E_EXE_DS")) {   /* static tables from PRINCE.EXE's data segment (file 0x3CE40 = DS:0), runtime values from the dump */
 		static uint8_t img[655360]; memcpy(img, ram, sizeof img); FILE *xf = fopen(argv[3], "rb"); memset(img + 0x3B250, 0, 0x2900);
 		fseek(xf, 0x3CE40, SEEK_SET); if (fread(img + 0x3B250, 1, 0x27BF, xf) != 0x27BF) return 2; fclose(xf);
 		for (const char *q = getenv("E2E_EXE_DS"); *q; ) { unsigned a0, n0; int used; if (sscanf(q, "%x:%x%n", &a0, &n0, &used) != 2) break; memcpy(img + 0x3B250 + a0, ram + 0x3B250 + a0, n0); q += used; if (*q == ',') q++; }
-		stubs_load_ds_tables(img);
-	} else stubs_load_ds_tables(ram);
+		glue_load_ds_tables(img);
+	} else glue_load_ds_tables(ram);
 	level_roomlinks = (uint8_t *)&level + 0x17BC;
 	FILE *sf = fopen(argv[5], "r"); char line[65536];
 	while (sf && fgets(line, sizeof line, sf)) {
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 		int frame = atoi(big + 6); char *m = strstr(big, "mem="); char nm[32] = ""; sscanf(strchr(lab + 1, ' ') + 1, "%31s", nm);
 		int len = 0; if (m) for (char *p = m + 4; p[0] && p[1] && p[0] != '\n' && len < (int)sizeof mem; p += 2) mem[len++] = hexval(p[0]) << 4 | hexval(p[1]);
 		if (resync && !strcmp(nm, "ls_a") && len == 0x4300) {   /* a story scene (NIS, not reconstructed) played before this level load */
-			snap_load(mem); stubs_select_guard_dat(level.type); level_begin(); level_first_room(); resync = 0; pending = 0; continue;
+			snap_load(mem); glue_select_guard_dat(level.type); level_begin(); level_first_room(); resync = 0; pending = 0; continue;
 		}
 		if (resync) continue;
 		if (!started) {
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 				}
 				printf("\ncold start: %d differing bytes in known fields\n", nd);
 			} else snap_load(mem);
-			stubs_select_guard_dat(level.type);
+			glue_select_guard_dat(level.type);
 			level_begin(); level_first_room(); started = 1; continue;
 		}
 		if (!strcmp(nm, "ds_tick")) {
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
 			/* one frame: 169B:0BA6, then the tick with this tick's keys */
 			const char_type *ak = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++;
-			keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL); cur_tick_frame = frame; stubs_reset();
+			keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL); cur_tick_frame = frame; missing_reset();
 			if (getenv("E2E_TRACE") && ticks + 1 >= atoi(getenv("E2E_TRACE")) - 8 && ticks + 1 <= atoi(getenv("E2E_TRACE"))) printf("  t%d frame %d: kid alive %d busy %d keyq %d/%d next %.1f\n", ticks + 1, frame, Kid.alive, sound_busy, keyq_next, nkeyq, keyq_next < nkeyq ? keyq[keyq_next] : -1.0);
 			frame_begin(); cur_tick_ix = tick_ix - 1;
 			int r = tick_main(); ticks++; cur_tick_ix = -1;
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 		const char_type *ek = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 		(void)ek;
 		memcpy(got, mem, SNAP_SIZE); snap_store(got); n++;
-		if (snap_diff(got, mem, regions, 0)) { bad++; if (!first_bad) first_bad = tick_n; if (bad <= 5) { printf("tick %d (frame %d) [%s]\n", tick_n, frame, stubs_log()); snap_diff(got, mem, regions, 1); } }
+		if (snap_diff(got, mem, regions, 0)) { bad++; if (!first_bad) first_bad = tick_n; if (bad <= 5) { printf("tick %d (frame %d) [%s]\n", tick_n, frame, missing_log()); snap_diff(got, mem, regions, 1); } }
 		if (getenv("E2E_ALL") && tick_n >= atoi(getenv("E2E_ALL")) - 2 && tick_n <= atoi(getenv("E2E_ALL"))) { printf("tick %d other state:\n", tick_n); snap_diff(got, mem, extra, 1); }
 		int r = frame_after_tick(0); frame_wait();
 		if (r == -1) { printf("tick %d: level left (-1)\n", tick_n); break; }

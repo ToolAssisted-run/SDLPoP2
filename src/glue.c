@@ -1,11 +1,12 @@
-/* Shared test scaffolding: globals, resource access, and logging stubs for not-yet-reconstructed routines. */
+/* Glue: the globals, the game files (PRINCE.EXE tables, SEQUENCE/PRINCE/KID/guard/scenery DATs), the overlay entry
+ * points (dispatched to the reconstructed routines by level kind) and a log of the ones not reconstructed yet. */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "../src/types.h"
-#include "../src/globals.h"
-#include "../src/dat.h"
-#include "stubs.h"
+#include "types.h"
+#include "globals.h"
+#include "dat.h"
+#include "glue.h"
 char_type Char, Opp, Kid, chars[5]; level_type level; uint8_t tiles0[30]; uint32_t tick; int16_t knock, is_feather_fall;
 int8_t control_x, control_y, control_shift; uint8_t drawn_room; uint16_t counter_5cec, word_27c0, counter_27d6, word_6140;
 uint8_t flag_5cb9, byte_5cb8, level_kind, level_number, room_A; uint8_t *level_roomlinks;
@@ -13,15 +14,15 @@ int8_t ctrl1_forward, ctrl1_backward, ctrl1_up, ctrl1_down, ctrl1_shift;
 static dat_file seqdat; static char log_[512];
 static void note(const char *s) { strncat(log_, s, sizeof log_ - strlen(log_) - 1); }
 static int16_t colx_l[32], colx_r[32]; const int16_t *col_x_left = colx_l + 8, *col_x_right = colx_r + 8;   /* DS:0D06 = 130 + 32*col, valid from col -5 */
-void stubs_init(const char *seqpath, const char *levelbin)
+void glue_init(const char *seqpath, const char *levelbin)
 {
 	if (!dat_open(&seqdat, seqpath)) { fprintf(stderr, "cannot open %s\n", seqpath); exit(2); }
 	FILE *f = fopen(levelbin, "rb"); if (f) { if (fread(&level, 1, sizeof level, f) != sizeof level) fprintf(stderr, "short level\n"); fclose(f); }
 	level_roomlinks = (uint8_t *)&level + 0x17BC; level_number = ((uint8_t *)&level)[0x1847]; level_kind = ((uint8_t *)&level)[0x1845];
 	for (int i = -8; i < 24; i++) { colx_l[i + 8] = 130 + 32 * i; colx_r[i + 8] = 162 + 32 * i; }   /* DS:0D06 / 0D08 */
 }
-void stubs_reset(void) { log_[0] = 0; }
-const char *stubs_log(void) { return log_; }
+void missing_reset(void) { log_[0] = 0; }
+const char *missing_log(void) { return log_; }
 const uint16_t *get_seq_words(uint16_t id) { uint16_t n; return (const uint16_t *)dat_find(&seqdat, "SQES", id, &n); }
 int get_seq_resource(uint16_t id) { return dat_find(&seqdat, "SQES", id, NULL) != NULL; }
 void seq_reload_current(void) { note(" reload"); }
@@ -47,7 +48,7 @@ int rtlink_0dd5(void) { return 0; }
 void control_dead_0307a2(void) { note(" dead0307a2"); } void control_0d9_0e2(void) { note(" 0d9_0e2?"); }
 
 static uint8_t kidtab[20736];
-void stubs_load_frame_tables(const char *exe)
+void glue_load_exe_tables(const char *exe)
 {
 	FILE *f = fopen(exe, "rb"); if (!f) { fprintf(stderr, "cannot open %s\n", exe); exit(2); }
 	fseek(f, 0x3A500, SEEK_SET); if (fread(kidtab, 1, sizeof kidtab, f) < 12000) fprintf(stderr, "short data resource\n");
@@ -55,17 +56,8 @@ void stubs_load_frame_tables(const char *exe)
 	static dat_file princedat, guarddat; uint16_t n;
 	/* sword frames: PRINCE.DAT FRAM 1000 (1286:0544); guard frames: the guard DAT's FRAM table (GUARD.DAT 750 on level 1, DS:0CB8) */
 	sword_table = dat_open(&princedat, getenv("PRINCE_DAT") ? getenv("PRINCE_DAT") : "PRINCE.DAT") ? dat_find(&princedat, "MARF", 1000, &n) : NULL;
-	(void)guarddat; frame_table_guard = kidtab;   /* set per level type by stubs_select_guard_dat() */
+	(void)guarddat; frame_table_guard = kidtab;   /* set per level type by glue_select_guard_dat() */
 }
-
-#include <stdlib.h>
-void debug_case_tiles(void)
-{
-	printf("   dbg: room %u row %d col %d x %d dir %d | ahead1 %u infront %u atchar %u above %u | dist %d dx %d flags %02X\n", Char.room, Char.curr_row, Char.curr_col, Char.x, Char.direction,
-	       get_tile_infrontof(1), get_tile_behind_char(), get_tile_at_char(), get_tile_above_char(), distance_to_edge_weight(), cur_frame.dx, cur_frame.flags);
-}
-void load_fram_det_col_nocol(void) { load_frame(); }   /* the game ran load_fram_det_col before control(); curr_col is already in the captured record */
-void debug_opp(void) { printf("   misc: word_8604 %u drawn_room %u | ", word_8604, drawn_room); printf("   opp: charid %u room %u row %d x %d dir %d f12 %u f23 %u | char opp_index %u f12 %u f14 %d dist %d\n", Opp.charid, Opp.room, Opp.curr_row, Opp.x, Opp.direction, Opp.f12, Opp.f23, Char.opp_index, Char.f12, Char.hp_delta, opp_distance()); }
 
 /* collision / kid stubs */
 uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR; int16_t word_440a; const uint8_t *sword_table;
@@ -133,7 +125,7 @@ void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {}
 level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
 void ovl_36712(void) { note(" 36712"); } void room_music_087e(void) {} void redraw_room(void) {} void hp_bar_clear(void) {} void hp_bar_draw(uint8_t index, int a, uint8_t hp) { (void)index; (void)a; (void)hp; }
 static uint8_t dstables[0x20];
-void stubs_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 charid->type (static data) */
+void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 charid->type (static data) */
 { memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; guard_set_prob_tables(ram + 0x3B250); mobs_set_tables(ram + 0x3B250); caverns_set_tables(ram + 0x3B250); heads_set_tables(ram + 0x3B250); blades_set_tables(ram + 0x3B250); byte_016a = (int8_t)ram[0x3B250 + 0x16A]; byte_14a0 = ram[0x3B250 + 0x14A0]; cheat_mode = ram[0x3B250 + 0x10C2] | ram[0x3B250 + 0x10C3] << 8; word_0366 = ram[0x3B250 + 0x366] | ram[0x3B250 + 0x367] << 8;   /* outside the snapshot window */ for (int i = 0; i < 16; i++) refract_tbl[i] = ram[0x3B250 + 0x13D0 + 2 * i] | ram[0x3B250 + 0x13D1 + 2 * i] << 8; refract_timer = refract_tbl;
   for (int i = 0; i < 8; i++) { uint16_t p = ram[0x3B250 + 0x6BC + 2 * i] | ram[0x3B250 + 0x6BD + 2 * i] << 8; guard_bank2[i] = p ? (ram[0x3B250 + p] | ram[0x3B250 + p + 1] << 8) : 0;
     env_bank2[i] = (int16_t)(ram[0x3B250 + 0x5AC + 2 * i] | ram[0x3B250 + 0x5AD + 2 * i] << 8); } }
@@ -162,7 +154,7 @@ void note_missing(const char *what) { char m[40]; snprintf(m, sizeof m, " %s?", 
 void ovl_347c_e48(void) { slab_step(); } void ovl_kind6_char(void) { note(" kind6?"); }
 
 /* the guard sprite/frame file of a level type */
-void stubs_select_guard_dat(uint8_t type)
+void glue_select_guard_dat(uint8_t type)
 {
 	/* DS:0672: the guard file of each level type (type 4 has none) */
 	static const char *names[] = {"GUARD.DAT", "FLAME.DAT", "SKELETON.DAT", "GUARD.DAT", NULL, "HEAD.DAT", "HEAD.DAT", "BIRD.DAT", "HEAD.DAT", "JINNEE.DAT"};

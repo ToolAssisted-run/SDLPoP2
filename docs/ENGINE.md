@@ -43,7 +43,7 @@ load_frame_to_obj, and the OVL01 3212 checks (collisions/press), then Kid = Char
 - Control test status: 331/335 captured cases identical; the rest need DS:5CC4 (engagement toggle) which
   the next capture samples.
 
-## The prince's tick (169B:0692 play_kid_frame; verified by tests/ticktest.c)
+## The prince's tick (169B:0692 play_kid_frame; verified by the tick test, now tests/snaptest.c)
 loadkid; if out of the level (0AFF:0DF6): play_kid_control + char_fell_out (0AFF:0D1E: level kind 5
 lets the sea rooms 0x13/0x10 catch the fall, elsewhere death at y 0x180). Otherwise: pick the opponent
 (Kid+0x39, or the nearest live char, OVL01 02DCC8), 0AFF:080A loads Kid into Char and chars[n] into Opp,

@@ -248,7 +248,7 @@ static void bump_stand(int8_t dir)
 		} else {
 			id = 0x40;
 			if (frame_is_strike_02f712(Char.frame, Char.charid)) {
-				if (curr_tile == 4 && curr_modifier > 0x40) id = -1;
+				if (curr_tile == 4 && (uint8_t)curr_modifier > 0x40) id = -1;   /* (a byte compare) */
 				else Char.x = char_dx_forward(16);
 			}
 		}

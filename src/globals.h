@@ -216,3 +216,4 @@ void guard_sprites_loaded(uint8_t type); extern uint8_t byte_0670;   /* level.c 
 void shadow13_tick(void); int shadow13_present(void); void anim_tile2b(void); void try_grab_ledge_pub(void); void set_char_collision(void);   /* shadow13.c */
 void floor_draw_state(void); void trap_draw_state(void);   /* mobs.c */
 #define word_4406 (*(uint16_t *)((uint8_t *)&level + 0x184E))   /* DS:4406 */
+void floor_collapse_pub(void);

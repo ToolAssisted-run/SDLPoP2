@@ -462,3 +462,6 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   compared in ~20 min: 232 identical; fixes: level 13 shadow (OVL13), trap/floor draw state, 3212:0582 uses the
   below-left/right neighbours (not above), crouch + forward (seq 0x4F) and DS:4406 (a stray variable before), sword
   sprites and their image bases, the placeholder image. Now 252/252 and all 137 local captures identical.
+- 2026-09-23: fleet round 2 (fresh seeds, half at the normal 3 hp): 250/252; fixes: 3212:06BA compares the gate
+  modifier as a byte (> 0x40), 366C:1166 (skeleton collapse on landing), 33FD:0754 wired (caverns floor landing).
+  The pulled F*/R* captures joined tests/run_all.sh.

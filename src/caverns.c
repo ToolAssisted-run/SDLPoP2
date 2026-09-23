@@ -216,3 +216,4 @@ int gate_squeeze(int si)
 	return si;
 }
 int boxes_overlap_pub(const int16_t *a, const int16_t *b) { return boxes_overlap(a, b); }
+void floor_collapse_pub(void) { floor_collapse(); }

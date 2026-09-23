@@ -81,7 +81,7 @@ void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { wall_collision(row, r, f); 
 int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { return wall_edge(dir, room, row); }   /* 347C:0368 */
 int16_t ovl_352ca(void) { return wall_limit(Char.room, Char.curr_row); }   /* 1375:14FC -> 347C:0B0A */ void ovl_3211a(void) { note(" 3211a"); }
 void ovl_348e6(void) { if (level_kind == 4) ruins_crumble(); else note(" CHOMPER"); }   /* 347C:0126 */ void ovl_3564e(void) { note(" 3564e"); }
-void ovl_34724(void) { note(" 34724"); } void ovl_37826(void) { note(" 37826"); }
+void ovl_34724(void) { if (level_kind == 3) floor_collapse_pub(); else note(" 34724"); }   /* 33FD:0754 (OVL04, caverns.c) */ void ovl_37826(void) { skel_collapse(); }   /* 366C:1166 (skeleton.c) */
 void ovl_349be(void) {} void fall_scream_1611_0030(void) {} void sound_194c_83d2(uint16_t n) { (void)n; } int sound_playing_8426(void) { return 0; }
 
 static uint16_t guard_bank2[8];

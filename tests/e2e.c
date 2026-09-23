@@ -223,6 +223,7 @@ int main(int argc, char **argv)
 			uint8_t kt0[0x70], bf0 = bios_shift_flags; memcpy(kt0, key_table, sizeof kt0);
 			if (can_retry) state_save(st0);
 			cur_tick_ix = tick_ix - 1; sq_forced = 0; sq_count = 0;
+			{ extern int coll_debug; coll_debug = getenv("E2E_COLL") && ticks + 1 == atoi(getenv("E2E_COLL")); }   /* collision trace for one tick */
 			frame_begin(); r = tick_main();
 			#define TICK_DIFFERS() (memcpy(got, postmem[tick_ix - 1], SNAP_SIZE), snap_store(got), snap_diff(got, postmem[tick_ix - 1], regions, 0))
 			if (can_retry && r == 0 && TICK_DIFFERS()) {

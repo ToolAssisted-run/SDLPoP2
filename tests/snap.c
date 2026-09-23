@@ -33,6 +33,9 @@ void snap_load(const uint8_t *ds)
 {
 	for (int i = 0; i < NF; i++) if (in_snap(i)) memcpy(fields[i].p, ds + fields[i].ds - SNAP_BASE, fields[i].size);
 	curr_modifier = ds[0x612F - SNAP_BASE] | ds[0x6130 - SNAP_BASE] << 8;
+	{ int t = (ds[0x613C - SNAP_BASE] | ds[0x613D - SNAP_BASE] << 8) - 0x2B9A, a = (ds[0x613A - SNAP_BASE] | ds[0x613B - SNAP_BASE] << 8) - 0x2F00;   /* DS:613C/613A room pointers */
+	  if (t >= 0 && t < 33 * 30) curr_room_tiles = t < 30 ? tiles0 + t : (uint8_t *)&level + (t - 30);
+	  if (a >= 0 && a < 33 * 0x78) curr_room_attrs = (uint32_t *)((uint8_t *)&level + 0x348 + a); }
 	level_kind = level.hdr_pad2[4]; level_number = level.number; word_32d8 = counter_5cec;
 }
 void snap_store(uint8_t *ds) { for (int i = 0; i < NF; i++) if (in_snap(i)) memcpy(ds + fields[i].ds - SNAP_BASE, fields[i].p, fields[i].size); }

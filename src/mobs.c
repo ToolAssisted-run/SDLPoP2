@@ -30,7 +30,7 @@ trob_type *get_trob(int8_t tp, uint8_t room) { for (int i = 0; i < (int16_t)trob
 /* 1375:11A6: a button acts on a gate (4 opener/raise, 5 raise, 6 closer, 0xE stuck-open plate); returns the gate's new animation state or -1 */
 static int gate_trigger(uint8_t button, int8_t tp, uint8_t room)
 {
-	uint16_t *a = attr_lo(room, tp); uint16_t pos = *a & 0xFF, hi = *a & 0xFF00;
+	uint16_t *a = (uint16_t *)&curr_room_attrs[tp]; uint16_t pos = *a & 0xFF, hi = *a & 0xFF00;   /* pointers from the chain's get_room_address */
 	switch (button) {
 	case 0x22: return ovl_button22(room, tp);
 	case 5:
@@ -80,7 +80,7 @@ void trigger_links(int link, uint8_t button)
 	if (link == 0xFD) return;
 	do {
 		uint8_t room = link_room(link); int8_t tp = link_tilepos(link);
-		uint8_t t = room_tiles(room)[tp];
+		get_room_address(room); uint8_t t = curr_room_tiles[tp];
 		int r = trigger_target(button, tp, room, t);
 		if ((int8_t)r >= 0) add_trob(t, r, tp, room);
 		link = link_next(link);
@@ -344,6 +344,7 @@ static void mob_update(void)
 {
 	switch (cur_mob.type) {
 	case 0: case 1: case 3: mob_fall(); if (cur_mob.speed <= 0) cur_mob.speed++; mob_hits_chars(); break;
+	case 4: trap_update(); break;
 	default: ovl_mob_other(cur_mob.type); break;
 	}
 }
@@ -402,3 +403,6 @@ int ovl_button22(uint8_t room, int8_t tp)
 	if (pos == 0x24) return -1;
 	return Kid.alive < 0 ? 4 : -1;
 }
+mob_type *find_mob_pub(int n, uint8_t type) { return find_mob(n, type); }
+void add_mob_pub(void) { add_mob(); }
+int8_t mob_col_pub(void) { return mob_col(); }

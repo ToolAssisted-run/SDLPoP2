@@ -39,7 +39,7 @@ uint8_t kid_f34, byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t 
 int shadow_seq_2f86a(void) { return -1; } int sword_seq_0317c4(void) { note(" sword0317c4?"); return -1; }
 void ovl_2f86_0a5c(void) { note(" 2f86_0a5c"); } uint8_t find_char_02dcc8(void) { return (uint8_t)find_opponent(Char.direction); } void shadow_2fba4(void) {} void ovl_34024(void) {}
 void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) {} int ovl_34350(void) { return 0; } int ovl_35240(int a) { (void)a; return 0; } int ovl_34ab2(void) { return 0; }
-int control_sword_check_030e3c(void) { note(" swordcheck?"); return 0; } void ovl_384e8(void) {} int ovl_32a0e(void) { note(" 32a0e?"); return 0; } int8_t tile_col_in_drawn_room(void) { return tile_col; }
+int control_sword_check_030e3c(void) { note(" swordcheck?"); return 0; } void ovl_384e8(void) {} int ovl_32a0e(void) { note(" 32a0e?"); return 0; } 
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) {} int level_door_open_0cfa(void) { return curr_modifier > 0x29; } void ovl_30b52(void) { note(" 30b52"); }
 uint16_t word_922e, word_922c, word_8604, word_927e;
 int ovl_377c6(void) { return 0; } void ovl_3741a(void) {} 
@@ -77,7 +77,7 @@ int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { (void)row; (void)room;
 void ovl_348e6(void) { note(" CHOMPER"); } void ovl_3564e(void) { note(" 3564e"); }
 void ovl_34724(void) { note(" 34724"); } void ovl_37826(void) { note(" 37826"); }
 void ovl_349be(void) {} void fall_scream_1611_0030(void) {} void sound_194c_83d2(uint16_t n) { (void)n; } int sound_playing_8426(void) { return 0; }
-void level_kind_hooks(void) { note(" kindhooks"); }
+
 static uint16_t guard_bank2[8];
 const uint16_t *refract_timer; static uint16_t refract_tbl[16];
 static dat_file kiddat, guardshp; static int kiddat_ok, guardshp_ok;
@@ -118,7 +118,7 @@ __attribute__((weak)) int play_kid_control(void) { note(" play_kid_control?"); r
 /* guard.c / play_all_chars stubs */
 int ovl_383d2(void) { note(" 383d2?"); return 1; }
 void ovl_shadow_37f0_78(void) { note(" shadow78"); } void ovl_366c_10cc(void) { note(" 10cc?"); } void ovl_33fd_694(void) { note(" 694?"); } void ovl_366c_e0a(void) { note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
-int ovl_36ed6(int16_t d) { (void)d; note(" 36ed6?"); return -1; } void dead_char_sound_1611(void) {} void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); } void level_kind_hooks_char(void) { note(" kindhooks_char"); }
+int ovl_36ed6(int16_t d) { (void)d; note(" 36ed6?"); return -1; } void dead_char_sound_1611(void) {} void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); }
 
 /* fight/tick stubs */
 int ovl_366c_6ac(void) { note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } void ovl_366c_1166(void) { note(" 1166?"); } void ovl_33fd_6ae(void) { note(" 6ae?"); }
@@ -132,3 +132,6 @@ void ovl_347c_b3e(uint8_t r, int8_t tp, int k) { (void)r; (void)tp; (void)k; not
 int ovl_2a31_dad(uint8_t r, int8_t tp) { (void)r; (void)tp; note(" dad?"); return -1; } void ovl_33fd_4d0(uint8_t r, int8_t tp) { (void)r; (void)tp; note(" 4d0?"); }
 int ovl_33fd_b0e(int si) { note(" b0e?"); return si; } void ovl_347c_e8e(void) { note(" e8e?"); } void ovl_347c_126(void) { note(" 126?"); }
 void ovl_366c_1294(int8_t row, uint8_t r) { (void)row; (void)r; note(" 1294?"); } void ovl_mob_other(uint8_t t) { char m[24]; snprintf(m, sizeof m, " MOB%u?", t); note(m); } int ovl_torch_347c(int c) { note(" torch347c?"); return c; }
+int ovl_347c_a0e(void) { note(" a0e?"); return 0; } void ovl_366c_13e8(void) { note(" 13e8?"); }
+void note_missing(const char *what) { char m[40]; snprintf(m, sizeof m, " %s?", what); note(m); }
+void ovl_347c_e48(void) { note(" e48?"); } void ovl_33fd_b2(void) { note(" 33fd_b2?"); } void ovl_33fd_118(void) { note(" 33fd_118?"); } void ovl_kind6_char(void) { note(" kind6?"); }

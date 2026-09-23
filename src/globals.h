@@ -124,10 +124,16 @@ void falling_floors(void); void animate_tiles(void); void ovl_366c_f60(void); vo
 extern trob_type trobs[20], cur_trob; extern uint16_t trob_count; extern uint32_t anim_mod; void add_trob(uint8_t tile, uint8_t state, int8_t tilepos, uint8_t room); void anim_tile_other(uint8_t t);
 void start_room_anims(void); void anim_start_other(uint8_t t, int8_t tilepos, uint8_t room, int si);
 /* mobs.c */
-extern mob_type mobs[30], cur_mob; extern uint16_t mob_count; extern int16_t cur_mob_index; extern uint32_t *anim_attrs;
+extern mob_type mobs[30], cur_mob; extern uint16_t mob_count; extern int16_t cur_mob_index;
 void mobs_set_tables(const uint8_t *ds); trob_type *get_trob(int8_t tp, uint8_t room); void trigger_links(int link, uint8_t button);
 void press_button(int link, uint8_t tile); void press_button_hold(void); void anim_button(void); void anim_gate(void); void anim_loose(void);
 void loose_floor_touch(int8_t arg); void loose_floor_shake(void); void shake_loose_row(int8_t row, uint8_t room); void falling_floors(void);
 int exit_door_speed(int state);
 int ovl_button22(uint8_t room, int8_t tp); void ovl_347c_b3e(uint8_t room, int8_t tp, int k); int ovl_2a31_dad(uint8_t room, int8_t tp); void ovl_33fd_4d0(uint8_t room, int8_t tp);
 int ovl_33fd_b0e(int si); void ovl_347c_e8e(void); void ovl_347c_126(void); void ovl_366c_1294(int8_t row, uint8_t room); void ovl_mob_other(uint8_t type); int ovl_torch_347c(int cur);
+extern uint8_t *curr_room_tiles; extern uint32_t *curr_room_attrs;   /* DS:613C / 613A, set by get_room_address (17C1:0008; room 0 keeps them) */
+/* trap.c */
+void trap_room_entry(int8_t tp, uint8_t room); void trap_catch_check(void); void trap_touch_check(void); void trap_update(void); int ovl_347c_a0e(void); void ovl_366c_13e8(void);
+mob_type *find_mob_pub(int n, uint8_t type); void add_mob_pub(void); int8_t mob_col_pub(void);
+/* hooks.c */
+void level_kind_hooks_char(void); void note_missing(const char *what); void ovl_347c_e48(void); void ovl_33fd_b2(void); void ovl_33fd_118(void); void ovl_kind6_char(void);

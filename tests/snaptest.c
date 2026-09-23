@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 		else if (chars_mode) { if (nch > 0) busy++; play_all_chars(); }
 		else { check_kid_left_room(); switch_room(); if (drawn_room != dr0) busy++; }
 		memcpy(got, a, SNAP_SIZE); snap_store(got);
-		if (tick_mode) { const char_type *ek = (const char_type *)(b + 0x5B36 - SNAP_BASE); if (ek->frame == 0xB9 && ek->alive >= 0 && Kid.alive >= 0) { Kid.alive = ek->alive; snap_store(got); } }   /* death counter waits for the death sound (not modelled) */
+		if (tick_mode) { const char_type *ek = (const char_type *)(b + 0x5B36 - SNAP_BASE); if (ek->alive >= 0 && Kid.alive >= 0) { char_type k = Kid; k.alive = ek->alive; if (!memcmp(&k, ek, 64)) { Kid.alive = ek->alive; snap_store(got); } } }   /* death counter waits for the death sound (not modelled) */
 		int d = snap_diff(got, b, regions, 0);
 		if (d) { bad++; if (!only || only == n) { printf("case %d (frame %u): room %u, %d chars [%s]\n", n, frame, dr0, nch, stubs_log()); snap_diff(got, b, regions, 1); } }
 	}

@@ -9,10 +9,11 @@ trob_type trobs[20]; uint16_t trob_count;        /* DS:6676, DS:6670 */
 trob_type cur_trob;                              /* DS:6672 */
 uint32_t anim_mod;                               /* DS:5CF0 */
 uint8_t anim_tile;                               /* DS:6B72 */
-uint32_t *anim_attrs; static uint8_t *anim_tiles;
+#define anim_attrs curr_room_attrs
+#define anim_tiles curr_room_tiles
 
 /* 17C1:0000: tile and attribute pointers of any room (room 0 = the dummy room) */
-static void room_pointers(uint8_t room) { anim_tiles = room ? level.tiles[room - 1] : tiles0; anim_attrs = (uint32_t *)((uint8_t *)&level + 0x348) + room * 30; }
+static void room_pointers(uint8_t room) { get_room_address(room); }
 /* 1375:2620: is the tile on screen (drawn room, or the edge column/row shared with the left, lower and lower-left rooms)? */
 static int tile_visible(int8_t tilepos, uint8_t room)
 {
@@ -137,7 +138,8 @@ void start_room_anims(void)
 		case 0x1C: case 0x1D: case 0x1F: case 0x25: case 0x26: case 0x27: case 0x28: case 0x2B: add_trob(t, 1, tp, room); break;
 		case 0x0A: if (si < 0x21) start_0a(tp, room); break;
 		case 0x13: case 0x20: start_torch(tp, room); break;
-		case 0x02: case 0x17: case 0x1E: case 0x2C: anim_start_other(t, tp, room, si); break;
+		case 0x02: trap_room_entry(tp, room); break;   /* 186A:0226 (every kind: the tile only exists on kind 3) */
+		case 0x17: case 0x1E: case 0x2C: anim_start_other(t, tp, room, si); break;
 		default: if ((room == 6 || room == 7 || room == 8) && level_kind == 6 && (anim_mod & 0x1000)) anim_start_other(t, tp, room, si); break;
 		}
 	}

@@ -3,7 +3,7 @@
 #include "globals.h"
 
 uint8_t curr_tile; uint16_t curr_modifier; uint8_t curr_tilepos, curr_room; int8_t tile_col, tile_row;
-static const uint8_t *curr_room_tiles; static const uint32_t *curr_room_attrs;
+uint8_t *curr_room_tiles; uint32_t *curr_room_attrs;   /* DS:613C / 613A */
 
 /* 17C1:0008 */
 void get_room_address(uint8_t room)

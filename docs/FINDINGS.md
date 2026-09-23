@@ -276,6 +276,14 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   edge). 03D2: room ahead (column < 3 facing right, > 3 facing left). Tile 0x2C anim (0588): frame 0/1 by
   random(3) where DS:2B78 has the column.
 
+### 5.7d Level 5's room 3 (OVL11 at 37F0, lever5.c)
+- Loaded with room description 0 (hook 37F0:0000 allocates a zeroed heap block at DS:2B76; flags at +0x3C, +0x3E).
+  Crouching on the trap tile 0x12 (row 2, col 3; 2FDF:088F -> 05E8) starts seq 0x80 (x 0x10C, or 0x120 facing
+  right); at frame 0x127 (2FDF:048C -> 04FA) the trap's tile is removed (1375:17FC) and the seq lifts the prince; above
+  y 0x37 with the mouth (tile 0x1B, row 0 col 6; attribute nibble >= 3 = open) closed he is caught (y 0x14, f24 0xA,
+  seq 0x81), then take_hp(100). Tile 0x1B's animation (0676): trob state 0 opens to 3, else closes to 0. Button
+  links to it (1375:1396 -> 0786): 0 closed, 1 open, -1 moving (attr bit 0x800 or other values).
+
 ### 5.7c Level 13's shadow room (OVL13 at 37F0, shadow13.c)
 - Room 4 (background 0x20): the kind-2 tick (347C:0FC4 -> 37F0:0236): walking left on row 1 past x 0xDA kills the
   prince (seq 0xE6, x 0xD2, DS:310C = 0x85); dying there (frame 0xB9, f24 != 0xC) once (DS:0996 1 -> -1) raises the
@@ -471,5 +479,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - 2026-09-23: fleet round 4 (explorer cells keyed by the live animation count too): 248/252; fixes: 33FD:09EE (level
   2: landing from a jump presses the puzzle tiles, was an empty stub), 2FDF:232A (crushed by a caverns gate: seq
   0x76, take_hp(100)), 366C:11F8 wired. Silent stubs audited: 366C:0D5A is a bare retf in OVL09 (charids 7/8, correct
-  as empty); OVL11 (level 5 room 3, lever/frame 0x127 event, flags in the DS:2B76 heap block +0x3C/+0x3E; 37F0:05E8,
-  04FA, 0676 tile 0x1B) not reconstructed yet, now noted when reached.
+  as empty); OVL11 reconstructed later (5.7d).
+- 2026-09-24: level 5 room 3 trap and mouth (OVL11, lever5.c); X5_3 (crouch on the trap, caught) identical.

@@ -53,8 +53,8 @@ void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", co
 uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_8a84;
 
 void ovl_2f86_0a5c(void) { turn_flash(); } 
-void ovl_383fa(void) { note(" 383fa"); } void ovl_35a88(void) { ruins_open_tile7(); }   /* 347C:12C8 (ruins.c) */ int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ 
-int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF:104C */ void ovl_384e8(void) { note(" 384e8"); }   /* 37F0:05E8 (OVL11, level 5 room 3: crouching at tile 0x12 -> seq 0x80) */ int ovl_32a0e(void) { return under_gate(); }   /* 3212:08EE (control.c) */ 
+void ovl_35a88(void) { ruins_open_tile7(); }   /* 347C:12C8 (ruins.c) */ int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ 
+int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF:104C */  int ovl_32a0e(void) { return under_gate(); }   /* 3212:08EE (control.c) */ 
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) { turn_count(); }   /* 2F86:0078 (spirit.c) */
 uint16_t word_922e, word_8604, word_927e;
 int ovl_377c6(void) { return level_kind == 4 ? head_biting(Char.index, Char.room) : 0; }   /* 366C:1106 */ void ovl_3741a(void) {}   /* 366C:0D5A: a bare retf in OVL09 (the heads levels) */ 
@@ -193,7 +193,7 @@ void level_kind_tick(void) { if (level_kind == 5) kind5_tick();   /* 33FD:0232 (
 void anim_start_other(uint8_t t, int8_t tp, uint8_t room, int si) { (void)tp; (void)room; (void)si; char m[24]; snprintf(m, sizeof m, " ASTART%02X?", t); note(m); }
 /* mobs stubs */
 void ovl_347c_b3e(uint8_t r, int8_t tp, int k) { wall_trigger(r, tp, k); }   /* walls.c */
-int ovl_2a31_dad(uint8_t r, int8_t tp) { (void)r; (void)tp; note(" dad?"); return -1; }
+
 void ovl_347c_e8e(void) { slab_shake(); } void ovl_347c_126(void) { if (level_kind == 4) ruins_crumble(); else note(" 126?"); }
 void ovl_mob_other(uint8_t t) { if (t == 10 && level_kind == 2) { slab_mob(); return; } if (t == 6 && level_kind == 2) { wall_move(); wall_push_kid(); return; }   /* 347C:07D4, 027A */
  char m[24]; snprintf(m, sizeof m, " MOB%u?", t); note(m); } int ovl_torch_347c(int c) { if (level_kind == 2) return temple_torch(c); note(" torch347c?"); return c; }

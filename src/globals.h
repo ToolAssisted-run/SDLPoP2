@@ -218,3 +218,4 @@ void floor_draw_state(void); void trap_draw_state(void);   /* mobs.c */
 #define word_4406 (*(uint16_t *)((uint8_t *)&level + 0x184E))   /* DS:4406 */
 void floor_collapse_pub(void);
 int room_draws_sword_pub(uint8_t room);
+void lever5_enter(void); void anim_tile1b(void); extern uint16_t lever5_flag3c, lever5_flag3e;   /* lever5.c */

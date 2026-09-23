@@ -121,7 +121,6 @@ void stubs_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2
 { memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; guard_set_prob_tables(ram + 0x3B250); mobs_set_tables(ram + 0x3B250); caverns_set_tables(ram + 0x3B250); for (int i = 0; i < 16; i++) refract_tbl[i] = ram[0x3B250 + 0x13D0 + 2 * i] | ram[0x3B250 + 0x13D1 + 2 * i] << 8; refract_timer = refract_tbl;
   for (int i = 0; i < 8; i++) { uint16_t p = ram[0x3B250 + 0x6BC + 2 * i] | ram[0x3B250 + 0x6BD + 2 * i] << 8; guard_bank2[i] = p ? (ram[0x3B250 + p] | ram[0x3B250 + p + 1] << 8) : 0;
     env_bank2[i] = (int16_t)(ram[0x3B250 + 0x5AC + 2 * i] | ram[0x3B250 + 0x5AD + 2 * i] << 8); } }
-__attribute__((weak)) int play_kid_control(void) { note(" play_kid_control?"); return -2; }   /* ticktest supplies the captured-input version */
 
 /* guard.c / play_all_chars stubs */
 int ovl_383d2(void) { note(" 383d2?"); return 1; }
@@ -156,3 +155,6 @@ void stubs_select_guard_dat(uint8_t type)
 	frame_table_guard = f ? f : kidtab;
 }
 int ovl_2a31_ddf(void) { note(" ddf?"); return 1; }
+int hotkeys_02be(void) { return 0; }   /* 0823:02BE: pause / restart / sound keys from the BIOS buffer */
+void seq_music_1611(uint8_t m) { (void)m; } void restart_prompt(void) { note(" restart"); }   /* 1611:0002 death music; 169B:123E prompt */
+__attribute__((weak)) int death_sound_playing(int both) { (void)both; return 0; }

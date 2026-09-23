@@ -26,7 +26,8 @@ static struct field fields[] = {
 	{"knock", 0x613E, 2, &knock}, {"word_6140", 0x6140, 2, &word_6140}, {"word_6142", 0x6142, 2, &word_6142}, {"word_8a84", 0x6144, 2, &word_8a84}, {"word_6146", 0x6146, 2, &word_6146},
 	{"word_922a", 0x68EA, 2, &word_922a}, {"word_922e", 0x68EE, 2, &word_922e}, {"word_68f0", 0x68F0, 2, &word_68f0}, {"exit_dir", 0x68F2, 2, &exit_dir},
 	{"byte_9276", 0x6936, 1, &byte_9276}, {"prev_coll_flags", 0x6948, 10, prev_coll_flags}, {"curr_row_coll_flags", 0x6952, 10, curr_row_coll_flags},
-	{"next_room", 0x6B6D, 1, &next_room}, {"random_seed", 0x2B7A, 4, &random_seed}, {"word_68ec", 0x68EC, 2, &word_68ec}, {"byte_5cba", 0x5CBA, 1, &byte_5cba}, {"mob_count", 0x6186, 2, &mob_count}, {"mobs", 0x293E, 390, mobs}, {"trob_count", 0x6670, 2, &trob_count}, {"trobs", 0x6676, 80, trobs}, {"word_5ce8", 0x5CE8, 2, &word_5ce8}, {"floor_ptrs", 0x2B6C, 8, floor_ptrs},
+	{"next_room", 0x6B6D, 1, &next_room}, {"random_seed", 0x2B7A, 4, &random_seed}, {"word_68ec", 0x68EC, 2, &word_68ec}, {"byte_5cba", 0x5CBA, 1, &byte_5cba}, {"mob_count", 0x6186, 2, &mob_count}, {"mobs", 0x293E, 390, mobs}, {"trob_count", 0x6670, 2, &trob_count}, {"trobs", 0x6676, 80, trobs}, {"word_5ce8", 0x5CE8, 2, &word_5ce8}, {"floor_ptrs", 0x2B6C, 8, floor_ptrs}, {"kid_ctrl1_saved", 0x6128, 5, kid_ctrl1_saved}, {"word_5d38", 0x5D38, 2, &word_5d38},
+	{"word_5cd2", 0x5CD2, 2, &word_5cd2}, {"word_5cd0", 0x5CD0, 2, &word_5cd0}, {"word_5cda", 0x5CDA, 2, &word_5cda}, {"word_5cdc", 0x5CDC, 2, &word_5cdc},
 };
 #define NF (int)(sizeof fields / sizeof fields[0])
 void snap_load(const uint8_t *ds)

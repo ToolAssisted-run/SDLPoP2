@@ -144,3 +144,7 @@ void add_mob(void); extern mob_type cur_mob; mob_type *find_mob_pub(int n, uint8
 /* caverns.c */ void rock_drop(uint8_t room, int8_t tp); void anim_rock(void); void rocks_hit_char(void); void rock_fly(void);
 extern uint16_t floor_ptrs[4]; extern uint8_t floor_objs[4][0x65]; void caverns_set_tables(const uint8_t *ds); void floor_room_entry(uint8_t room, int8_t tp);
 void floor_free_all(void); void anim_floor(void); void floor_touch_check(void); int gate_squeeze(int si); int door_speed_0776(int st); trob_type *get_trob(int8_t tp, uint8_t room);
+/* input.c */ extern uint8_t key_table[0x70], bios_shift_flags; extern int16_t joy_x, joy_y, joy_cx, joy_cy; extern uint8_t joy_button; extern uint16_t input_device;
+int read_input(void); int hotkeys_02be(void);
+/* kidctl.c */ extern int8_t kid_ctrl1_saved[5]; extern uint16_t word_5d38, word_5cd2, word_5cd0, word_5cda, word_5cdc; int play_kid_control(void);
+void seq_music_1611(uint8_t m); void restart_prompt(void); int death_sound_playing(int both);   /* platform: 194C:8426 on DS:0882 (and DS:0884) */

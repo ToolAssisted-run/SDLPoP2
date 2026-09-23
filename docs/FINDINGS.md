@@ -299,7 +299,12 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   0x110..0x119 (2FDF:048C -> 1F8A) launch a fireball at 0x119 (1FA0): falling object type 0xC (1375:1B10 -> 1ED0):
   x speed +-8 growing by 2 to 16, frames 0..3, bursts (wd bit 8, 5 more steps) at a wall (1DC0, 0FB3:290A) or on
   Jaffar (1CEA, the kind-6 character hook: take_hp(100), seq 0xF3, next_room = his room).
-- Not reconstructed: the drawing hooks (0000, 0330, 1512, 15E8, 16D8, 1898, 1ACA, 1E72); 2FDF:19D4's sword-drawing
+- Drawing a fireball (1375:205C -> 1BE6) changes state: one in the left/right room that shows is moved into the
+  drawn room (x -+ 0x140), and DS:0842 = the drawn image's width (image 0x130 + frame, 0x134 + step when bursting;
+  kid chtab ids 25001 + image + 1 - 400, found in FINAL.DAT through the resource chain; 17 at start); the wall test
+  (1DC0) uses DS:0842. The shift key gives ctrl1_shift -1, Ctrl (BIOS flag 4) -2: the spirit's cast and the
+  prince's sword are Ctrl (pop2_input.shift = 2; plan2script writes flag 4).
+- Not reconstructed: the other drawing hooks (0000, 0330, 1512, 15E8, 16D8, 1898, 1ACA, 1E72); 2FDF:19D4's sword-drawing
   paths (noted). The climb needs the spirit (> 4 hp at the 8th turn); a LEVEL14 start has 3 hp (captures poke 8).
 
 ### 5.11 Sound and timing dependencies (platform)
@@ -382,3 +387,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   explore to room 8) identical; e2e applies DS probepokes (POKE_HP); coretest reaches no unreconstructed routine.
 - 2026-09-23: spirit rejoin/death and the body's drain (2F86:000A/040C/04CE/0344, 2FDF:09B2); X14_3 (hp 12, 11 chained
   turns in room 7) identical; room hooks 0x14..0x16, 0x1F; tile 0xC on kinds 2/4.
+- 2026-09-23: fireball draw state (DS:0842), Ctrl input; X14_4 (the spirit walks off and casts; the fireball bursts on
+  a wall) identical.

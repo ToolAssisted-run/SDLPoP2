@@ -206,3 +206,4 @@ void anim_tile1f(void); void anim_tile28(void); void anim_tile29(void); void ani
 void start_0a_pub(int8_t tp, uint8_t room); int8_t tilepos_or_30_pub(int8_t row, int8_t col); int save_to_record_pub(void); void jaffar_leaves_room6(void); void fireball_update(void); mob_type *find_mob_pub(int n, uint8_t type); void add_mob_pub(void);
 const uint8_t *ds_ptr(uint16_t a);
 int8_t body_index(void);   /* spirit.c 2F86:03CC */
+void fireball_draw_state(void); extern int16_t fireball_width; int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);

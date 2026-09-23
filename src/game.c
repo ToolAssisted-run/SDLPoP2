@@ -58,6 +58,7 @@ static void draw_mobs_state(void)
 	for (int i = 0; i < (int16_t)mob_count; i++) {
 		cur_mob = mobs[i];
 		if (cur_mob.type == 10 && level_kind == 2) slab_draw_state();   /* 347C:0C22 */
+		else if (cur_mob.type == 0xC) fireball_draw_state();   /* 33FD:1BE6 (final.c) */
 		mobs[i] = cur_mob;
 	}
 }

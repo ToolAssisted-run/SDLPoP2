@@ -18,7 +18,7 @@ for k, (x, y, sh) in enumerate(ticks, 1):
     table = bytearray(0x70)
     if (x, y) in pos: table[pos[(x, y)]] = 1
     out.append("probepoke ds_tick %d 3CF50 %s\n" % (k, table.hex().upper()))
-    out.append("probepoke ds_tick %d 417 %02X\n" % (k, 2 if sh else 0))
+    out.append("probepoke ds_tick %d 417 %02X\n" % (k, 4 if sh == 2 else 2 if sh else 0))   # shift 2 = Ctrl
 # after the plan: nothing held
 out.append("probepoke ds_tick %d 3CF50 %s\nprobepoke ds_tick %d 417 00\n" % (len(ticks) + 1, "00" * 0x70, len(ticks) + 1))
 out.append("end %d\n" % (600 + 7 * len(ticks) + 200))

@@ -39,7 +39,7 @@ int pop2_frame(const pop2_input *in)
 	memset(key_table, 0, sizeof key_table);
 	if (in->x < 0) key_table[0x58] = 1; else if (in->x > 0) key_table[0x5A] = 1;
 	if (in->y < 0) key_table[0x55] = 1; else if (in->y > 0) key_table[0x5D] = 1;
-	bios_shift_flags = in->shift ? 2 : 0;
+	bios_shift_flags = in->shift == 2 ? 4 : in->shift ? 2 : 0;   /* 2 = Ctrl (the sword / the spirit's cast) */
 	if (in->keystroke) pop2_keystrokes = 1;
 	missing_reset();
 	int r = play_frame();

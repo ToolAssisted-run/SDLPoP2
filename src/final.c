@@ -501,10 +501,11 @@ void ovl_kind6_char(void)
 		next_room = Char.room;
 	}
 }
+extern int16_t fireball_width;
 /* 33FD:1DC0: a fireball meets a wall: it bursts there */
 static void fireball_wall(void)
 {
-	int16_t bx = 17 + cur_mob.x - 0xE; if (cur_mob.w7 < 0) bx -= 2 * 17;   /* DS:0842 = 17 */
+	int16_t bx = fireball_width + cur_mob.x - 0xE; if (cur_mob.w7 < 0) bx -= 2 * fireball_width;   /* DS:0842 */
 	int16_t a = bx < 0 ? -bx : bx; int8_t col = (int8_t)(bx < 0 ? -(a >> 5) : a >> 5); if (bx < 0) col--;
 	if (!tile_is_wall_kind(get_tile(cur_mob.row, col, cur_mob.room))) return;
 	cur_mob.x = col * 32 + 0xE; if (cur_mob.w7 < 0) cur_mob.x += 0x20;
@@ -558,4 +559,19 @@ int sword_seq_0317c4(void)
 	if (r != -1 && r != 0xF2) play_sound(0x13);
 	else if (Char.f10 != 0xFF) Char.f10 = 0;
 	return r;
+}
+/* 33FD:1BE6 (1375:205C, drawing a falling object of type 0xC): the state it leaves: a fireball in the left or right
+ * room that shows is moved into the drawn room's coordinates, and DS:0842 keeps the drawn image's width (the wall test
+ * uses it; 17 at start) */
+int16_t fireball_width = 17;   /* DS:0842 */
+void fireball_draw_state(void)
+{
+	int vis = 1;
+	if (cur_mob.room == drawn_room) vis = cur_mob.x <= 0x1C1 && cur_mob.x >= 0;
+	else if (cur_mob.room == room_L) { if (fireball_width + cur_mob.x > 0x140) { cur_mob.x -= 0x140; cur_mob.room = drawn_room; } else vis = 0; }
+	else if (cur_mob.room == room_R) { if (cur_mob.x - fireball_width < 0x140) { cur_mob.x += 0x140; cur_mob.room = drawn_room; } else vis = 0; }
+	else vis = 0;
+	if (!vis) return;
+	int16_t h, w; int image = (cur_mob.wd & 8 ? 0x134 : 0x130) + (cur_mob.wd & 7);   /* 33FD:1EB0 */
+	if (res_image_size(2, (int16_t)image, &h, &w)) fireball_width = w;   /* (DS:0828 = h) */
 }

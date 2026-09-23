@@ -6,7 +6,7 @@
 
 typedef struct pop2_input {
 	int8_t x, y;         /* -1 left / up, 1 right / down (a 3x3 grid, as the arrows and Home/PgUp/End/PgDn give) */
-	uint8_t shift;       /* shift held */
+	uint8_t shift;       /* 1 shift held, 2 Ctrl held (draw the sword; the spirit casts) */
 	uint8_t keystroke;   /* a key was pressed this tick (a dead prince restarts on any key) */
 } pop2_input;
 

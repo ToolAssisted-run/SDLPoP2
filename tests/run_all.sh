@@ -22,11 +22,13 @@ fi
 # end to end: from the oracle's snapshot after the level load, everything in C with the script's keys (LS* captures)
 if [ "$mode" = tick ]; then
 gcc -O2 -g -Wall -o $W/e2e tests/e2e.c tests/testutil.c tests/snap.c src/*.c
-# every level-start capture in the oracle directory (LS*: level 3 from its load; E<level>_<seed>: gen_e2e.py random runs),
+# every level-start capture in the oracle directory (LS*: level 3 from its load; E<level>_<seed>: gen_e2e.py random runs;
+# T<level>_<gap>: gen_turns.py), all fields compared (E2E_STRICT; a "strict:" list names any that differ),
 # from the captured post-load state and from a cold start (the core's new game: zeroed memory + PRINCE.EXE)
 ram_of() { case $1 in LSL3*|E4_1) echo ramL3;; E1_1) echo ram1436;; E6_1) echo ramL6;; E10_1) echo ramL10;; *) echo ram$1;; esac; }
-for f in $O/LSL3r1-snap.txt $O/LSL3skel2-snap.txt $(ls $O/E*_*-snap.txt | sort -V); do s=$(basename $f -snap.txt); r=$(ram_of $s); [ -f $O/w/$r.bin ] || continue
-  echo "$s $($W/e2e $S/SEQUENCE.DAT $O/w/$r.bin $S/PRINCE.EXE $f $O/$s.script 2>/dev/null | tail -1 | cut -d';' -f1)"
+for f in $O/LSL3r1-snap.txt $O/LSL3skel2-snap.txt $(ls $O/E*_*-snap.txt $O/T*_*-snap.txt 2>/dev/null | sort -V); do s=$(basename $f -snap.txt); r=$(ram_of $s); [ -f $O/w/$r.bin ] || continue
+  out=$(E2E_STRICT=1 $W/e2e $S/SEQUENCE.DAT $O/w/$r.bin $S/PRINCE.EXE $f $O/$s.script 2>/dev/null)
+  echo "$s $(echo "$out" | tail -1 | cut -d';' -f1) $(echo "$out" | grep '^strict: .' | cut -c1-120)"
   echo "$s cold $(E2E_COLD=1 $W/e2e $S/SEQUENCE.DAT $O/w/$r.bin $S/PRINCE.EXE $f $O/$s.script 2>/dev/null | grep -E '^cold start|^e2e' | cut -d';' -f1 | tr '\n' ' ')"
 done
 fi

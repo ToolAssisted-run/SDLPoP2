@@ -49,12 +49,12 @@ void play_sound(uint16_t n) { (void)n; } void sound_1611_01a8(uint16_t n) { (voi
 void shadow_hook_2f9a2(void) { note(" shadow"); }
 void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", code); note(t); }
 /* control.c externs not yet reconstructed */
-uint8_t kid_f34, byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_6d46, word_8a84;
+uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_6d46, word_8a84;
 int shadow_seq_2f86a(void) { return -1; } int sword_seq_0317c4(void) { note(" sword0317c4?"); return -1; }
-void ovl_2f86_0a5c(void) { note(" 2f86_0a5c"); } void shadow_2fba4(void) {} void ovl_34024(void) {}
+void ovl_2f86_0a5c(void) { turn_flash(); } void shadow_2fba4(void) {} void ovl_34024(void) {}
 void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) {} int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { (void)a; return 0; } int ovl_34ab2(void) { return 0; }
 int control_sword_check_030e3c(void) { note(" swordcheck?"); return 0; } void ovl_384e8(void) {} int ovl_32a0e(void) { note(" 32a0e?"); return 0; } 
-int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) {}
+int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) { turn_count(); }   /* 2F86:0078 (spirit.c) */
 uint16_t word_922e, word_922c, word_8604, word_927e;
 int ovl_377c6(void) { return level_kind == 4 ? head_biting(Char.index, Char.room) : 0; }   /* 366C:1106 */ void ovl_3741a(void) {} 
 int rtlink_0dd5(void) { return 0; } 
@@ -184,4 +184,5 @@ __attribute__((weak)) void ambient_sound(void) {}
 int pop2_keystrokes;   /* keystrokes waiting (core input) */
 __attribute__((weak)) int bios_key(void) { if (pop2_keystrokes > 0) { pop2_keystrokes--; return 0x100; } return 0; }
 __attribute__((weak)) void platform_wait_frame(void) {}
+__attribute__((weak)) int frame_on_time(void) { return 1; }
 const uint8_t *level_resource(uint16_t id, uint16_t *size) { static dat_file d; static int ok; if (!ok) ok = dat_open(&d, game_path("PRINCE.DAT")) ? 1 : -1; return ok > 0 ? dat_find(&d, NULL, id, size) : NULL; }

@@ -33,7 +33,7 @@ const int snap_nfields = sizeof snap_fields / sizeof snap_fields[0];
 /* kept too, but not compared with the captures: DS variables outside the probed window, per-call scratch that
  * later calls read, and the C side's own state (the checkpoint copy, the collapsing floors) */
 extern mob_type cur_mob; extern int16_t cur_mob_index; extern uint8_t curr_tilepos, anim_tile;
-extern uint8_t kid_f34, byte_2ab4, edge_type, start_room; extern int16_t word_3bf62, word_440a;
+extern uint8_t byte_2ab4, edge_type, start_room; extern int16_t word_3bf62, word_440a;
 extern uint16_t word_6d46, word_2baa, word_922c, word_927e;
 static int16_t room_ptr_tiles, room_ptr_attrs;   /* curr_room_tiles / attrs as offsets (DS:613C / 613A) */
 static const state_field extra_fields[] = {
@@ -46,7 +46,7 @@ static const state_field extra_fields[] = {
 	{"level_switch", 0, sizeof(int), &level_switch}, {"floor_objs", 0, sizeof floor_objs, floor_objs},
 	{"word_27c0", 0, 2, &word_27c0}, {"counter_27d6", 0, 2, &counter_27d6}, {"flag_5cb9", 0, 1, &flag_5cb9}, {"byte_5cb8", 0, 1, &byte_5cb8},
 	{"is_feather_fall", 0, 2, &is_feather_fall}, {"obj_xl", 0, 1, &obj_xl}, {"word_2baa", 0, 2, &word_2baa}, {"word_37e8", 0, 2, &word_37e8},
-	{"word_922c", 0, 2, &word_922c}, {"word_927e", 0, 2, &word_927e}, {"kid_f34", 0, 1, &kid_f34}, {"byte_2ab4", 0, 1, &byte_2ab4},
+	{"word_922c", 0, 2, &word_922c}, {"word_927e", 0, 2, &word_927e}, {"byte_2ab4", 0, 1, &byte_2ab4},
 	{"edge_type", 0, 1, &edge_type}, {"start_room", 0, 1, &start_room}, {"word_3bf62", 0, 2, &word_3bf62}, {"word_440a", 0, 2, &word_440a}, {"word_6d46", 0, 2, &word_6d46},
 };
 #define NX (int)(sizeof extra_fields / sizeof extra_fields[0])

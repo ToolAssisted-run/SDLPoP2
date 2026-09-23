@@ -13,6 +13,7 @@ void get_room_address(uint8_t room)
 }
 /* 0AFF:07D4: tilepos of the first column of a row (negative rows wrap like PoP1's tbl_line) */
 static int8_t row_to_tilepos(int8_t row) { return row >= 0 ? row * 10 : row * 10 + 9; }
+int8_t row_tilepos(int8_t row) { return row_to_tilepos(row); }
 
 /* 0AFF:000C: resolve tile_col/tile_row into the neighbouring room through roomlinks[curr_room]. A missing left/right
  * neighbour gives room 0 with the column wrapped back into 0..9 (the row is still followed first). */

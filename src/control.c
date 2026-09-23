@@ -94,7 +94,7 @@ void control_turning(void)
 	if (Char.index == 10 && Char.f19 == 5) ovl_2f86_0a5c();
 	if (Char.frame == 48 && ctrl1_shift >= 0 && ctrl1_forward != 0 && ctrl1_up == 0 && ctrl1_down == 0) {
 		seqtbl_offset_char(43);
-		if (Char.charid == 0 && kid_f34 != 0) kid_f34 = 0;
+		if (Char.charid == 0 && Char.pal_slot != 0) Char.pal_slot = 0;   /* 2FDF:0E18 */
 	}
 }
 /* 2FDF:0E18 (031038) / 0E36 (031056) */
@@ -365,8 +365,8 @@ void control_standing_up(void)
 	control_jumpup_grab_031074();
 }
 
-/* 2FDF:0684 (030874): standing (frames 15, 50..52) */
-void control_standing(void)
+/* 2FDF:0684 (030874): standing (frames 15, 50..52); every branch ends in the tail below (2FDF:0C23) */
+static void control_standing_branches(void)
 {
 	if (level_kind == 2 || level_kind == 6) ovl_2f86_0a5c();
 	if (ctrl1_shift == -1 && control_sword_check_030e3c()) return;
@@ -402,6 +402,11 @@ void control_standing(void)
 		if (ctrl1_forward >= 0) { control_standing_up(); return; }
 	}
 	control_jump_031062();
+}
+void control_standing(void)
+{
+	control_standing_branches();
+	if (Char.f19 != 5 && Char.charid == 0 && Char.pal_slot != 0) Char.pal_slot = 0;   /* no longer turning: the flash ends */
 }
 
 /* ---- sword drawn (Char.f10 == 1): OVL01 2FDF:1BFA and helpers ---- */

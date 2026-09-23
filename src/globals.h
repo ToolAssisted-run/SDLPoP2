@@ -48,7 +48,7 @@ extern frame_type cur_frame;               /* DS:5CC6 */
 #define frame_dx cur_frame.dx
 #define frame_flags cur_frame.flags
 extern const uint8_t *frame_table_kid, *frame_table_guard; void load_frame(void); void determine_col(void);
-extern uint8_t kid_f34; extern int16_t word_3bf62;
+extern int16_t word_3bf62;
 extern int8_t obj_xl;
 void control(void); void control_running(void); void control_turning(void); void control_start_run(void); void control_jumpup(void);
 void control_standing(void); void control_hanging(void); void control_crouched(void); void control_with_sword(void); void control_0d9_0e2(void);
@@ -114,6 +114,8 @@ void char_control_step(void); void play_all_chars(void); void remove_record_pub(
 int ovl_383d2(void); void ovl_shadow_37f0_78(void); void ovl_366c_10cc(void); void ovl_33fd_694(void); void ovl_366c_e0a(void); void ovl_366c_11(void);
 int ovl_36ed6(int16_t d); void dead_char_sound_1611(void); void ovl_15db_64(void); void ovl_37d28(void); void level_kind_hooks_char(void);
 #define word_2ba8 (*(uint16_t *)(tiles0 + 0xE))   /* DS:2BA8 */
+#define word_2ba4 (*(uint16_t *)(tiles0 + 0xA))   /* DS:2BA4: the lateness meter (0..0x14), 169B:05A1 */
+int frame_on_time(void);   /* platform: the frame was done before the frame timer ran out (default: always) */
 /* fight.c, spawns, tick.c */
 extern uint16_t word_5ce8; extern const uint16_t *refract_timer;
 void check_sword_hits(void); void process_hurt(void); void guards_see_kid(void); void spawn_guards(uint8_t room); int tick_body(void);
@@ -180,3 +182,5 @@ void scene_played(int si);   /* level.c */
 #define ROOM_TILES(r) ((uint8_t *)&level + ((int)(r) - 1) * 30)
 #define ROOM_ATTRS(r) ((uint32_t *)((uint8_t *)&level + 0x348 + (int)(r) * 0x78))
 #define ROOM_REC(r)   ((level_room *)((uint8_t *)&level + 0x1867 + ((int)(r) - 1) * 0x74))
+void turn_flash(void); void turn_count(void);   /* spirit.c */
+int8_t row_tilepos(int8_t row);   /* tiles.c 0AFF:07D4 */

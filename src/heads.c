@@ -60,7 +60,7 @@ static int head_sight(void)
 	int clear = 1;
 	#define WALL_AT(r, c) tile_is_wall_kind(get_tile((r), (c), Char.room))
 	#define CROSS_X() ((sx > 0 && x % 2 == 0) || (sx < 0 && x % 2 != 0))
-	#define CROSS_Y() ((sy > 0 && y % 2 == 0) || (sy < 0 && y % 2 != 0))
+	#define CROSS_Y() ((sy > 0 && y % 2 != 0) || (sy < 0 && y % 2 == 0))   /* leaving a row: down from its lower half, up from its upper */
 	#define FLOOR_OPEN() tile_is_empty_kind(get_tile(sy < 0 ? (y - 1) / 2 : y / 2, x / 2, Char.room))
 	if (dy < dx) {
 		int8_t err = 2 * dy - dx, inc = 2 * dy, dec = (dy - dx) * 2;

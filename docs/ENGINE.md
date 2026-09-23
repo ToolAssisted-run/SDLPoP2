@@ -259,3 +259,17 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
   the same level without a scene reloads through 1286:0332 instead (no kind initialiser).
 - Remaining inputs: the random seed (from the clock at boot), the cheat word (DS:10C2), DS:016A/0366, and the palette
   slots that story scenes leave behind (DS:5D08).
+
+## Found by differential runs (fresh random captures; 2026-09-23)
+- Turn counter (spirit.c, OVL01 2F86, kinds 2 and 6): a standing turn while the last seq was the turn (seq 5) counts
+  in DS:5CBE (else it restarts at 1). From the 4th each costs 1 hp and 1 max hp (or kills: seq 0x47); the 8th with
+  more than 4 hp leaves the body behind as a room character (charid 0, seq 0x47, 2F86:0264) and the prince goes on as
+  the spirit (charid 1, palette 8); otherwise he dies. During turns 4+ the palette slot flashes (2F86:01FC/0456);
+  the standing handler's tail (2FDF:0C23) and the turn-run (2FDF:0E18) put a charid-0 prince back to slot 0.
+- DS:2BA4 is a lateness meter (169B:05A1): after each frame it drops while the frame timer DS:24DE still runs
+  (on time) and climbs to 0x14 when the frame was late. It gates palette effects and level 14's animation delays
+  (OVL08 random draws), so it is a platform input (`frame_on_time`).
+- The heads' line of sight (366C:00C4) checks a floor when leaving a row: going down from its lower half, up from its
+  upper half.
+- The DS "room 0" tiles (DS:2B9A..2BB7) overlap real variables: 2B9A ambient sound, 2BA2 input device, 2BA4 lateness,
+  2BA8 demo, 2BAA, 2BAE..2BB2, 2BB4.

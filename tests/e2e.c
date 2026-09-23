@@ -9,6 +9,7 @@
 #include "../src/globals.h"
 #include "../src/glue.h"
 #include "snap.h"
+#include "../src/state.h"
 #include "../src/core.h"
 
 static struct { const char *name; int pos; } keymap[] = {   /* oracle key names -> DS:1D00 key table positions */
@@ -21,27 +22,23 @@ static int same_frame_keys;   /* keys set at the tick's own frame were already s
 /* The keys as the tick at `frame` saw them. A key set during the tick's own frame may arrive before or after the tick
  * (the keyboard interrupt vs the tick's place in the frame): the controls control() received (probe kc_ctrl, 3 bytes,
  * after the facing flips) decide. */
+static uint8_t before[0x70], with[0x70]; static int keys_differ;
+static void use_keys(int w) { const uint8_t *pick = w ? with : before; memcpy(key_table, pick, sizeof key_table); bios_shift_flags = flags_of(pick); same_frame_keys = w; }
 static void keys_at(int frame, const uint8_t *seen, int dead, int reload_follows)
 {
-	static uint8_t before[0x70], with[0x70];
 	memset(before, 0, sizeof before); memset(with, 0, sizeof with);
 	for (int i = 0; i < nkeyev && keyev[i].frame <= frame; i++) { if (keyev[i].frame < frame) before[keyev[i].pos] = keyev[i].down; with[keyev[i].pos] = keyev[i].down; }
 	int8_t x, y, sh; const uint8_t *pick = with; same_frame_keys = 1;
-	/* a dead prince's controls may stay zero (then they say nothing): if they show the new keys, the keys were in; else a
-	 * level reload right after this tick says they were */
-	if (dead && memcmp(before, with, sizeof with)) {
-		int in = reload_follows;
-		if (seen) { keyboard_controls(with, flags_of(with), &x, &y, &sh); if (Kid.direction == 0) x = -x; if (word_5d38) y = -y;
-			if ((x || y || sh) && (uint8_t)x == seen[0] && (uint8_t)y == seen[1] && (uint8_t)sh == seen[2]) in = 1; }
-		if (!in) { pick = before; same_frame_keys = 0; }
-	}
-	else if (!dead && seen && memcmp(before, with, sizeof with)) {
+	/* a dead prince's controls stay zero and say nothing: his same-frame keys have always been in (restarts, releases) */
+	(void)reload_follows;
+	if (!dead && seen && memcmp(before, with, sizeof with)) {
 		keyboard_controls(with, flags_of(with), &x, &y, &sh);
 		if (Kid.direction == 0) x = -x;
 		if (word_5d38) y = -y;
 		if ((uint8_t)x != seen[0] || (uint8_t)y != seen[1] || (uint8_t)sh != seen[2]) { pick = before; same_frame_keys = 0; }
 	}
 	memcpy(key_table, pick, sizeof key_table); bios_shift_flags = flags_of(pick);
+	keys_differ = memcmp(before, with, sizeof with) != 0;
 }
 /* the keystroke queue read by 0823:02BE (2768:02CA, the library's event queue): every key-down of a non-modifier key,
  * plus the keyboard's auto-repeat of the last key pressed (DOSBox-X: after 500 ms, then every 33 ms; frames at 70.086 Hz) */
@@ -78,10 +75,13 @@ int bios_key(void)
 	return got ? 0x100 : 0;
 }
 static int hexval(int c) { return c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10; }
-static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes; int death_sound_playing(int both) { (void)both; return sound_busy; }
+static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes, timing_flips; int death_sound_playing(int both) { (void)both; return sound_busy; }
 /* sounds gating a random draw inside a tick (level 2's room-3 edge, 33FD:02E9): not playing if the capture's
  * post-tick seed lies ahead of ours */
 static uint32_t seed_b[8192]; static int seed_b_ok[8192], cur_tick_ix = -1;
+/* the lateness meter DS:2BA4 at each tick's start: this frame was late if the next tick starts with it higher */
+static uint16_t lag_a[8192]; static int nt_all, pace_ix = -1;
+int frame_on_time(void) { return !(pace_ix >= 0 && pace_ix + 1 < nt_all && lag_a[pace_ix + 1] > word_2ba4); }
 int sound_playing(uint16_t id)
 {
 	(void)id; if (cur_tick_ix < 0 || !seed_b_ok[cur_tick_ix]) return 1;
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
 	FILE *ef = fopen(argv[4], "r"); if (!ef) return 2;
 	/* first pass: the prince's death count before and after each tick (the death sound is not modelled: a count that
 	 * did not advance means it was still playing) */
-	static int8_t alive_a[8192], alive_b[8192]; static char reload_after[8192]; static uint8_t kc[8192][3]; static char kc_ok[8192]; int nt = 0;
+	static int8_t alive_a[8192], alive_b[8192]; static char reload_after[8192]; static uint8_t *postmem[8192]; static uint8_t kc[8192][3]; static char kc_ok[8192]; int nt = 0;
 	{ static char l2[0x20000]; while (fgets(l2, sizeof l2, ef)) {
 		char *p = strstr(l2, " probe="), *m = strstr(l2, "mem="); if (!p || !m) continue;
 		char nm2[32] = ""; sscanf(strchr(p + 1, ' ') + 1, "%31s", nm2);
@@ -120,9 +120,10 @@ int main(int argc, char **argv)
 		int off = (0x5B36 + 0x11 - 0x2900) * 2; if ((int)strlen(m + 4) < off + 2) continue;
 		int8_t v = (int8_t)(hexval(m[4 + off]) << 4 | hexval(m[5 + off]));
 		if (!strcmp(nm2, "ls_a") && nt) reload_after[nt - 1] = 1;
-		if (!strcmp(nm2, "ds_tick") && nt < 8191) { alive_a[nt] = v; alive_b[nt] = -128; kc_ok[nt] = 0; reload_after[nt] = 0; nt++; }
-		else if (!strcmp(nm2, "ds_postroom") && nt) { alive_b[nt - 1] = v; int so = (0x2B7A - 0x2900) * 2; uint32_t w = 0; for (int q = 3; q >= 0; q--) w = w << 8 | (hexval(m[4 + so + 2 * q]) << 4 | hexval(m[5 + so + 2 * q])); seed_b[nt - 1] = w; seed_b_ok[nt - 1] = 1; }
+		if (!strcmp(nm2, "ds_tick") && nt < 8191) { int lo = (0x2BA4 - 0x2900) * 2; lag_a[nt] = (hexval(m[4 + lo]) << 4 | hexval(m[5 + lo])) | (hexval(m[6 + lo]) << 4 | hexval(m[7 + lo])) << 8; alive_a[nt] = v; alive_b[nt] = -128; kc_ok[nt] = 0; reload_after[nt] = 0; nt++; }
+		else if (!strcmp(nm2, "ds_postroom") && nt) { if (!postmem[nt - 1] && strlen(m + 4) >= 2 * 0x4300) { postmem[nt - 1] = malloc(0x4300); for (int q = 0; q < 0x4300; q++) postmem[nt - 1][q] = hexval(m[4 + 2 * q]) << 4 | hexval(m[5 + 2 * q]); } alive_b[nt - 1] = v; int so = (0x2B7A - 0x2900) * 2; uint32_t w = 0; for (int q = 3; q >= 0; q--) w = w << 8 | (hexval(m[4 + so + 2 * q]) << 4 | hexval(m[5 + so + 2 * q])); seed_b[nt - 1] = w; seed_b_ok[nt - 1] = 1; }
 	} rewind(ef); }
+	nt_all = nt;
 	for (int q = 0; q + 1 < nt; q++) if (alive_b[q] == -128) alive_b[q] = alive_a[q + 1];   /* ticks without a post-tick sample: the next tick's start */
 	int tick_ix = 0, sc;
 	static char big[0x20000]; static uint8_t mem[0x4300], got[0x4300];
@@ -130,15 +131,21 @@ int main(int argc, char **argv)
 		"word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", "floor_ptrs", "kid_ctrl1_saved", "minutes_left", "clock_ticks", NULL};
 	static const char *const extra[] = {"coll", "prev_coll_flags", "curr_row_coll_flags", "Char", "Opp", "cur_frame", "obj_x", "obj_y", "obj_id", "obj_chtab", "char_x_left", "char_x_right", "char_top_y", "char_col_left", "char_col_right",
 		"char_top_row", "char_bottom_row", "tile_col", "tile_row", "curr_tile", "curr_room", "knock", "word_8a84", "word_6142", "word_5cd8", "ctrl1_forward", "ctrl1_backward", "ctrl1_up", "ctrl1_down", "ctrl1_shift", "byte_9276", "word_5ce8", "tick", "word_5d38", NULL};
+	/* E2E_STRICT: every mapped field; a summary of the fields that ever differ */
+	static const char *strict[400]; static int strict_bad[400]; int nstrict = 0;
+	/* not compared: drawing and sound state (DS:2B68 the level-1 palette, 33FD:0128; DS:2B9A the ambient sound, 1611:03CC) */
+	if (getenv("E2E_STRICT")) { for (int i = 0; i < snap_nfields && nstrict < 399; i++) if (strcmp(snap_fields[i].name, "byte_2b68")) strict[nstrict++] = snap_fields[i].name; strict[nstrict] = NULL; }
 	int started = 0, n = 0, bad = 0, first_bad = 0, pending = 0, ticks = 0, tick_n = 0;
 	while (fgets(big, sizeof big, ef)) {
 		char *lab = strstr(big, " probe="); if (!lab) continue;
 		int frame = atoi(big + 6); char *m = strstr(big, "mem="); char nm[32] = ""; sscanf(strchr(lab + 1, ' ') + 1, "%31s", nm);
 		int len = 0; if (m) for (char *p = m + 4; p[0] && p[1] && p[0] != '\n' && len < (int)sizeof mem; p += 2) mem[len++] = hexval(p[0]) << 4 | hexval(p[1]);
 		if (resync && !strcmp(nm, "ls_a") && len == 0x4300) {   /* a story scene (NIS, not reconstructed) played before this level load */
-			snap_load(mem); glue_select_guard_dat(level.type); level_begin(); level_first_room(); resync = 0; pending = 0; continue;
+			snap_load(mem); glue_select_guard_dat(level.type); level_begin(); level_first_room(); resync = 0; pending = 0;
+			while (keyq_next < nkeyq && keyq[keyq_next] < frame) keyq_next++;   /* the scene took the keystrokes made while it played */
+			libq = 0; pump_until = frame; continue;
 		}
-		if (resync) continue;
+		if (resync) { if (!strcmp(nm, "ds_tick")) tick_ix++; continue; }   /* (keep the per-tick tables of the first pass aligned) */
 		if (!started) {
 			if (strcmp(nm, "ls_a") || len != 0x4300) continue;
 			SNAP_SIZE = 0x4300; SNAP_BASE = 0x6C00 - SNAP_SIZE;
@@ -169,11 +176,30 @@ int main(int argc, char **argv)
 			if (k <= 4) { random_seed = s; ambient_draws += k; } else rng_lost++;
 			/* one frame: 169B:0BA6, then the tick with this tick's keys */
 			const char_type *ak = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
-			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++;
+			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++; pace_ix = tick_ix - 1;
 			keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL, Kid.alive >= 0, tick_ix - 1 < nt && reload_after[tick_ix - 1]); cur_tick_frame = frame; missing_reset();
 			if (getenv("E2E_TRACE") && ticks + 1 >= atoi(getenv("E2E_TRACE")) - 8 && ticks + 1 <= atoi(getenv("E2E_TRACE"))) printf("  t%d frame %d: kid alive %d busy %d keyq %d/%d next %.1f\n", ticks + 1, frame, Kid.alive, sound_busy, keyq_next, nkeyq, keyq_next < nkeyq ? keyq[keyq_next] : -1.0);
+			/* a key changing during the tick's own frame reached it or not (the keyboard interrupt vs the tick's place in
+			 * the frame): when the choice above gives a state the capture does not have, the other one is tried */
+			static uint8_t *st0; if (!st0) st0 = malloc(state_size());
+			int try_other = keys_differ && tick_ix - 1 < nt && postmem[tick_ix - 1], r;
+			int kq0 = keyq_next, lq0 = libq, sf0 = same_frame_keys; double pu0 = pump_until;
+			if (try_other) state_save(st0);
 			frame_begin(); cur_tick_ix = tick_ix - 1;
-			int r = tick_main(); ticks++; cur_tick_ix = -1;
+			r = tick_main();
+			if (try_other && r == 0) {
+				memcpy(got, postmem[tick_ix - 1], SNAP_SIZE); snap_store(got);
+				if (snap_diff(got, postmem[tick_ix - 1], regions, 0)) {
+					state_load(st0); keyq_next = kq0; libq = lq0; pump_until = pu0; use_keys(!sf0);
+					frame_begin(); r = tick_main();
+					memcpy(got, postmem[tick_ix - 1], SNAP_SIZE); snap_store(got);
+					if (r != 0 || snap_diff(got, postmem[tick_ix - 1], regions, 0)) {   /* neither: keep the first choice */
+						state_load(st0); keyq_next = kq0; libq = lq0; pump_until = pu0; use_keys(sf0);
+						frame_begin(); r = tick_main();
+					} else timing_flips++;
+				}
+			}
+			ticks++; cur_tick_ix = -1;
 			if (r == 0) { pending = 1; tick_n = ticks; continue; }   /* compared at ds_postroom (169B:064F) */
 			r = frame_after_tick(r); frame_wait();   /* frozen (-2) or quit (-1): no post-tick sample */
 			if (r == -1) { printf("tick %d: level left (-1)\n", ticks); break; }
@@ -185,12 +211,15 @@ int main(int argc, char **argv)
 		const char_type *ek = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 		(void)ek;
 		memcpy(got, mem, SNAP_SIZE); snap_store(got); n++;
+		if (nstrict) memcpy(got + 0x2B9A - SNAP_BASE, mem + 0x2B9A - SNAP_BASE, 2);
+		if (nstrict) for (int i = 0; i < nstrict; i++) { const char *one[2] = {strict[i], NULL}; if (snap_diff(got, mem, one, 0) && !strict_bad[i]++ && getenv("E2E_STRICT")[0] == 'v') { printf("strict: %s first differs at tick %d\n", strict[i], tick_n); snap_diff(got, mem, one, 1); } }
 		if (snap_diff(got, mem, regions, 0)) { bad++; if (!first_bad) first_bad = tick_n; if (bad <= 5) { printf("tick %d (frame %d) [%s]\n", tick_n, frame, missing_log()); snap_diff(got, mem, regions, 1); } }
 		if (getenv("E2E_ALL") && tick_n >= atoi(getenv("E2E_ALL")) - 2 && tick_n <= atoi(getenv("E2E_ALL"))) { printf("tick %d other state:\n", tick_n); snap_diff(got, mem, extra, 1); }
 		int r = frame_after_tick(0); frame_wait();
 		if (r == -1) { printf("tick %d: level left (-1)\n", tick_n); break; }
 		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0) break; restarts++; if (!word_5cb6 && (sc = story_scene((int8_t)word_32d8, r))) { scene_played(sc); resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
 	}
-	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts (%d after a story scene, resynced); %d ambient random draws synced, %d unmatched\n", ticks, n, bad, first_bad, restarts, scenes, ambient_draws, rng_lost);
+	if (nstrict) { printf("strict:"); for (int i = 0; i < nstrict; i++) if (strict_bad[i]) printf(" %s(%d)", strict[i], strict_bad[i]); printf("\n"); }
+	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts (%d after a story scene, resynced); %d ambient random draws synced, %d unmatched; %d same-frame key timings taken from the capture\n", ticks, n, bad, first_bad, restarts, scenes, ambient_draws, rng_lost, timing_flips);
 	return bad != 0;
 }

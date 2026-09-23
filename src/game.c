@@ -106,7 +106,12 @@ int frame_after_tick(int r)
 		start_hp = Kid.f13;   /* the next level starts with the prince's hp */
 		checkpoint_free(); return (int8_t)counter_5cec;
 	}
-	return frame_end();
+	int e = frame_end();
+	if (e == -2) {   /* 169B:05A1: DS:2BA4 measures lateness (the frame timer DS:24DE ran out before the frame was done) */
+		if (frame_on_time()) { if (word_2ba4) word_2ba4--; /* 2797:0134: wait for the timer */ }
+		else if ((int16_t)word_2ba4 < 0x14) word_2ba4++;
+	}
+	return e;
 }
 uint16_t cheat_mode;   /* DS:10C2: the command line's cheat word was given */
 /* 18C8:0008 (end of every 169B:0505 pass): with cheats on, the prince is loaded into Char and the cheat keys read */

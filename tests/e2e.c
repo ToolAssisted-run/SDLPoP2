@@ -52,10 +52,21 @@ static void build_keyq(void)
 	for (int i = 1; i < nkeyq; i++) for (int j = i; j > 0 && keyq[j - 1] > keyq[j]; j--) { double t = keyq[j]; keyq[j] = keyq[j - 1]; keyq[j - 1] = t; }
 }
 static int cur_tick_frame;
+/* The library's event queue (194C:9858 / 9A0F): up to 8 keystrokes, new ones dropped when full. A read (0823:02BE via
+ * 2768:02CA) pops it, or polls DOS (0823:16EE) directly when it is empty; after the read, the rest of the frame pumps
+ * every keystroke waiting in the BIOS buffer into the queue. */
+static int libq; static double pump_until = -1;
+static int bios_ready(double t) { return keyq_next < nkeyq && keyq[keyq_next] < t; }
 int bios_key(void)
 {
-	if (keyq_next < nkeyq && (keyq[keyq_next] < cur_tick_frame || (keyq[keyq_next] == cur_tick_frame && same_frame_keys))) { keyq_next++; return 0x100; }
-	return 0;
+	double now = cur_tick_frame + (same_frame_keys ? 0.5 : 0.0);
+	/* the pump of the previous frames */
+	while (bios_ready(pump_until)) { keyq_next++; if (libq < 8) libq++; }
+	int got = 0;
+	if (libq) { libq--; got = 1; }
+	else if (bios_ready(now)) { keyq_next++; got = 1; }
+	pump_until = cur_tick_frame + 0.5;
+	return got ? 0x100 : 0;
 }
 static int hexval(int c) { return c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10; }
 static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes; int death_sound_playing(int both) { (void)both; return sound_busy; }
@@ -86,6 +97,7 @@ int main(int argc, char **argv)
 		if (!strcmp(nm2, "ds_tick") && nt < 8191) { alive_a[nt] = v; alive_b[nt] = -128; kc_ok[nt] = 0; nt++; }
 		else if (!strcmp(nm2, "ds_postroom") && nt) alive_b[nt - 1] = v;
 	} rewind(ef); }
+	for (int q = 0; q + 1 < nt; q++) if (alive_b[q] == -128) alive_b[q] = alive_a[q + 1];   /* ticks without a post-tick sample: the next tick's start */
 	int tick_ix = 0;
 	static char big[0x20000]; static uint8_t mem[0x4300], got[0x4300];
 	static const char *const regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "random_seed", "drawn_room", "room_L", "room_R", "room_A", "room_B", "next_room", "exit_dir",
@@ -117,6 +129,7 @@ int main(int argc, char **argv)
 			const char_type *ak = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++;
 			keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL); cur_tick_frame = frame; stubs_reset();
+			if (getenv("E2E_TRACE") && ticks + 1 >= atoi(getenv("E2E_TRACE")) - 8 && ticks + 1 <= atoi(getenv("E2E_TRACE"))) printf("  t%d frame %d: kid alive %d busy %d keyq %d/%d next %.1f\n", ticks + 1, frame, Kid.alive, sound_busy, keyq_next, nkeyq, keyq_next < nkeyq ? keyq[keyq_next] : -1.0);
 			frame_begin();
 			int r = tick_main(); ticks++;
 			if (r == 0) { pending = 1; tick_n = ticks; continue; }   /* compared at ds_postroom (169B:064F) */

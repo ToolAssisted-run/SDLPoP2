@@ -22,5 +22,5 @@ fi
 # end to end: from the oracle's snapshot after the level load, everything in C with the script's keys (LS* captures)
 if [ "$mode" = tick ]; then
 gcc -O0 -g -Wall -o $W/e2e tests/e2e.c tests/stubs.c tests/snap.c src/*.c
-for s in LSL3r1 LSL3skel2; do [ -f $O/$s-snap.txt ] && echo "$s $($W/e2e $S/SEQUENCE.DAT $O/w/ramL3.bin $S/PRINCE.EXE $O/$s-snap.txt $O/$s.script 2>/dev/null | tail -1)"; done
+for x in LSL3r1:ramL3 LSL3skel2:ramL3 E1_1:ram1436 E4_1:ramL3 E6_1:ramL6 E10_1:ramL10; do s=${x%:*}; [ -f $O/$s-snap.txt ] && echo "$s $($W/e2e $S/SEQUENCE.DAT $O/w/${x#*:}.bin $S/PRINCE.EXE $O/$s-snap.txt $O/$s.script 2>/dev/null | tail -1)"; done
 fi

@@ -225,3 +225,15 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
 - 0AFF:000C: a missing left/right neighbour resolves to room 0 with the column wrapped to 0..9.
 - Not deterministic from game state alone: the ambient sounds (1611:03CC) and the death-sound waits depend on the
   sound driver's timing (platform hooks ambient_sound(), death_sound_playing()).
+
+## Other level kinds (verified end to end: levels 1, 4, 6, 10)
+- Overlays by kind: kind 3 uses OVL04 at 33FD; kinds 2 and 4 share OVL05 at 33FD (slicer blades, tiles 0xC/0xD);
+  kind 2 loads OVL07 at 347C (torches, slabs 0x1A -> mob type 10) and OVL10 at 366C; kind 4 loads OVL06 at 347C
+  (level-6 entrance, crumbling floors 0xF -> mob type 3) and OVL09 at 366C (creatures: charid 11 AI 11DA,
+  room entry 041A). Guard files by level type from DS:0672 (type 7 BIRD.DAT, 8 HEAD.DAT, ...).
+- 0AAC:0120 before each level picks the story scene and advances DS:016A (the clock runs from the first scene after
+  level 3 on); scenes (NIS) are not reconstructed, the end-to-end test resyncs after them.
+- Keystrokes (not the held-key table): the library queue (194C:9858/9A0F) holds up to 8, a read pops one or polls DOS
+  when empty, and the rest of the frame pumps the BIOS buffer into it (drops when full). With DOSBox's key repeat
+  (500 ms, then 33 ms) a held key fills it. A dead prince restarts on any keystroke.
+- play_seq stores the whole 16-bit item as the frame (0AFF:0424).

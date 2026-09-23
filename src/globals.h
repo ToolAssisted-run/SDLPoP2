@@ -209,3 +209,5 @@ int8_t body_index(void);   /* spirit.c 2F86:03CC */
 void fireball_draw_state(void); extern int16_t fireball_width; int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);
 int spirit_cast(void); int can_bump_into_gate(void); int16_t ovl_352ca(void);
 int spawn_flag80(uint8_t room);   /* room.c 2D3E:0E54 */
+void kind5_tick(void); void grab_start(void); void kind5_room_palette(uint8_t room); extern int16_t word_6938; extern uint8_t byte_693a;   /* kind5.c */
+void hp_bars_reload(void); int sound_on(void);

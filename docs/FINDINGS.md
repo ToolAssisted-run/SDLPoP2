@@ -262,9 +262,19 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   33FD:0380 when a room with background 6 loads (a room hook, 5.12), once (DS:14A0).
 - Room 1 x < 0x82 exits the level; room 3 right edge: random(0x14) sound draws while sound 0x273E is not playing.
 
-### 5.9 Level 1 (kind 5; OVL02 33FD)
-- Rooms 0x10/0x13 (the ship): characters grabbing (0068/0370: DS:6936..693A), the prince's fall caught in the sea
-  rooms (0AFF:0D1E). Kind tick 0232 = 01CE (palette) + 03C8 + 0428. Not reconstructed yet.
+### 5.9 Level 1 (kind 5; OVL02 33FD, kind5.c)
+- The sea (rooms 0x10/0x13): kind tick 0232 = 01CE (palette cycling every third tick, no state) + 03C8 (the prince:
+  in those rooms or when grabbed, DS:6936 == 0xA) + 0428 (the drawn room's characters in those rooms or grabbed).
+  0068: a character below y 0xAC (not f19 0x44/0xF/0x3B, not action 2) is grabbed (0370: DS:6936 = index, DS:6937 =
+  1, DS:693A = action 9, DS:6938 = x - 0x82 -+ image_width/2, sound 0x30); the step counts up only while room
+  description 0x12/0x13 is loaded; at 8 the grab ends and a character on row >= 2 dies (frame 0xB9, take_hp(100),
+  85F8 = 0xF). 2D3E:10FD grabs a character that left the level at the bottom (x = char_dx_forward(0x140)).
+- Room 0x13: the prince running/jumping (action 2/6, frame 0x50) or on seq 0x3B at x < 0xD0 is pushed left 1 px
+  per tick (0AE2/0AA0; 0ABA lets him grab there).
+- DS:2B68 (0128 via 0CD6:003A in the full redraw): 1 in rooms 0x13/0x10/0xF, 0 elsewhere (palette); now compared.
+- Room 15 to the right (2D3E:1746 -> 0240): past x 0x201 the prince walks into the sea: with digital sound
+  (DS:2085 bit 0; 3 at runtime) the waves play first (sound 0x20) until 0x2730/0x273F play; then hp drains one per
+  display step and he sinks (seq 0x47). Not yet seen in a capture (a guard in room 15 is in the way).
 
 ### 5.10 Level 14 (kind 6; OVL08 33FD, final.c)
 - Layout: floating platforms; room 1 (start, row 1 cols 1..5) -> down 2, up 3; 3 -> up 4; 4 -> right 5 -> right 6;
@@ -377,7 +387,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
-- Room hooks 0, 0x20, 0x21 (37F0 overlays); level 1 kind tick; story scenes;
+- Room hook 0x21 (OVL12, level 5 water); story scenes;
   sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; level 5's water rooms
   (OVL04 0BEA -> OVL12 at 37F0 via 2A31:0DE9; room hook 0x21 = OVL12 0426/0574: DS:2B78, DS:693C, DS:693E..).
 
@@ -404,3 +414,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   a wall) identical.
 - 2026-09-23: sword drawing 2FDF:19D4 complete; DS:68EC on Ctrl strikes (was written to a stray variable);
   366C:00FC; Ctrl random runs E1..E13_21 identical.
+- 2026-09-23: level 1's sea (kind5.c); X1_1 (ship rooms 16/19, hp 12) and X1_2 (a guard in room 15) identical;
+  DS:2B68 compared now; frozen compares skip curr_room too.

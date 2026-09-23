@@ -214,7 +214,7 @@ void check_kid_left_room(void)
 	exit_dir = kid_exit_dir();
 	if (exit_dir != -1 && Char.room != 0) { Kid = Char; next_room = Char.room; chars_on_leave(); return; }
 	if (Char.room == 0 && Char.alive < 0) {
-		if (level_kind == 5 && exit_dir == 0) { Char.x = char_dx_forward(320); ovl_34370(); }
+		if (level_kind == 5 && exit_dir == 0) { Char.x = char_dx_forward(320); grab_start(); }   /* 33FD:0370 */
 		else {
 			fall_scream_1611_0030();
 			if (level_kind != 5) { take_hp(100); Char.frame = 0xB9; seq_set_85f8(3); Kid = Char; apply_hp_deltas(); loadkid(); }
@@ -452,3 +452,9 @@ void chars_fell_below(void)
 int8_t scan_to_wall_pub(int8_t dir, int8_t row, int8_t col, uint8_t room) { return scan_to_wall(dir, row, col, room); }
 int8_t tilepos_or_30_pub(int8_t row, int8_t col) { return tilepos_or_30(row, col); }
 int save_to_record_pub(void) { return save_to_record(); }
+/* 0823:0F38 (the hp bars): Kid = the prince, then his opponent is loaded into Char */
+void hp_bars_reload(void)
+{
+	loadkid(); Kid = Char;
+	if (Kid.opp_index != 0xFF) load_char(Kid.opp_index);
+}

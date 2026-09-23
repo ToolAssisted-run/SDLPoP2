@@ -11,12 +11,6 @@ extern int last_scene; int load_level(int n);
 /* platform: DS:2B98 sound on (the sound query on DS:0884, the music playing, goes through sound_playing(0xFFFF)) */
 __attribute__((weak)) int sound_on(void) { return 1; }
 
-/* 0823:0F38 (hp bars): Kid = Char, then the prince's opponent is loaded */
-static void hp_bars_reload(void)
-{
-	loadkid(); Kid = Char;
-	if (Kid.opp_index != 0xFF) load_char(Kid.opp_index);
-}
 /* 33FD:035A: the prince stands in room 4, column 5, row 1, facing right */
 static void place_at_room4(void)
 {

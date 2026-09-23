@@ -68,7 +68,7 @@ uint8_t byte_6b6c;                                   /* DS:6B6C */
 void toggle_upside_down_pub(void);
 static void toggle_upside_down(void) { word_5d38 = word_5d38 ? 0 : 0x438; play_sound(word_5d38 ? 0x99 : 0x9A); word_5cce = 1; }
 /* 169B:0430: redraw everything (state side: flags cleared, DS:68EA = 2) */
-static void redraw_all(void) { word_5cee = 0; if (!word_2b92) { draw_mobs_state(); kid_sprite_state(); draw_chars_state(); } word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
+static void redraw_all(void) { word_5cee = 0; if (!word_2b92) { kind5_room_palette(drawn_room);   /* 0CD6:003A */ draw_mobs_state(); kid_sprite_state(); draw_chars_state(); } word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
 /* 169B:0A30: after each tick: drawing, the upside-down countdown and the message / restart countdown. -2 go on, -1 leave */
 int frame_end(void)
 {

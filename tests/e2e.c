@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 	/* E2E_STRICT: every mapped field; a summary of the fields that ever differ */
 	static const char *strict[400]; static int strict_bad[400]; int nstrict = 0;
 	/* not compared: drawing and sound state (DS:2B68 the level-1 palette, 33FD:0128; DS:2B9A the ambient sound, 1611:03CC) */
-	if (getenv("E2E_STRICT")) { for (int i = 0; i < snap_nfields && nstrict < 399; i++) if (strcmp(snap_fields[i].name, "byte_2b68")) strict[nstrict++] = snap_fields[i].name; strict[nstrict] = NULL; }
+	if (getenv("E2E_STRICT")) { for (int i = 0; i < snap_nfields && nstrict < 399; i++) strict[nstrict++] = snap_fields[i].name; strict[nstrict] = NULL; }
 	int started = 0, n = 0, bad = 0, first_bad = 0, pending = 0, ticks = 0, tick_n = 0, frozen_n = 0, frozen = 0;
 	while (fgets(big, sizeof big, ef)) {
 		char *lab = strstr(big, " probe="); if (!lab) continue;
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 				static uint8_t *fz; if (!fz) fz = malloc(state_size());
 				frozen = 0; state_save(fz); frame_begin(); memcpy(got, mem, SNAP_SIZE); snap_store(got); state_load(fz); n++; frozen_n++;   /* (the sample is after 169B:0BA6) */
 				if (nstrict) memcpy(got + 0x2B9A - SNAP_BASE, mem + 0x2B9A - SNAP_BASE, 2);
-				static const char *drawn[] = {"obj_x", "obj_y", "obj_id", "obj_chtab", "curr_tile", "tile_col", "tile_row", NULL};   /* the drawing pass's scratch */
+				static const char *drawn[] = {"obj_x", "obj_y", "obj_id", "obj_chtab", "curr_tile", "curr_room", "tile_col", "tile_row", NULL};   /* the drawing pass's scratch */
 				#define DRAWN(nm) ({ int d_ = 0; for (int j = 0; drawn[j]; j++) if (!strcmp(drawn[j], nm)) d_ = 1; d_; })
 				if (nstrict) for (int i = 0; i < nstrict; i++) { const char *one[2] = {strict[i], NULL}; if (!DRAWN(strict[i]) && snap_diff(got, mem, one, 0) && !strict_bad[i]++ && getenv("E2E_STRICT")[0] == 'v') { printf("strict: %s first differs at frozen tick %d\n", strict[i], ticks); snap_diff(got, mem, one, 1); } }
 				if (snap_diff(got, mem, regions, 0)) { bad++; if (!first_bad) first_bad = ticks; if (bad <= 5) { printf("frozen tick %d (frame %d) [%s]\n", ticks, frame, missing_log()); snap_diff(got, mem, regions, 1); } }

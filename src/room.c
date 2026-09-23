@@ -247,6 +247,7 @@ void set_neighbour_rooms(void)
 	else { room_AL = level_links(room_A)[0]; room_AR = level_links(room_A)[1]; }
 	if (room_B == 0) { if (room_L) room_BL = level_links(room_L)[3]; if (room_R) room_BR = level_links(room_R)[3]; }
 	else { room_BL = level_links(room_B)[0]; room_BR = level_links(room_B)[1]; }
+	byte_5ce7 = (uint8_t)room_has_description(drawn_room);   /* 0FB3:0104 -> 0CD6:027A */
 }
 
 /* OVL01 02D7BA: characters standing near the shared edge of the side rooms join the new room */
@@ -341,7 +342,8 @@ void switch_room(void)
 	if (next_room == 0 || next_room == drawn_room) return;
 	drawn_room = next_room;
 	set_neighbour_rooms();
-	redraw_room();                   /* 0FB3:29B8, 0CD6:02BE, 1286:0AB2 sprites */
+	redraw_room();                   /* 0FB3:29B8 */
+	room_load(drawn_room);           /* 0CD6:02BE (then 1286:0AB2 sprites) */
 	word_5cee = 1;                   /* 0823:0EB4: the frame ends with a full redraw (169B:0A54) */
 	loadkid();
 	start_room_anims();              /* 0823:0B78 */

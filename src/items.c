@@ -14,7 +14,7 @@ static void take_item(int16_t what)
 {
 	word_27c0 = (uint16_t)what; ctrl1_shift = 1;
 	uint16_t m = level_kind == 3 ? curr_modifier & 0x3F00 : level_kind == 4 ? curr_modifier & 0x0F00 : 0;
-	m |= 0xC000;   /* (DS:01AC, the room's background, is set while playing) */
+	if (room_bg != 0) m |= 0xC000;   /* DS:01AC: the drawn room has a description */
 	ROOM_TILES(curr_room)[curr_tilepos] = 1; *(uint16_t *)&ROOM_ATTRS(curr_room)[curr_tilepos] = m;
 	/* 1375:0EB8 redraws it */
 }

@@ -74,7 +74,7 @@ int frame_end(void)
 	tick++;
 	if (word_2b90) { redraw_all(); word_2b90 = 0; }
 	else if (word_5cee) { drawn_room = next_room; redraw_all(); }
-	else if (word_5cce) { word_5cce = 0; redraw_all(); }
+	else if (word_5cce) { word_5cce = 0; room_load(drawn_room); redraw_all(); }   /* 0CD6:02BE */
 	else { draw_mobs_state(); kid_sprite_state(); draw_chars_state(); if (word_5d38) { if (word_5d38 == 1) toggle_upside_down(); else if (Kid.alive < 0) word_5d38--; } }
 	ambient_sound();   /* 1611:04D0 / 1611:03CC(DS:2B98): the level's ambient sounds pick random variants when none is playing */
 	if (word_5cda == 1) {

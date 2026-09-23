@@ -270,14 +270,24 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   `death_sound_playing()`; a duration model of the digital sounds is still to be built.
 - Lateness meter DS:2BA4 (169B:05A1): gates palette effects and level 14 animation delays; `frame_on_time()`.
 
-### 5.12 Room backgrounds and hooks
-- When a room is drawn, 0AFF:202E loads its description, resource "CUST" (n + 0x9F) * 0x19 from the level kind's
-  scenery file (byte 1 = background id), into DS:01AC; 0AFF:2484 sets DS:0344 = DS:02FE[id] (id < 0x23) -> a record
-  of far hooks; entry 0 is called then (0AFF:20CF). Hooks: id 0 -> 37F0:0000/0012; 6 -> 33FD:0380 (level 2 puzzle
-  answer); 0x14/0x15 -> 347C:0226; 0x16 -> 347C:01EE/0202; 0x17 -> 33FD:145E; 0x19..0x1B -> 33FD:1494; 0x1C..0x1E ->
-  33FD:1708; 0x1F -> 347C:0FB2; 0x20 -> 37F0:06E0 (+2A31:0DFD); 0x21 -> 2A31:0DC1/37F0:0574; 0x22 -> 37F0:001C/0060
-  (level 8 room 9, OVL14: music, DS:2BB0 = 1 once the prince reaches column 9).
-- Not modelled yet (only the level 2 puzzle and level 8 flag touch game state so far).
+### 5.12 Room descriptions and hooks (roomhooks.c)
+- A room has a description when any of its tiles has attribute bits 0xC000 (0CD6:027A); DS:5CE7 holds this for the
+  drawn room (set at the end of set_neighbour_rooms 0FB3:0026, not for room 0).
+- 0CD6:02BE(drawn_room), called by switch_room (0823:0EAF) and the flip redraw (169B:0A79): without a description,
+  unload the current one (0CD6:073A: leave hook = entry 1, free, DS:01AC = 0, DS:0344 = record 0x24 -> none), and on
+  level 5 rooms 7/12 call 2A31:0DC1; with one, load "CUST" (room + 159) * 25 from the kind's scenery file (DESERT,
+  TEMPLE, CAVERNS, RUINS, ROOFTOPS, FINAL; byte 1 = background id), unload the previous if its id differs, set
+  DS:0344 = DS:02FE[id] (id < 0x23, else 0x2E2) and call entry 0 (enter hook).
+- Hook records (DS:01AA + 0x1C*k; entry 0 enter, 1 leave): id 0 37F0:0000 / 37F0:0012; 6 2A31:0D3F = 33FD:0380
+  (level 2 puzzle answer); 0x14/0x15 347C:0226; 0x16 347C:01EE / 0202; 0x17 33FD:145E; 0x19..0x1B 33FD:1494;
+  0x1C..0x1E 33FD:1708; 0x1F 347C:0FB2; 0x20 2A31:0DFD / 37F0:06E0; 0x21 2A31:0DC1 / 37F0:0574;
+  0x22 37F0:001C / 0060 (OVL14, level 8 room 9: music; DS:2BB0 = 1 when the prince enters at column >= 9 and the
+  sword (DS:2BB2) is still there; leaving only resets the palette).
+- Rooms with descriptions per scenery file: DESERT 1 (6), 2 (8), 3 (7); CAVERNS 3 (0), 10 (0x21); TEMPLE 2 (0x1F),
+  4 (0x20); RUINS 2 (0x14), 9 (0x22), 11..15 (1..5), 16 (0x15), 27 (0x16); ROOFTOPS 1..5, 10..12, 15, 16, 19 (0x09..0x13,
+  no hooks); FINAL 1..8 (0x17..0x1E). Which level uses them is decided by the level's 0xC000 attribute bits.
+- A picked-up item's tile gets 0xC000 only while a description is loaded (0AFF:1548 tests DS:01AC).
+- Implemented: ids 6 and 0x22; the others are logged as missing (ROOMHOOK_IN_xx / ROOMHOOK_OUT_xx).
 
 ### 5.13 Drawing pass state
 - The drawing changes game state in places, modelled in game.c: mobs (slab return), the prince's sprite entry
@@ -295,14 +305,13 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Speed: ~17k ticks/s with two hashes per tick; explorer ~500k ticks/s.
 
 ## 7. Verification status (2026-09-23)
-- 100+ captures: random runs E1..E14 (seeds 1..7), turn runs, planned deep runs X3..X13: all regions identical;
-  strict differences left: the scratch record Char after two guards follow into a room (E10_6, X6, X9, X12;
-  a character loop order), DS:2BB0 on X8_1 (room hook, 5.12), X5_1 (level data from tick 465, to investigate),
-  X2_1 capture crashed DOS ("Corrupt MCB chain", to investigate).
+- 100+ captures: random runs E1..E14 (seeds 1..7), turn runs, planned deep runs X3..X13: all identical in every
+  field except the scratch record Char after two guards follow the prince into a room (E10_6, X6, X9, X12; a
+  character loop order). X2_1's capture crashed DOS ("Corrupt MCB chain", to investigate).
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
-- Room hooks (5.12) with backgrounds per room; level 1 kind tick; level 14 (OVL08); spirit rejoin; story scenes;
+- Room hooks other than ids 6/0x22 (5.12); level 1 kind tick; level 14 (OVL08); spirit rejoin; story scenes;
   sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; X5_1; X2_1 crash; Char scratch order.
 
 ---------------------------------------------------------------------------------------------------------------------
@@ -315,5 +324,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   standing tail palette reset, same-frame key rule for dead prince.
 - 2026-09-23: tick-exact planned runs (explore + probepoke); sliding walls; slab return; head attachment; tile-7 runs;
   sword table by type (FRAM 1200 on levels 7/8); clear_char reload; FFEF without frame; victory music and sound answers.
-- 2026-09-23: room background hooks found (DS:01AA/02FE/0344, CUST resources); OVL14 at 37F0 is level 8's room-9
-  script.
+- 2026-09-23: room descriptions and hooks (0CD6:027A/02BE/073A, DS:01AA/02FE/0344/5CE7, CUST resources); OVL14 at
+  37F0 is level 8's room-9 script; pickups add 0xC000 only with a description loaded (fixed X5_1).

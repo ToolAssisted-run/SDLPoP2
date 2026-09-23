@@ -80,8 +80,8 @@ void anim_gate_kind1(void)
 	else { di++; if (!sound_playing(0x273D)) play_sound(7); }
 	anim_mod = (anim_mod & ~0x1Fu) | (uint16_t)di;
 }
-/* platform: the background id of the room description at DS:01AC (drawing state, not modelled; -1 unknown) */
-__attribute__((weak)) int room_background_id(void) { return -1; }
+/* the background id of the room description at DS:01AC (roomhooks.c) */
+int room_background_id(void) { return room_bg - 1; }   /* DS:01AC -> +1 */
 /* 33FD:0380 (level load, 1286:03B6): with room background 6 showing, the puzzle's answer is chosen once
  * (DS:14A0 0..2, 2 = none drawn); the rest draws it */
 void kind1_level_init(void)

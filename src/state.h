@@ -10,3 +10,4 @@ uint64_t state_hash(void);
 void state_load_ds_statics(const uint8_t *ds);   /* DS image: the EXE-initialised variables */
 size_t checkpoint_state_size(void); void checkpoint_state_save(uint8_t *buf); void checkpoint_state_load(const uint8_t *buf);   /* level.c */
 void glue_select_guard_dat(unsigned char type);
+void state_ds_range(uint16_t lo, uint16_t len, uint8_t *buf, int load);   /* save (0) / restore (1) a DS range of the mapped fields */

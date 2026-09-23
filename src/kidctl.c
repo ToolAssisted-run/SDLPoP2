@@ -32,7 +32,7 @@ static void kid_control(void)
 	control();
 	if (dir == 0) flip_x();
 	if (word_5d38) flip_y();
-	if (Char.f19 == 0xED && Char.frame == 0xB9 && Char.room == 9 && level_number == 8) note_missing("2A31_0E1B");
+	if (Char.f19 == 0xED && Char.frame == 0xB9 && Char.room == 9 && level_number == 8) sword_scene();   /* 2A31:0E1B -> 37F0:007C */
 }
 /* 0AFF:11F8 */
 static int kid_input_and_control(void)

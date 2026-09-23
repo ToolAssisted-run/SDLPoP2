@@ -150,6 +150,7 @@ static int should_start(uint16_t cur, uint16_t nw)
 }
 /* 1611:0826: music on the MIDI channel takes the ambient sound's place (variant 0xFF) */
 static void music_ambient(uint16_t n) { if (amb_state[0] && n < NSND && snd_kind[n] == 2) { amb_cur = n; amb_state[1] = 0xFF; } }
+void sound_1611_0826(uint16_t n) { music_ambient(n); }
 
 /* 1611:0696: no ambient sound: the prince dead, the level-end music, a type-2 level's guard drawing its sword,
  * level 9 room 16, level 8 room 9 from column 8 */

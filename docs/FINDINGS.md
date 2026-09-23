@@ -594,3 +594,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   scene 11): 856 ticks identical. Every level's completion is now verified in the oracle.
 - 2026-09-24: audio drivers (docs/AUDIO.md: DIGI.DRV = DSB_PRO, MIDI.DRV = MSB_PRO OPL2 + PRESETS.DEF, 194C
   sequencer/PC speaker) and story scenes (docs/NIS.md) reconstructed by subagents and verified against the oracle.
+- 2026-09-24: 37F0:007C (OVL14, level 8 room 9, 2A31:0E1B at seq 0xED frame 0xB9: the sword taken) reconstructed
+  (ruins.c sword_scene: scene 6, the level reloaded in full with DS:2BB8..+0x2EF9 put back, seq 0xE7 in room 9,
+  DS:2BB2 = 1, music 0xFF); G8_sword (explorer EXPLORE_STOPSEQ=0xE7, hp 12) 545 ticks identical through and after
+  the scene. Program shell (docs/SHELL.md) committed.

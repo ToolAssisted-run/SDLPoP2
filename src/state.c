@@ -91,3 +91,16 @@ uint64_t state_hash(void)
 	for (size_t i = 0; i < n; i++) { h ^= buf[i]; h *= 0x100000001b3ull; }
 	return h;
 }
+
+/* the DS bytes lo..lo+len-1 of every mapped field, to or from buf (load 1: buf -> fields); unmapped bytes untouched */
+void state_ds_range(uint16_t lo, uint16_t len, uint8_t *buf, int load)
+{
+	for (int i = 0; i < snap_nfields; i++) {
+		const state_field *f = &snap_fields[i];
+		if (!f->ds) continue;
+		int a = f->ds > lo ? f->ds : lo, b = f->ds + f->size < lo + len ? f->ds + f->size : lo + len;
+		if (a >= b) continue;
+		if (load) memcpy((uint8_t *)f->p + (a - f->ds), buf + (a - lo), (size_t)(b - a));
+		else memcpy(buf + (a - lo), (uint8_t *)f->p + (a - f->ds), (size_t)(b - a));
+	}
+}

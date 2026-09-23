@@ -616,3 +616,5 @@ int shell_mode(void) { return mode; }
 int shell_exit_code(void) { return exit_code; }
 const char *shell_exit_message(void) { return exit_msg[0] ? exit_msg : NULL; }
 uint32_t shell_frame_count(void) { return frames; }
+/* the core's scene in the middle of play (37F0:007C, level 8's sword): played by the shell */
+int core_play_scene(int n) { extern int last_scene; last_scene = n; return sh_scene(n); }

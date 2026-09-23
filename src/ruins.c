@@ -54,3 +54,29 @@ void ruins_open_tile7(void)
 	if (get_tile_infrontof(1) != 7 || (curr_modifier & 3) == 3) return;
 	tile7_run(1, Char.room, Char.curr_col, Char.curr_row);
 }
+
+/* 0AAC:0274 from the tick (a story scene in the middle of play): the platform's shell plays it (shell.c); headless,
+ * nothing plays and it is not cut short. Returns 2 when a key cut it short. */
+__attribute__((weak)) int core_play_scene(int n) { last_scene = n; return 0; }
+void sound_1611_0826(uint16_t n); void state_ds_range(uint16_t lo, uint16_t len, uint8_t *buf, int load);
+/* 37F0:007C (OVL14, through 2A31:0E1B when the prince takes the sword in level 8's room 9): scene 6, then the level
+ * reloaded in full (1286:01F2) with the level's state (DS:2BB8, 0x2EF9 bytes) put back, the prince in room 9 in seq
+ * 0xE7, the sword taken (DS:2BB2) */
+void sword_scene(void)
+{
+	static uint8_t saved[0x2EF9];
+	state_ds_range(0x2BB8, sizeof saved, saved, 0);   /* (194C:17FC a block, the copy) */
+	int r = core_play_scene(6);
+	if (r == 2) drawn_room = 0;
+	word_2b96 = 0;   /* 169B:018E */
+	/* 1286:03B6(4, 5): the kind initialiser (kind 4 sets nothing kept) */
+	loadkid(); Char.direction = 0; seqtbl_offset_char(0xE7);
+	Char.room = next_room = 9; char_y_to_floor(); Char.hp_delta = Char.f12;
+	last_scene = 6; load_level_ex(8, 1);   /* DS:0998 = 8; 1286:01F2(8) */
+	state_ds_range(0x2BB8, sizeof saved, saved, 1);
+	word_2bb2 = 1;
+	if (r != 2) room_load(9);   /* 0CD6:02BE */
+	/* 1375:0F5A(0xA, the prince's box) and 1375:0E8C(0x19): redraw marks */
+	play_seq(); Kid = Char; control_rest(); ctrl1_shift = 0;
+	if (!sound_playing(0x280F)) sound_1611_01a8(0xFF); else sound_1611_0826(0xFF);
+}

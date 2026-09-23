@@ -374,6 +374,13 @@ static uint8_t *find_spawn(int8_t row, uint8_t room)
 	return NULL;
 }
 uint8_t *find_spawn_pub(int8_t row, uint8_t room) { return find_spawn(row, room); }
+/* 2D3E:0E54: a spawn point of the room has hp flag 0x80 */
+int spawn_flag80(uint8_t room)
+{
+	int8_t n = spawn_block(room)[0]; int si = 0;
+	for (int8_t i = 0; i < n && !si; i++) { const uint8_t *e = spawn_entry(i, room); si = e && (e[9] & 0x80); }
+	return si;
+}
 /* 1375:14C2: first wall column from col in direction dir (stops past the room edge) */
 static int8_t scan_to_wall(int8_t dir, int8_t row, int8_t col, uint8_t room) { do col += dir; while (!tile_is_wall_kind(get_tile(row, col, room)) && col >= 0 && col <= 10); return col; }
 /* 2D3E:0CF8 */

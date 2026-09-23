@@ -538,27 +538,10 @@ void ovl_35f5a(void)
 	play_sound(0x102);
 }
 /* 33FD:1E4A (2FDF:19D4, shift: the spirit in rooms 7/8 casts, costing 2 hp) */
-static int spirit_cast(void)
+int spirit_cast(void)
 {
 	if ((int8_t)Char.f12 <= 2) return -1;
 	take_hp(2); sound_1611_01a8(0x10A); return 0xF2;
-}
-/* 2FDF:19D4 (shift alone while standing, the prince or the spirit): only the paths that do not draw the sword are
- * reconstructed: during a sword frame, in level 14's rooms 1/2, and the spirit's cast in rooms 7/8 */
-int sword_seq_0317c4(void)
-{
-	int r;
-	if (Char.frame >= 0xF6 && Char.frame <= 0x105) r = -1;
-	else if ((Char.room == 1 || Char.room == 2) && level_number == 14) r = -1;
-	else if (Char.charid == 1 && (Char.room == 7 || Char.room == 8) && level_kind == 6) {
-		r = spirit_cast();
-		int8_t i = 0;
-		if (chars[0].charid != 0) while (i < 5) { i++; if (i < 5 && chars[i].charid == 0) break; }
-		Char.f10 = i < 5 ? chars[i].f10 : 0;   /* the body's (index 5 would read past chars[]) */
-	} else { note_missing("sword0317c4"); return -1; }
-	if (r != -1 && r != 0xF2) play_sound(0x13);
-	else if (Char.f10 != 0xFF) Char.f10 = 0;
-	return r;
 }
 /* 33FD:1BE6 (1375:205C, drawing a falling object of type 0xC): the state it leaves: a fireball in the left or right
  * room that shows is moved into the drawn room's coordinates, and DS:0842 keeps the drawn image's width (the wall test

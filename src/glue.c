@@ -56,7 +56,7 @@ void ovl_2f86_0a5c(void) { turn_flash(); }
 void ovl_383fa(void) { note(" 383fa"); } void ovl_35a88(void) { ruins_open_tile7(); }   /* 347C:12C8 (ruins.c) */ int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ int ovl_34ab2(void) { return 0; }
 int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF:104C */ void ovl_384e8(void) {} int ovl_32a0e(void) { return under_gate(); }   /* 3212:08EE (control.c) */ 
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) { turn_count(); }   /* 2F86:0078 (spirit.c) */
-uint16_t word_922e, word_922c, word_8604, word_927e;
+uint16_t word_922e, word_8604, word_927e;
 int ovl_377c6(void) { return level_kind == 4 ? head_biting(Char.index, Char.room) : 0; }   /* 366C:1106 */ void ovl_3741a(void) {} 
 int rtlink_0dd5(void) { return 0; } 
 void control_0d9_0e2(void) { note(" 0d9_0e2?"); }
@@ -172,7 +172,7 @@ int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed
 
 /* fight/tick stubs */
 int ovl_366c_6ac(void) { if (level_kind == 4) return head_hit(); note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } 
-int ovl_366c_fc(void) { note(" 366c_fc?"); return 0; } void music_1286_07ce(uint8_t k) { (void)k; } void ovl_366c_f24(void) { if (level_kind == 4) head_knock_back(); else note(" f24?"); }
+void music_1286_07ce(uint8_t k) { (void)k; } void ovl_366c_f24(void) { if (level_kind == 4) head_knock_back(); else note(" f24?"); }
 void anim_tile_other(uint8_t t) { char m[24]; snprintf(m, sizeof m, " ANIM%02X?", t); note(m); }
 void level_kind_tick(void) { if (level_kind == 5) { if (Kid.room == 0x13 || Kid.room == 0x10 || byte_9276 == 10) note(" KIND5?"); for (int i = 0; i < room_nchars(drawn_room); i++) if (chars[i].room == 0x13 || chars[i].room == 0x10 || byte_9276 == i) note(" KIND5c?"); } else if (level_kind == 2) temple_tick();   /* 347C:0FC4 */
   else if (level_kind == 3) { if (level_number == 5 && (drawn_room == 10 || drawn_room == 7 || drawn_room == 12)) note(" KIND3WATER?"); }   /* 33FD:0BEA */

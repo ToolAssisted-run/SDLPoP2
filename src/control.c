@@ -69,6 +69,47 @@ int control_runjump(int kind)
 	return 1;
 }
 
+/* 2FDF:19D4 (0317c4, Ctrl while standing, the prince or the spirit): draw the sword (seq 0x37, sound 0x13), first
+ * stepping back from an edge or a wall in front (a temple wall, DS 1375:14FC) so the stance fits; -1 when there is no
+ * room behind either. Level 14: not in rooms 1/2; the spirit in rooms 7/8 casts instead (33FD:1E4A). */
+int sword_seq_0317c4(void)
+{
+	int r = 0x37;
+	if ((Char.frame >= 0xF6 && Char.frame <= 0x105) || ((Char.room == 1 || Char.room == 2) && level_number == 14)) r = -1;
+	else if (Char.charid == 1 && (Char.room == 7 || Char.room == 8) && level_kind == 6) {
+		r = spirit_cast();
+		int8_t i = 0;
+		if (chars[0].charid != 0) while (i < 5) { i++; if (i < 5 && chars[i].charid == 0) break; }
+		Char.f10 = i < 5 ? chars[i].f10 : 0;   /* the body's (index 5 would read past chars[]) */
+	} else {
+		int16_t si = -1, di = level_kind == 2 ? ovl_352ca() : 0;   /* 1375:14FC */
+		if (di) { int c = x_to_col(di) - Char.curr_col; if (c < 0) c = -c; if (c > 1) di = 0; }
+		uint8_t t = Char.direction == 0 ? get_tile_at_char() : 0;
+		if (t == 4 && can_bump_into_gate()) si = -0x20;
+		else if (di && ((Char.direction == -1 && Char.x >= di) || (Char.direction == 0 && Char.x <= di))) {
+			int16_t w = distance_to_edge_weight(), d = di - Char.x; if (d < 0) d = -d; d -= w;
+			si = (d + 1 == 0 ? -2 : d) - 4;
+		} else {
+			t = get_tile_infrontof(1);
+			if (!tile_is_floor(t) || t == 0xB || (t == 4 && can_bump_into_gate())) si = 0;
+		}
+		if (si != -1) {
+			t = get_tile_behind_char();
+			int bad = !tile_is_floor(t) || t == 0xB || (t == 4 && can_bump_into_gate());
+			if (!bad && di && !((Char.direction == -1 && Char.x >= di) || (Char.direction == 0 && di >= Char.x))) bad = 1;
+			if (!bad && Char.f24 == 4) bad = 1;
+			if (bad) { Char.f10 = 0; r = -1; }
+			else {
+				int16_t e = distance_to_edge_weight() + si;
+				if (Char.direction == 0) { if (e < 0x15) Char.x = char_dx_forward(e - 0x15); }
+				else if (Char.direction == -1) { if (e < 0xF) Char.x = char_dx_forward(e - 0xF); }
+			}
+		}
+	}
+	if (r != -1 && r != 0xF2) play_sound(0x13);
+	else if (Char.f10 != 0xFF) Char.f10 = 0;
+	return r;
+}
 /* 2FDF:1544 (031764): shift alone while standing: draw/put away sword (charid dependent) */
 void control_standing_shift(void)
 {
@@ -488,7 +529,7 @@ static void sword_actions(void)
 {
 	if (Char.charid == 7 || Char.charid == 8) { ovl_3741a(); return; }
 	if (Char.frame == 0xA1 && ctrl1_shift >= 0) { seqtbl_offset_char(0x39); return; }
-	if (ctrl1_shift == -2) { if (Char.charid == 0 || Char.charid == 1) word_922c = 0xF; sword_strike(); return; }
+	if (ctrl1_shift == -2) { if (Char.charid == 0 || Char.charid == 1) word_68ec = 0xF; sword_strike();   /* DS:68EC: guards hold back */ return; }
 	if (ctrl1_down < 0) { if (Char.frame == 0x9E || Char.frame == 0xAA || Char.frame == 0xAB) sword_sheathe(); return; }
 	if (ctrl1_up < 0) { sword_parry(); return; }
 	if (ctrl1_forward < 0) { sword_advance(); return; }

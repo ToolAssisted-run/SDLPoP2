@@ -290,3 +290,34 @@ void guard_after_seq(void)
 }
 void sword_range_pub(int16_t *far_ax, int16_t *near_bx) { sword_range(far_ax, near_bx); }
 void guard_ai_pub(void) { guard_ai(); }
+
+/* 366C:0318 (OVL10): the drawn room's characters that are dead */
+static int8_t dead_count(void)
+{
+	int8_t n = room_nchars(drawn_room), k = 0;
+	for (int8_t i = 0; i < n; i++) if (chars[i].alive >= 0) k++;
+	return k;
+}
+/* 366C:00FC (OVL10; 2D3E:1E3A, a guard hit by the prince): he falls dead on the spot (seq 0xB9) instead of reeling
+ * back: on the ship of level 1 (rooms 0x10/0x13, or facing right with nothing behind), or in a room whose spawn
+ * points have flag 0x80, by chance (random(3) <= dead guards) or onto another body on his tile; not facing the prince
+ * the same way, nor on/before tiles 3, 8 or 4 */
+int ovl_366c_fc(void)
+{
+	if (level_kind == 4) { note_missing("366c_fc"); return 0; }   /* (OVL09 is loaded there) */
+	if (level_kind == 5 && (Char.room == 0x13 || Char.room == 0x10 || (tile_is_empty_kind(get_tile_behind_char()) && Char.direction == -1))) return 1;
+	if (!spawn_flag80(Char.room)) return 0;
+	int8_t n_dead = dead_count(); int hit = random_2751(3) <= n_dead;
+	if (!hit && n_dead != 0) {
+		char_type saved = Char; int8_t n = room_nchars(drawn_room);
+		for (int8_t i = 0; i < n && !hit; i++) {
+			if (i == (int8_t)saved.index) continue;
+			load_char(i);
+			if (Char.curr_row == saved.curr_row && Char.curr_col == saved.curr_col && is_dead_frame(Char.frame)) hit = 1;
+		}
+		Char = saved;
+	}
+	if (!hit || Char.direction == Opp.direction) return 0;
+	uint8_t t = get_tile_at_char(); if (t == 3 || t == 8 || t == 4) return 0;
+	t = get_tile_behind_char(); return t != 3 && t != 8;
+}

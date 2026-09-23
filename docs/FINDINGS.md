@@ -304,8 +304,8 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   kid chtab ids 25001 + image + 1 - 400, found in FINAL.DAT through the resource chain; 17 at start); the wall test
   (1DC0) uses DS:0842. The shift key gives ctrl1_shift -1, Ctrl (BIOS flag 4) -2: the spirit's cast and the
   prince's sword are Ctrl (pop2_input.shift = 2; plan2script writes flag 4).
-- Not reconstructed: the other drawing hooks (0000, 0330, 1512, 15E8, 16D8, 1898, 1ACA, 1E72); 2FDF:19D4's sword-drawing
-  paths (noted). The climb needs the spirit (> 4 hp at the 8th turn); a LEVEL14 start has 3 hp (captures poke 8).
+- Not reconstructed: the other drawing hooks (0000, 0330, 1512, 15E8, 16D8, 1898, 1ACA, 1E72).
+  The climb needs the spirit (> 4 hp at the 8th turn); a LEVEL14 start has 3 hp (captures poke 8).
 
 ### 5.11 Sound and timing dependencies (platform)
 - play_sound (1611:01C6) only queues by priority (DS:0D5D); the frame end starts sounds; "playing" is the driver's
@@ -344,6 +344,19 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 
 ---------------------------------------------------------------------------------------------------------------------
 
+### 5.14 Drawing the sword (Ctrl)
+- Ctrl (BIOS flag 4) gives ctrl1_shift -2. Standing (index 0xA = the prince) with -2 and no direction: 2FDF:19D4
+  (control.c sword_seq_0317c4): seq 0x37 (sound 0x13), first stepping back so the stance fits: from a wall in front
+  on the temple (1375:14FC -> 347C:0B0A, within a column), a closing gate at his tile (3212:0896), or an edge in
+  front (tile not floor, loose, or blocking gate): distance_to_edge_weight + adjustment < 0x15 (facing right) / 0xF
+  (left) -> x = char_dx_forward(d - 0x15 / d - 0xF); nothing behind either -> no draw (f10 0). -1 during sword frames
+  and in level 14's rooms 1/2; the spirit in rooms 7/8 casts (5.10).
+- A strike with Ctrl (2FDF:1EB6, prince or spirit) sets DS:68EC = 0xF (guards hold back while it counts down).
+- A guard hit by the prince (2D3E:1E3A -> 366C:00FC, OVL10) falls dead at once (seq 0xB9, x back 8) on level 1's
+  ship (rooms 0x10/0x13, or facing left with nothing behind), or in a room with a spawn point flagged 0x80
+  (2D3E:0E54) when random(3) <= dead characters in the room or another body lies on his tile; not when facing the
+  prince's way nor on/before tiles 3/8/4.
+
 ## 6. The C core (`src/core.h`)
 - `pop2_init(dir)`, `pop2_new_game(level, seed)`, `pop2_frame(&input)` (one tick), `pop2_save/load/hash`,
   `pop2_missing()` (routines not reconstructed that the tick reached).
@@ -353,7 +366,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Speed: ~17k ticks/s with two hashes per tick; explorer ~500k ticks/s.
 
 ## 7. Verification status (2026-09-23)
-- 100+ captures: random runs E1..E14 (seeds 1..7), turn runs, planned deep runs X3..X13: all identical in every
+- 130+ captures: random runs E1..E14 (seeds 1..7; seed 21 with Ctrl, gen_e2e.py CTRL=1), turn runs, planned deep runs X3..X13: all identical in every
   field (strict), warm and cold start. The last scratch-Char difference (E10_6, X6, X9, X12) was the missing 1611:0164
   reload. X2_1's first capture crashed DOS ("Corrupt MCB chain"): the copy-protection answer keys (TAB/ENTER) were
   typed on levels 1-2, where no question is asked; plan2script.py now types them only on levels > 2.
@@ -365,8 +378,8 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 
 ## 8. Open list
 - Room hooks 0, 0x20, 0x21 (37F0 overlays); level 1 kind tick; story scenes;
-  sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; 2FDF:19D4 (the prince drawing
-  his sword with shift alone).
+  sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; level 5's water rooms
+  (OVL04 0BEA -> OVL12 at 37F0 via 2A31:0DE9; room hook 0x21 = OVL12 0426/0574: DS:2B78, DS:693C, DS:693E..).
 
 ---------------------------------------------------------------------------------------------------------------------
 
@@ -389,3 +402,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   turns in room 7) identical; room hooks 0x14..0x16, 0x1F; tile 0xC on kinds 2/4.
 - 2026-09-23: fireball draw state (DS:0842), Ctrl input; X14_4 (the spirit walks off and casts; the fireball bursts on
   a wall) identical.
+- 2026-09-23: sword drawing 2FDF:19D4 complete; DS:68EC on Ctrl strikes (was written to a stray variable);
+  366C:00FC; Ctrl random runs E1..E13_21 identical.

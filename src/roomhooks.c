@@ -33,7 +33,8 @@ static void room_enter_hook(int16_t bg)
 		break;
 	case 0x16: break;                     /* 347C:01EE (OVL06): palette */
 	case 0x1F: if (Kid.curr_col >= 9) sound_1611_01a8(0x5C); break;   /* 347C:0FB2 (OVL07, temple) */
-	case 0: case 0x20: case 0x21: hook_missing("ROOMHOOK_IN_", bg); break;
+	case 0: case 0x20: break;             /* 37F0:0000 (OVL11) / 37F0:0510 (OVL13): graphics set up (heap images at DS:2B76) */
+	case 0x21: hook_missing("ROOMHOOK_IN_", bg); break;
 	default: break;   /* DS:02E2: none */
 	}
 }
@@ -43,7 +44,8 @@ static void room_leave_hook(int16_t bg)
 	switch (bg) {
 	case 0x22: break;   /* 37F0:0060: palette */
 	case 0x16: break;   /* 347C:0202 (OVL06): palette (alive, time left) */
-	case 0: case 0x20: case 0x21: hook_missing("ROOMHOOK_OUT_", bg); break;
+	case 0: case 0x20: break;             /* 37F0:0012 (OVL11) / 37F0:06E0 (OVL13): graphics freed, palette */
+	case 0x21: hook_missing("ROOMHOOK_OUT_", bg); break;
 	default: break;
 	}
 }

@@ -65,7 +65,7 @@ extern uint8_t byte_2ab4, edge_type, start_room;
 int gate_blocks_0329b6(void); void ovl_2f86_08d8(void); int get_edge_distance(void); int level_door_open_0cfa(void); void ovl_30b52(void);
 void control_jumpup_grab_031074(void); int opp_distance(void); void control_standing_turn(void); int control_standing_step(int dist);
 void control_standing_forward(void); void control_standing_up(void);
-extern uint16_t word_922e, word_922c, word_8604, word_927e;
+extern uint16_t word_922e, word_8604, word_927e; extern uint16_t word_68ec;
 void sword_retreat(void); int char_scan_31bc4(void); int ovl_377c6(void); void ovl_3741a(void); uint8_t room_nchars(uint8_t room);
 void load_opp_080a(int n); int rtlink_0dd5(void);
 /* collision.c (0993:09B6, OVL01 segment 3212) */
@@ -207,3 +207,5 @@ void start_0a_pub(int8_t tp, uint8_t room); int8_t tilepos_or_30_pub(int8_t row,
 const uint8_t *ds_ptr(uint16_t a);
 int8_t body_index(void);   /* spirit.c 2F86:03CC */
 void fireball_draw_state(void); extern int16_t fireball_width; int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);
+int spirit_cast(void); int can_bump_into_gate(void); int16_t ovl_352ca(void);
+int spawn_flag80(uint8_t room);   /* room.c 2D3E:0E54 */

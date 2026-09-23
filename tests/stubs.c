@@ -118,7 +118,7 @@ level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
 void ovl_36712(void) { note(" 36712"); } void room_music_087e(void) {} void redraw_room(void) {} void hp_bar_clear(void) {} void hp_bar_draw(uint8_t index, int a, uint8_t hp) { (void)index; (void)a; (void)hp; }
 static uint8_t dstables[0x20];
 void stubs_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 charid->type (static data) */
-{ memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; guard_set_prob_tables(ram + 0x3B250); mobs_set_tables(ram + 0x3B250); caverns_set_tables(ram + 0x3B250); for (int i = 0; i < 16; i++) refract_tbl[i] = ram[0x3B250 + 0x13D0 + 2 * i] | ram[0x3B250 + 0x13D1 + 2 * i] << 8; refract_timer = refract_tbl;
+{ memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; guard_set_prob_tables(ram + 0x3B250); mobs_set_tables(ram + 0x3B250); caverns_set_tables(ram + 0x3B250); byte_016a = (int8_t)ram[0x3B250 + 0x16A];   /* outside the snapshot window */ for (int i = 0; i < 16; i++) refract_tbl[i] = ram[0x3B250 + 0x13D0 + 2 * i] | ram[0x3B250 + 0x13D1 + 2 * i] << 8; refract_timer = refract_tbl;
   for (int i = 0; i < 8; i++) { uint16_t p = ram[0x3B250 + 0x6BC + 2 * i] | ram[0x3B250 + 0x6BD + 2 * i] << 8; guard_bank2[i] = p ? (ram[0x3B250 + p] | ram[0x3B250 + p + 1] << 8) : 0;
     env_bank2[i] = (int16_t)(ram[0x3B250 + 0x5AC + 2 * i] | ram[0x3B250 + 0x5AD + 2 * i] << 8); } }
 
@@ -131,7 +131,6 @@ int ovl_36ed6(int16_t d) { (void)d; note(" 36ed6?"); return -1; } void dead_char
 int ovl_366c_6ac(void) { note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } void ovl_33fd_6ae(void) { note(" 6ae?"); }
 int ovl_366c_fc(void) { note(" 366c_fc?"); return 0; } void music_1286_07ce(uint8_t k) { (void)k; } void ovl_366c_f24(void) { note(" f24?"); }
 void anim_tile_other(uint8_t t) { char m[24]; snprintf(m, sizeof m, " ANIM%02X?", t); note(m); }
-void checkpoints_0db4(void) {}
 void level_kind_tick(void) { if (level_kind == 5) { if (Kid.room == 0x13 || Kid.room == 0x10 || byte_9276 == 10) note(" KIND5?"); for (int i = 0; i < room_nchars(drawn_room); i++) if (chars[i].room == 0x13 || chars[i].room == 0x10 || byte_9276 == i) note(" KIND5c?"); } else if (level_kind == 3) { if (level_number == 5 && (drawn_room == 10 || drawn_room == 7 || drawn_room == 12)) note(" KIND3WATER?"); }   /* 33FD:0BEA */
   else note(" KINDTICK?"); }
 void anim_start_other(uint8_t t, int8_t tp, uint8_t room, int si) { (void)tp; (void)room; (void)si; char m[24]; snprintf(m, sizeof m, " ASTART%02X?", t); note(m); }

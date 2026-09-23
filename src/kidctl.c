@@ -5,7 +5,7 @@
 
 int8_t kid_ctrl1_saved[5];     /* DS:6128: the prince's ctrl1_* between ticks (the characters' control() reuses DS:6122) */
 uint16_t word_5d38;            /* DS:5D38: nonzero = up and down swapped */
-uint16_t word_5cd2, word_5cd0; /* DS:5CD2: restarts allowed without the prompt; DS:5CD0 */
+uint16_t word_5cd0;            /* DS:5CD0: show the time left */
 uint16_t word_5cda, word_5cdc; /* DS:5CDA / 5CDC: countdown and its start (0x258 after a death) */
 
 /* 0AFF:1336 / 1356: make control_x (resp. y) relative to the facing direction by swapping the ctrl1 pairs */
@@ -60,7 +60,7 @@ int play_kid_control(void)
 	if (Char.alive < 6) { Char.alive++; return si; }
 	if (Char.alive == 6) { seq_music_1611(byte_5cb8); Char.alive++; return si; }
 	if (Char.alive != 7 || death_sound_playing(1)) return si;   /* DS:0882 or DS:0884 still playing */
-	if (word_5cd2 == 0) { restart_prompt(); si = -1; }
+	if (minutes_left == 0) { restart_prompt(); si = -1; }   /* out of time */
 	else if (word_5cdc != 0x258) { word_5cdc = word_5cda = 0x258; note_missing("FB3_20A4"); }
 	Char.alive++;
 	return si;

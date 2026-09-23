@@ -10,3 +10,12 @@ for s in D E F G H1 H2 H3 H4; do echo "L1 $s $($W/snaptest $mode $S/SEQUENCE.DAT
 for s in L3loose7 L3loose22 L3btn10 L3btn3 L3r1 L3r2 L3skel1 L3skel2 L3skel3 L3sk11_1 L3sk11_2 L3sk17_1 L3sk20_1 L3br1 L3br2 L3br3; do [ -f $W/$mode$s.bin ] || continue; h=; [ -f $W/heap$s.bin ] && h=$W/heap$s.bin; echo "L3 $s $($W/snaptest $mode $S/SEQUENCE.DAT $O/w/ramL3.bin $S/PRINCE.EXE $W/$mode$s.bin $h 2>/dev/null | tail -1)"; done
 # keyboard -> controls (capture ~/pop2dec/oracle/keyprobe.script: every movement key, shifts, ctrl, alt)
 if [ -f $W/input_keyprobe.bin ]; then gcc -O0 -g -Wall -o $W/inputtest tests/inputtest.c tests/stubs.c tests/snap.c src/*.c && echo "input $($W/inputtest $W/input_keyprobe.bin | tail -1)"; fi
+# between ticks (ds_postroom -> next ds_tick: 2D3E:0FB0, the clock, 169B:0A30, 0BA6): bins built on demand
+if [ "$mode" = tick ]; then
+for s in D E F G H1 H2 H3 H4 L3loose7 L3loose22 L3btn10 L3btn3 L3r1 L3r2 L3skel1 L3skel2 L3skel3 L3sk11_1 L3sk11_2 L3sk17_1 L3sk20_1 L3br1 L3br2 L3br3; do
+	case $s in L3*) ev=$O/$s-snap.txt; sc=$O/$s.script; ram=$O/w/ramL3.bin;; *) ev=$O/tick$s-snap.txt; sc=$O/tick$s.script; ram=$O/w/ram1436.bin;; esac
+	[ -f $ev ] || continue
+	[ -f $W/between$s.bin ] || python3 tests/snaps_from_events.py --skip-pokes $sc $ev ds_postroom ds_tick $W/between$s.bin >/dev/null
+	echo "$s $($W/snaptest between $S/SEQUENCE.DAT $ram $S/PRINCE.EXE $W/between$s.bin 2>/dev/null | tail -1)"
+done
+fi

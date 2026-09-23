@@ -26,7 +26,7 @@ extern int coll_debug;
 int main(int argc, char **argv)
 {
 	if (argc < 6) { fprintf(stderr, "usage: snaptest room|chars SEQUENCE.DAT ram.bin PRINCE.EXE pairs.bin\n"); return 2; }
-	int chars_mode = !strcmp(argv[1], "chars"); tick_mode = !strcmp(argv[1], "tick");
+	int chars_mode = !strcmp(argv[1], "chars"); tick_mode = !strcmp(argv[1], "tick"); int start_mode = !strcmp(argv[1], "start"), between_mode = !strcmp(argv[1], "between");
 	stubs_init(argv[2], "/dev/null"); stubs_load_frame_tables(argv[4]);
 	static uint8_t ram[655360]; FILE *rf = fopen(argv[3], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf); stubs_load_ds_tables(ram);
 	level_roomlinks = (uint8_t *)&level + 0x17BC;
@@ -36,8 +36,12 @@ int main(int argc, char **argv)
 	static uint8_t a[SNAP_MAX], b[SNAP_MAX], got[SNAP_MAX]; uint32_t frame, size; int n = 0, bad = 0, busy = 0, skipped = 0;
 	static const char *const room_regions[] = {"Kid", "chars", "level", "drawn_room", "room_L", "room_R", "room_A", "room_B", "room_AL", "room_AR", "room_BL", "room_BR", "next_room", "exit_dir", "pal_slots", "word_922a", NULL};
 	static const char *const chars_regions[] = {"chars", "Kid", "level", "random_seed", "drawn_room", "room_L", "room_R", "word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", NULL};
-	static const char *const tick_regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "random_seed", "drawn_room", "room_L", "room_R", "room_A", "room_B", "next_room", "exit_dir", "pal_slots", "word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", "word_922a", "floor_ptrs", "kid_ctrl1_saved", "word_5cd0", "word_5cda", "word_5cdc", NULL};
-	const char *const *regions = tick_mode ? tick_regions : chars_mode ? chars_regions : room_regions;
+	static const char *const tick_regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "random_seed", "drawn_room", "room_L", "room_R", "room_A", "room_B", "next_room", "exit_dir", "pal_slots", "word_6140", "word_6146", "word_68ec", "word_68f0", "word_922e", "word_922a", "floor_ptrs", "kid_ctrl1_saved", "word_5cd0", "word_5cda", "word_5cdc", "minutes_left", "clock_ticks", "word_5cc0", NULL};
+	static const char *const start_regions[] = {"Kid", "Char", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "drawn_room", "next_room", "kid_ctrl1_saved", "coll", "knock", "word_6142", "word_6146", "word_8a84",
+		"word_5d36", "byte_5cbb", "word_5cbe", "word_8604", "start_hp", "byte_5cba", "floor_ptrs", NULL};
+	static const char *const between_regions[] = {"Kid", "chars", "level", "trobs", "trob_count", "mobs", "mob_count", "drawn_room", "next_room", "tick", "word_5d38", "word_5cda", "word_5cdc", "word_5cd0", "minutes_left", "clock_ticks",
+		"word_2b90", "word_5cee", "word_5cce", "word_922a", "word_5d36", "word_5ce8", "floor_ptrs", NULL};
+	const char *const *regions = tick_mode ? tick_regions : chars_mode ? chars_regions : start_mode ? start_regions : between_mode ? between_regions : room_regions;
 	int only = getenv("CASE") ? atoi(getenv("CASE")) : 0;
 	while (fread(&frame, 4, 1, f) == 1 && fread(&size, 4, 1, f) == 1 && size <= SNAP_MAX && (SNAP_SIZE = size, SNAP_BASE = 0x6C00 - size, 1) && fread(a, 1, SNAP_SIZE, f) == SNAP_SIZE && fread(b, 1, SNAP_SIZE, f) == SNAP_SIZE && (!tick_mode || (fread(kctl, 1, 8, f) == 8 && fread(kc1, 1, 16, f) == 16))) {
 		n++; stubs_reset();
@@ -49,7 +53,9 @@ int main(int argc, char **argv)
 		prev_ok = 0;
 		snap_load(a); if (hsize) snap_load_heap(heap, hsize); stubs_select_guard_dat(level.type); coll_debug = only == n;
 		uint8_t dr0 = drawn_room; int8_t nch = room_nchars(drawn_room);
-		if (tick_mode) { if (tick_body() == -1) { skipped++; continue; } busy += drawn_room != dr0; }
+		if (tick_mode) { if (tick_main() == -1) { skipped++; continue; } busy += drawn_room != dr0; }
+		else if (start_mode) { if (a[0x5AB2 - SNAP_BASE] | a[0x5AB3 - SNAP_BASE] | a[0x5AB4 - SNAP_BASE] | a[0x5AB5 - SNAP_BASE]) { printf("case %d: checkpoint in far memory, skipped\n", n); skipped++; continue; } level_begin(); }
+		else if (between_mode) { if (tick_tail() == -1 || frame_end() == -1) { skipped++; continue; } frame_begin(); }
 		else if (chars_mode) { if (nch > 0) busy++; play_all_chars(); }
 		else { check_kid_left_room(); switch_room(); if (drawn_room != dr0) busy++; }
 		memcpy(got, a, SNAP_SIZE); snap_store(got);

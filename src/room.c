@@ -417,3 +417,17 @@ void spawn_guards(uint8_t room)
 	if (sp[4] == 0) { spawn_guard(room, sp); sp[4] = sp[5]; sp[8]--; } else sp[4]--;
 }
 void init_hp_pub(level_char_init *r) { init_hp(r); }
+/* 2D3E:0FB0 (each tick): characters of the drawn room that fell below it are written back to their rooms */
+void chars_fell_below(void)
+{
+	int8_t n = room_nchars(drawn_room);
+	for (int8_t i = 0; i < n; i++) {
+		load_char(i);
+		if ((uint8_t)Char.direction == 0x56 || Char.y < 0x180 || (level_kind == 5 && Char.index == byte_9276)) continue;
+		if (Char.action != 4 && Char.action != 3 && !(Char.frame >= 0xCA && Char.frame <= 0xD4)) { if (!save_to_record()) save_char(); }
+		else if (room_B == 0) { save_to_record(); if (Char.charid == 2 && !sound_playing_8426()) play_sound(0x19); }   /* falls out of the level */
+		/* 1611:0068 stops its sounds */
+		hp_bar_draw(Char.index, 0, Char.f12);
+		if (Kid.opp_index == Char.index) Kid.opp_index = 0xFF;
+	}
+}

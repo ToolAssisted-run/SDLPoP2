@@ -3,8 +3,8 @@
 #include "globals.h"
 
 uint16_t word_5ce8;   /* DS:5CE8 (8628): nonzero during cutscenes, no sword hits */
-/* 169B:05E0: returns 0 normally, -2 frozen prince, -1 quit (level restart handled by the caller) */
-int tick_body(void)
+/* 169B:05E0 up to 0823:0E72 (the captures' ds_postroom point): 0 normally, -2 frozen prince, -1 quit */
+int tick_main(void)
 {
 	falling_floors();                              /* 1375:1A52 */
 	animate_tiles();                               /* 1375:0006 */
@@ -19,10 +19,20 @@ int tick_body(void)
 		level_kind_tick();                         /* 169B:11E2 */
 		apply_hp_deltas();                         /* 0823:1008 */
 		check_kid_left_room();                     /* 2D3E:108A */
-		switch_room();                             /* 0823:0E72 */
+		switch_room();                             /* 0823:0E72 (returns -2) */
 		return 0;
 	}
 	if (r == -1) return -1;
 	play_all_chars(); level_kind_tick(); apply_hp_deltas();
 	return -2;
 }
+/* 169B:0656..0670, after a normal tick: fallen characters, the clock, and the prompt when time is up */
+int tick_tail(void)
+{
+	chars_fell_below();                            /* 2D3E:0FB0 */
+	game_clock();                                  /* 0823:0D5A */
+	if (minutes_left == 0) { restart_prompt(); return -1; }   /* 169B:123E */
+	return 0;
+}
+/* 169B:05E0: the whole tick */
+int tick_body(void) { int r = tick_main(); return r == 0 ? tick_tail() : r; }

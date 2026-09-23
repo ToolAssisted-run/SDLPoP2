@@ -69,7 +69,7 @@ static void snd_load(void)
 	snd_len[0x31] = 1391000;    /* 97-98 frames (level 1) */
 	snd_len[0x36] = 60000000;   /* level 13's moving wall: still playing after 286 frames when replaced (a loop, it seems) */
 	snprintf(p, sizeof p, "%s/MIDISND.DAT", dir);
-	if (dat_open(&d, p)) for (int i = 0; i < NSND; i++) { const uint8_t *r = dat_find(&d, "DNS", 10000 + i, &n); if (r && !snd_kind[i] && r[0] == 2) { snd_kind[i] = 2; snd_len[i] = midi_length(r, n); } }
+	if (dat_open(&d, p)) for (int i = 0; i < NSND; i++) { const uint8_t *r = dat_find(&d, "DNS", 10000 + i, &n); if (r && !snd_kind[i] && (r[0] & 2)) { snd_kind[i] = 2; snd_len[i] = (r[0] & 0x80) ? 0x7FFFFFFF : midi_length(r, n); } }   /* byte 0: 2 MIDI, 0x80 loops (level 14's room music) */
 }
 uint32_t snd_midi_extra = 0, snd_digi_extra = 0;   /* driver latencies */
 int sound_phase; int32_t amb_margin;   /* diagnostics: the MIDI channel's time left at the last ambient check */   /* 1 during the pass's end (1611:04D0 / 03CC), after the tick and the drawing */

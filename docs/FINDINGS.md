@@ -544,3 +544,10 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   leave the room's list when they fall out of it (G14_k3); a dead Jaffar's body stays in the list, and the last one
   starts seq 0xF0 only when the list holds him alone (nchars 1, the spirit not counted), then waits in room 8's list
   (G14_leave: the spirit kills one with the sword, the last leaves). Explorer EXPLORE_J78 / EXPLORE_STOPKEY.
+- 2026-09-24: level 14 rooms 7/8 verified (G14_win: the last Jaffar in room 8, the spirit's fireball hits him, the
+  prince dies there): 33FD:0AD0 walks left by cx - x_min + 2 (the core had the sign reversed); the kind tick's gate
+  33FD:03D9 is DS:0884 playing (the core asked for sound 0xFFFF); the room hook 33FD:1708 queues the room music (room
+  6 0x10E; room 7 0x107 once DS:2BB4; room 8 0x107 while room 8's list DS:474B is not empty and 0x107 is not playing).
+  MIDISND byte 0 = 0x82 marks looping pieces (0x21 0x3C 0x3F 0x6A 0xFB 0xFD 0xFF 0x107 0x10C..0x10E). e2e now answers
+  sound queries with the model by default (the capture only through the retry on a differing tick): all captures
+  strict-clean. The level-14 win itself (counter +1 at Jaffar's seq 0xF3 frame 0x15F) is still unverified.

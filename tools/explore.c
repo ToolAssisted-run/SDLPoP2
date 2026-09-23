@@ -23,7 +23,13 @@ static int jaffars_dead(void)   /* progress: Jaffars gone from room 6 plus those
 		if (r == drawn_room) { for (int i = 0; i < room_nchars(r); i++) if (chars[i].charid == 6 && (r == 6 || chars[i].alive < 0)) { if (r == 6) live6++;   /* (room 6: bodies count too, the last one leaves only when alone) */ else { n78++; jaffar_hit |= chars[i].f19 == 0xF3; } } }
 		else for (int i = 0; i < ROOM_REC(r)->nchars; i++) if (ROOM_REC(r)->chars[i].type == 3) { if (r == 6) live6++; else n78++; }
 	}
-	int p = getenv("EXPLORE_J78") ? n78 : 4 - live6 + n78;   /* EXPLORE_J78: only the Jaffars in rooms 7/8 */
+	int p = 4 - live6 + n78;
+	if (getenv("EXPLORE_J78")) {   /* EXPLORE_J78: the kill in rooms 7/8: 1 the spirit (hp > 2) there, 2 on a live Jaffar's row, 3 and a fireball flies */
+		int row = 0, fire = 0;
+		if (drawn_room == 7 || drawn_room == 8) for (int i = 0; i < room_nchars(drawn_room); i++) row |= chars[i].charid == 6 && chars[i].alive < 0 && chars[i].curr_row == Kid.curr_row;
+		for (int i = 0; i < mob_count; i++) fire |= mobs[i].type == 0xC && mobs[i].speed >= 0 && mobs[i].row == (uint8_t)Kid.curr_row;
+		p = (Kid.charid == 1 && (int8_t)Kid.f12 > 2 && (drawn_room == 7 || drawn_room == 8)) ? 1 + row + (row && fire) : (row && fire) ? 3 : 0;
+	}
 	return p > 3 ? 3 : p;
 }
 static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return (((key_trobs ? (int)(trob_count & 3) : key_jaffar ? (jaffars_dead() > 3 ? 3 : jaffars_dead()) : 0) * 2 + (Kid.charid == 1)) * 33 * 4 + room * 4 + row + 1) * 12 + col + 1; }   /* the spirit (charid 1) apart */

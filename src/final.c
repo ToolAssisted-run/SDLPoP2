@@ -8,7 +8,7 @@
 extern int last_scene; int load_level(int n);
 #define word_2bb4 (*(uint16_t *)(tiles0 + 0x1A))   /* DS:2BB4: room 8 was reached with the sounds on */
 
-/* platform: DS:2B98 sound on (the sound query on DS:0884, the music playing, goes through music_playing()) */
+/* DS:2B98 sound on; DS:0884 the music playing (33FD:03CF): sound.c */
 
 /* 33FD:035A: the prince stands in room 4, column 5, row 1, facing right */
 static void place_at_room4(void)
@@ -98,7 +98,7 @@ static void kind6_chars(void)
 void kind6_tick(void)
 {
 	kind6_kid(); kind6_chars();
-	if (!sound_on() || sound_playing(0xFFFF) || Kid.alive >= 0 || (int8_t)word_32d8 != (int16_t)counter_5cec) return;
+	if (!sound_on() || music_playing() || Kid.alive >= 0 || (int8_t)word_32d8 != (int16_t)counter_5cec) return;
 	int si = -1;
 	switch (drawn_room) {
 	case 3: si = 0x10D; break;
@@ -169,12 +169,15 @@ void anim_start_final(uint32_t *attrs, int8_t tp, uint8_t room)
 	*(uint16_t *)&attrs[tp] = (uint16_t)(((si | 0x100) << 4) | di);
 	add_trob(k ? 0x2A : 0x29, 1, tp, room);
 }
-/* 33FD:1708 (room hooks 0x1C..0x1E, level 14 rooms 6..8): palettes; the start indexes; sounds */
+/* 33FD:1708 (room hooks 0x1C..0x1E, level 14 rooms 6..8): palettes; the start indexes; the room's music: room 7 0x107
+ * once room 8 was reached (DS:2BB4), room 8 0x107 while a Jaffar is there (DS:474B, its list) and it is not playing,
+ * else 0x10E */
 void final_room_enter(void)
 {
 	byte_2b74[0] = 0;
-	if (drawn_room == 7) byte_2b74[1] = 0;
-	else if (drawn_room == 8) byte_2b74[1] = 6;
+	if (drawn_room == 7) { byte_2b74[1] = 0; if (word_2bb4 != 0) sound_1611_01a8(0x107); }
+	else if (drawn_room == 8) { byte_2b74[1] = 6; if (!sound_playing(0x2817) && ROOM_REC(8)->nchars != 0) sound_1611_01a8(0x107); }
+	else sound_1611_01a8(0x10E);
 }
 
 /* The fight at the top (rooms 6..8). Charid 6 is Jaffar (type 3): in room 6 four of him stand still until the prince
@@ -300,7 +303,7 @@ static int walk_to(uint8_t *st)
 	if (e->dir != Char.direction) cx += (int8_t)ds_byte(0xCF9 + e->dir) * 6;
 	if (e->col < 10) { if (Char.room == 8) cx += 0x140; } else if (Char.room == 7) cx -= 0x140;
 	if (e->x_min > cx) { if (Char.direction == 0) { control_standing_step(e->x_min - cx + 2); return -1; } return 5; }
-	if (e->x_max < cx) { if (Char.direction == -1) { control_standing_step(e->x_min - cx + 2); return -1; } return 5; }
+	if (e->x_max < cx) { if (Char.direction == -1) { control_standing_step(cx - e->x_min + 2); return -1; } return 5; }   /* (33FD:0AD0) */
 	if (e->dir != Char.direction) return 5;
 	st[2] = st[1]; return -1;
 }

@@ -87,18 +87,17 @@ int frame_on_time(void) { return !(pace_ix >= 0 && pace_ix + 1 < nt_all && lag_a
 /* the answers to "is sound n playing" (the sound driver's timing is not modelled) in the current tick: by default from
  * the capture's seed (a random draw follows a "no"); when the tick disagrees with the capture, other answers are tried */
 static int sq_forced, sq_count; static unsigned sq_mask;
-static int e2e_sound_playing(void)
+static int e2e_sound_playing(int model)
 {
 	int r;
 	if (sq_forced) r = (sq_mask >> sq_count) & 1;
-	else if (cur_tick_ix < 0 || !seed_b_ok[cur_tick_ix]) r = 1;
-	else { uint32_t s = random_seed, want = seed_b[cur_tick_ix]; r = 1; for (int k = 1; k <= 4 && r; k++) { s = s * 0x343FD + 0x269EC3; if (s == want) r = 0; } }
+	else r = model;   /* the sound model; a tick that then differs from the capture retries the other answers */
 	sq_count++; return r;
 }
 
 /* E2E_SOUNDMODEL: the core's sound model answers; else the answers come from the capture (the death waits from
  * the prince's death count, "playing" from the seed, the level end never held) */
-static int e2e_sound_answer(int what, uint16_t res, int model) { (void)res; (void)model; return what == 0 ? e2e_sound_playing() : what <= 2 ? sound_busy : 0; }
+static int e2e_sound_answer(int what, uint16_t res, int model) { (void)res; return what == 0 ? e2e_sound_playing(model) : what <= 2 ? sound_busy : 0; }
 static int cap_frame, cap_prev_frame = -1, clock_mode; static uint32_t hybrid_us;
 /* E2E_SNDCLOCK=1: the capture's frame; 2: 1/12 s per pass unless the capture's pass took longer (7+ frames) */
 static int cap_next_frame = -1; static int last_left1; extern uint32_t snd_start_delay;

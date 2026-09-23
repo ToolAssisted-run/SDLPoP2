@@ -589,3 +589,8 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   `shot F PATH` (TGA, top-down rows, BGR) and `mem F DOMAIN PATH` (4 = video RAM) script commands now.
 - 2026-09-24: renderer tables: whole-room builds of all kinds but temple match the game entry for entry (5.15);
   level 2's puzzle solved by the fleet explorer and verified (P2_99: 462 ticks identical).
+- 2026-09-24: level 14's win verified (G14_end: prefix k3b + fleet explorer, hp 12; the spirit's fireball hits the
+  last Jaffar in room 7, his seq 0xF3 reaches frame 0x15F, counter DS:5CEC 14 -> 15, the game ends into the ending
+  scene 11): 856 ticks identical. Every level's completion is now verified in the oracle.
+- 2026-09-24: audio drivers (docs/AUDIO.md: DIGI.DRV = DSB_PRO, MIDI.DRV = MSB_PRO OPL2 + PRESETS.DEF, 194C
+  sequencer/PC speaker) and story scenes (docs/NIS.md) reconstructed by subagents and verified against the oracle.

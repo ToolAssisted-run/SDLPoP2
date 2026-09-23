@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 			int hold = 1 + rnd() % 8;
 			for (int h = 0; h < hold && t < 60 && plen < 4000; h++, t++) {
 				path[plen++] = in; int res = pop2_frame(&in); ticks++;
-				if ((key_jaffar || key_puzzle) && res > 0 && res != lv) { int k2 = cell_index(Kid.room ? Kid.room : 1, 0, 0); if (k2 >= 0) { ADD_CELL(k2); best = k2; } won = 1; fprintf(stderr, "iteration %d: level won after %d ticks\n", it, plen); t = 60; it = iters; break; }
+				if ((key_jaffar || key_puzzle) && ((res > 0 && res != lv) || (res == POP2_QUIT && lv == 14)))   /* (level 14 won: the game ends) */ { int k2 = cell_index(Kid.room ? Kid.room : 1, 0, 0); if (k2 >= 0) { ADD_CELL(k2); best = k2; } won = 1; fprintf(stderr, "iteration %d: level won after %d ticks\n", it, plen); t = 60; it = iters; break; }
 				if (res == POP2_QUIT || (res > 0 && res != lv)) { t = 60; break; }   /* left the level: stop there */
 				if (Kid.alive >= 0) { deaths++; t = 60; break; }                                /* dead: not a useful state */
 				int k = cell_index(Kid.room, Kid.curr_row, Kid.curr_col);

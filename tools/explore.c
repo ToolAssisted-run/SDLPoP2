@@ -1,7 +1,7 @@
 /* Explore a level with the core (Go-Explore style): keep the first state that reached each cell (room, row, column),
  * restart from rarely tried cells and play random held inputs. Writes the per-tick inputs that lead to the chosen
  * cell (default: the last new room found; or a given room) as a plan file: one line per tick "x y shift".
- * EXPLORE_HP=n starts the prince with n hp; EXPLORE_PREFIX=plan plays a plan first; EXPLORE_CTRL=1 presses Ctrl too; EXPLORE_RNG=n seeds the explorer's choices.
+ * EXPLORE_HP=n starts the prince with n hp; EXPLORE_PREFIX=plan plays a plan first; EXPLORE_CTRL=1 presses Ctrl too; EXPLORE_RNG=n seeds the explorer's choices; EXPLORE_KEY=trobs adds the live animation count to the cells.
  * usage: explore GAME_DIR LEVEL SEED ITERATIONS OUT.plan [TARGET_ROOM]
  * build: cc -O2 -o explore tools/explore.c src/(all).c -lm */
 #include <stdio.h>
@@ -13,8 +13,8 @@
 #include "../src/core.h"
 
 typedef struct { uint8_t *state; pop2_input *path; int len, tries, order; uint8_t room; } cell;
-static cell cells[33 * 4 * 12 * 2]; static int ncells;
-static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return ((Kid.charid == 1) * 33 * 4 + room * 4 + row + 1) * 12 + col + 1; }   /* the spirit (charid 1) apart */
+static cell cells[33 * 4 * 12 * 2 * 4]; static int ncells; static int key_trobs;   /* EXPLORE_KEY=trobs: the live animations (gates, buttons) count too */
+static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return (((key_trobs ? (int)(trob_count & 3) : 0) * 2 + (Kid.charid == 1)) * 33 * 4 + room * 4 + row + 1) * 12 + col + 1; }   /* the spirit (charid 1) apart */
 static uint32_t rng = 1; static char miss[64][80]; static int nmiss;   /* unreconstructed routines reached */
 static uint32_t rnd(void) { rng = rng * 1103515245u + 12345u; return rng >> 16; }
 
@@ -26,6 +26,7 @@ int main(int argc, char **argv)
 	uint32_t seed = (uint32_t)strtoul(argv[3], NULL, 0);
 	size_t n = pop2_state_size();
 	pop2_new_game(level, seed);
+	key_trobs = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "trobs");
 	if (getenv("EXPLORE_RNG")) rng = (uint32_t)strtoul(getenv("EXPLORE_RNG"), NULL, 0);   /* the explorer's own choices */
 	if (getenv("EXPLORE_HP") && *getenv("EXPLORE_HP")) { Kid.f12 = Kid.f13 = (uint8_t)atoi(getenv("EXPLORE_HP")); }   /* (the oracle script pokes the same at tick 1) */
 	static pop2_input path[4096]; int plen = 0, order = 0, best = -1; int room_seen[33] = {0};

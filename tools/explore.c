@@ -15,7 +15,7 @@
 typedef struct { uint8_t *state; pop2_input *path; int len, tries, order; uint8_t room; } cell;
 static cell cells[33 * 4 * 12 * 2]; static int ncells;
 static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return ((Kid.charid == 1) * 33 * 4 + room * 4 + row + 1) * 12 + col + 1; }   /* the spirit (charid 1) apart */
-static uint32_t rng = 1;
+static uint32_t rng = 1; static char miss[64][80]; static int nmiss;   /* unreconstructed routines reached */
 static uint32_t rnd(void) { rng = rng * 1103515245u + 12345u; return rng >> 16; }
 
 int main(int argc, char **argv)

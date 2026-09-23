@@ -170,6 +170,7 @@ int load_level(int n)
 	/* 1286:0D06: the guards' sword reach (a far override at DS:5AB2 is never set here) */
 	byte_5cba = level_number == 6 ? 0xFF : (level_number == 7 || level_number == 8) ? 2 : 1;
 	if (changed || last_scene) {   /* the full load (1286:01F2); a plain restart reloads through 1286:0332 */
+		guard_sprites_loaded(level.type);   /* 1286:027E -> 087E */
 		kind_level_init();
 		if (level_kind == 1) byte_14a0 = 0xFF;   /* 33FD:0324 (1286:02D9) */
 	}
@@ -237,3 +238,15 @@ int play_level(int n)
 	return n;
 }
 void close_entrance_pub(void) { close_entrance(); }
+uint8_t byte_0670 = 0xFF;   /* DS:0670: the level type whose guard sprites are loaded */
+/* 1286:087E (the state part): a new guard type's sprites; type 0 takes the two guard palette slots (2D3E:0EAC)
+ * when free (types 5/6 load through another branch: 1286:0A2D) */
+void guard_sprites_loaded(uint8_t type)
+{
+	if (type == 0xFF || type == byte_0670) return;
+	byte_0670 = type;
+	if (type == 0) {
+		if (pal_slots[0] == 0) pick_pal_slot_pub(1);
+		if (pal_slots[1] == 0) pick_pal_slot_pub(2);
+	}
+}

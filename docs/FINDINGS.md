@@ -439,3 +439,6 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   DS:2B68 compared now; frozen compares skip curr_room too.
 - 2026-09-23: level 5 water (water.c, OVL12); guard_advance's water check fixed; all room hooks done; X5_2 (explored
   to room 7 through the water, hp 12) identical.
+- 2026-09-23: 1286:087E at level load: type-0 guard sprites take the free palette slots (DS:5D08/09, Char.pal_slot);
+  DS:0670 = loaded type. Every cold start is now byte-exact. Deep explorations (300k iterations, hp 12, Ctrl) of
+  levels 1-13 reach no unreconstructed routine.

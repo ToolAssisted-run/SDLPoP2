@@ -3,6 +3,14 @@
 #include "globals.h"
 
 uint16_t word_5ce8;   /* DS:5CE8 (8628): nonzero during cutscenes, no sword hits */
+/* 1611:0164: the prince's opponent becomes the current character again; a sound when either stands on frame 0xA7
+ * (unless that one is character type 7 or 8) */
+static void reload_opponent(void)
+{
+	if (Kid.opp_index == 0xFF) return;
+	load_char(Kid.opp_index);
+	if ((Kid.frame == 0xA7 || Char.frame == 0xA7) && Char.charid != 7 && Char.charid != 8) play_sound(0xC);
+}
 /* 169B:05E0 up to 0823:0E72 (the captures' ds_postroom point): 0 normally, -2 frozen prince, -1 quit */
 int tick_main(void)
 {
@@ -15,6 +23,7 @@ int tick_main(void)
 	if (r == 0) {
 		play_all_chars();
 		if (word_5ce8 == 0 && drawn_room != 0) { check_sword_hits(); process_hurt(); }
+		reload_opponent();                         /* 1611:0164 */
 		checkpoints_0db4();                        /* 169B:0DB4 */
 		level_kind_tick();                         /* 169B:11E2 */
 		apply_hp_deltas();                         /* 0823:1008 */

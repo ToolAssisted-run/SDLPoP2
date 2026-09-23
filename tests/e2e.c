@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 					if (nd++ < 400) printf(" +%X:%02X!=%02X", off, got[a], mem[a]);
 				}
 				printf("\ncold start: %d differing bytes in known fields\n", nd);
-			} else snap_load(mem);
+			} else { snap_load(mem); if (level_kind == 1) byte_14a0 = 0xFF; }   /* (DS:14A0 is outside the sample; the load just set it, 1286:02D9) */
 			glue_select_guard_dat(level.type);
 			level_begin(); level_first_room(); started = 1; continue;
 		}

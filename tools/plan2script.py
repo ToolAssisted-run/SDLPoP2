@@ -5,7 +5,7 @@ inputs reach exactly the tick they were planned for. Starts the level with `prin
 import sys, os
 level, plan, name, odir = int(sys.argv[1]), sys.argv[2], sys.argv[3], sys.argv[4]
 ticks = [tuple(int(v) for v in l.split()) for l in open(plan) if l.strip()]
-out = ["key 300 tab 1\nkey 304 tab 0\nkey 320 tab 1\nkey 324 tab 0\nkey 340 enter 1\nkey 344 enter 0\n"]
+out = ["key 300 tab 1\nkey 304 tab 0\nkey 320 tab 1\nkey 324 tab 0\nkey 340 enter 1\nkey 344 enter 0\n"] if level > 2 else []   # the copy check (past level 2 only)
 out.append("probe 2FDF 048C kc_ctrl 40F24 8\nprobe 2FDF 048C kc_ctrl1 41372 10\n")
 out.append("ram 700 %s/w/ram%s.bin\n" % (odir, name))
 for ip, lab in (("05E0", "ds_tick"), ("064F", "ds_postroom"), ("00F5", "ls_a"), ("0135", "ls_b")):

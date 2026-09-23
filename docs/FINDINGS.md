@@ -169,7 +169,9 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 
 ## 4. Tick, frame and input
 - Tick (169B:05E0): falling floors (1375:1A52), tile animations (1375:0006), skeleton wake, guard spawns, guards see
-  kid (169B:0FF0), play_kid_frame (169B:0692), play_all_chars (169B:07EC), sword hits/hurt, checkpoints (169B:0DB4),
+  kid (169B:0FF0), play_kid_frame (169B:0692), play_all_chars (169B:07EC), sword hits/hurt, reload the prince's opponent
+  (1611:0164: load_char(Kid.opp_index = DS:5B6F) unless 0xFF; sound 0xC when Kid or it is on frame 0xA7 and its type
+  is not 7/8; Char is left holding the opponent for the rest of the tick), checkpoints (169B:0DB4),
   kind tick (169B:11E2 via DS:0654), apply hp (0823:1008), kid left room (2D3E:108A), switch room (0823:0E72);
   then tick_tail: chars fell below (2D3E:0FB0), clock (0823:0D5A), restart prompt when out of time.
 - Frame (169B:0505): frame_begin (169B:0BA6: frame timer DS:24DE = 5 or 6 (Kid+0x10 == 1)), tick, level end /
@@ -306,13 +308,15 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 
 ## 7. Verification status (2026-09-23)
 - 100+ captures: random runs E1..E14 (seeds 1..7), turn runs, planned deep runs X3..X13: all identical in every
-  field except the scratch record Char after two guards follow the prince into a room (E10_6, X6, X9, X12; a
-  character loop order). X2_1's capture crashed DOS ("Corrupt MCB chain", to investigate).
+  field (strict), warm and cold start. The last scratch-Char difference (E10_6, X6, X9, X12) was the missing 1611:0164
+  reload. X2_1's first capture crashed DOS ("Corrupt MCB chain"): the copy-protection answer keys (TAB/ENTER) were
+  typed on levels 1-2, where no question is asked; plan2script.py now types them only on levels > 2.
+- Warm-started level-2 runs need DS:14A0 = 0xFF (the puzzle answer is chosen at level load; e2e.c resets it).
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
 - Room hooks other than ids 6/0x22 (5.12); level 1 kind tick; level 14 (OVL08); spirit rejoin; story scenes;
-  sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; X5_1; X2_1 crash; Char scratch order.
+  sound duration model; the prince's drawing-pass hooks; hotkeys besides restart.
 
 ---------------------------------------------------------------------------------------------------------------------
 
@@ -326,3 +330,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   sword table by type (FRAM 1200 on levels 7/8); clear_char reload; FFEF without frame; victory music and sound answers.
 - 2026-09-23: room descriptions and hooks (0CD6:027A/02BE/073A, DS:01AA/02FE/0344/5CE7, CUST resources); OVL14 at
   37F0 is level 8's room-9 script; pickups add 0xC000 only with a description loaded (fixed X5_1).
+- 2026-09-23: 1611:0164 opponent reload after the fight code (fixed the last strict differences); X2_1 crash was
+  copy-protection keys on levels 1-2; run_all.sh now covers the X captures too. All captures strict-clean.

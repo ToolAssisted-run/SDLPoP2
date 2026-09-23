@@ -255,6 +255,27 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 ### 5.7 Caverns (kind 3; OVL04 33FD)
 - Rocks, collapsing floors (heap objects), traps (186A blade trap, tile 2, type-4 objects).
 
+### 5.7b Level 5's water (OVL12 at 37F0, water.c)
+- Rooms 7 | 10 | 12 form one row (37F0:0164: column -10 in room 7, +10 in room 12); tile 0x2C is water. RTLink
+  thunks: 2A31:0DE9 -> 0000 (the tick, from OVL04 33FD:0BEA on level 5 in drawn rooms 10/7/12), 0DD5 -> 023C,
+  0DDF -> 0286, 0DC1 -> 0426 (room hook 0x21 and rooms 7/12 without description), 0DCB -> 0588 (tile 0x2C anim),
+  0DF3 -> 0742 (its start); direct: 37F0:03D2 (guards), 0574 (leave hook), 0782/08F6 (falling object type 0xB).
+  Other 37F0 overlays: OVL11 (hook id 0: graphics), OVL13 (hook 0x20: graphics), OVL14 (level 8 room 9).
+- Tick 0000: the prince (0194) and the drawn room's first character (0206) swim when on tile 0x2C (050C: y = row
+  floor + DS:1C87[col]; on standing frames it bobs -1/+1 with the wave nibble of room 10 row 1). A prince in room 7
+  (not f10 0xFF, col <= 5) while its gate (position 13) is closed/closing holds the gate's plate (OVL04 33FD:0000).
+  Waves (0454): DS:2B78 = all when both swim, else bits around the swimmer's column; splash sound 0x43 by
+  random(0x28 * n) while 0x2753 is silent. The plug (001E): both swimming within 3 columns count DS:693C up (else
+  down, by 2 when not both); at 0x3C with the prince in columns 4..6, the other in 5..6 and the prince not on
+  f19 0x55, DS:693E runs 1..3, then bubbles (094A: type-0xB objects from room 10's row-1 positions 17..13, tile
+  cleared, attr 0xC000, size random(1): 5 steps small or 10 big, DS:693F+col) until none is left or the prince is
+  on f19 0x55; DS:693E = -1 and he is pushed right 10 px at col <= 4.
+- 023C: (guards/prince) the water's edge ahead: facing right at column < 2, or (035E) the opponent near the left
+  edge with the gate down; facing left at column >= 8. In 366C:0CAA (advance) it means move forward (guard.c had
+  it as stop). 0286: the skeleton's water rules (clear_char when falling outside; seq 0x65 at the right; turn at the
+  edge). 03D2: room ahead (column < 3 facing right, > 3 facing left). Tile 0x2C anim (0588): frame 0/1 by
+  random(3) where DS:2B78 has the column.
+
 ### 5.8 Level 2 (kind 1; OVL03 33FD, kind1.c)
 - Room 1 puzzle: six tiles 0x1E at positions 12..17; entering starts them rising after a random delay (0A18 mode 3);
   standing on one (a standing frame) and leaving presses it; the kind tick (0170) counts in the gate's attribute while
@@ -387,9 +408,9 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
-- Room hook 0x21 (OVL12, level 5 water); story scenes;
-  sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; level 5's water rooms
-  (OVL04 0BEA -> OVL12 at 37F0 via 2A31:0DE9; room hook 0x21 = OVL12 0426/0574: DS:2B78, DS:693C, DS:693E..).
+- Story scenes;
+  sound duration model; the prince's drawing-pass hooks; hotkeys besides restart; the stubs still logged by
+  note()/note_missing() (see `grep -n 'note(' src/*.c`).
 
 ---------------------------------------------------------------------------------------------------------------------
 
@@ -416,3 +437,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   366C:00FC; Ctrl random runs E1..E13_21 identical.
 - 2026-09-23: level 1's sea (kind5.c); X1_1 (ship rooms 16/19, hp 12) and X1_2 (a guard in room 15) identical;
   DS:2B68 compared now; frozen compares skip curr_room too.
+- 2026-09-23: level 5 water (water.c, OVL12); guard_advance's water check fixed; all room hooks done; X5_2 (explored
+  to room 7 through the water, hp 12) identical.

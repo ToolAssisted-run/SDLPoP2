@@ -14,8 +14,6 @@ int room_has_description(uint8_t room)
 	for (int tp = 0; tp < 30; tp++) if ((uint16_t)ROOM_ATTRS(room)[tp] & 0xC000) return 1;
 	return 0;
 }
-static void hook_missing(const char *what, int16_t bg) { char m[24]; static const char hx[] = "0123456789ABCDEF"; int n = 0;
-	while (what[n] && n < 16) { m[n] = what[n]; n++; } m[n++] = hx[(bg >> 4) & 15]; m[n++] = hx[bg & 15]; m[n] = 0; note_missing(m); }
 /* entry 0 of the background's hooks */
 static void room_enter_hook(int16_t bg)
 {
@@ -34,7 +32,7 @@ static void room_enter_hook(int16_t bg)
 	case 0x16: break;                     /* 347C:01EE (OVL06): palette */
 	case 0x1F: if (Kid.curr_col >= 9) sound_1611_01a8(0x5C); break;   /* 347C:0FB2 (OVL07, temple) */
 	case 0: case 0x20: break;             /* 37F0:0000 (OVL11) / 37F0:0510 (OVL13): graphics set up (heap images at DS:2B76) */
-	case 0x21: hook_missing("ROOMHOOK_IN_", bg); break;
+	case 0x21: water_room_enter(); break;   /* 37F0:0426 (OVL12, level 5 room 10) */
 	default: break;   /* DS:02E2: none */
 	}
 }
@@ -45,7 +43,7 @@ static void room_leave_hook(int16_t bg)
 	case 0x22: break;   /* 37F0:0060: palette */
 	case 0x16: break;   /* 347C:0202 (OVL06): palette (alive, time left) */
 	case 0: case 0x20: break;             /* 37F0:0012 (OVL11) / 37F0:06E0 (OVL13): graphics freed, palette */
-	case 0x21: hook_missing("ROOMHOOK_OUT_", bg); break;
+	case 0x21: break;   /* 37F0:0574: palette */
 	default: break;
 	}
 }
@@ -57,7 +55,7 @@ void room_load(uint8_t room)
 	if (!byte_5ce7) {
 		if (room_bg != 0) {
 			room_unload();
-			if (level_number == 5 && (drawn_room == 7 || drawn_room == 12)) hook_missing("ROOMHOOK_IN_", 0x21);   /* 2A31:0DC1 */
+			if (level_number == 5 && (drawn_room == 7 || drawn_room == 12)) water_room_enter();   /* 2A31:0DC1 -> 37F0:0426 */
 		}
 		return;
 	}

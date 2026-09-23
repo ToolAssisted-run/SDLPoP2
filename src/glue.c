@@ -58,7 +58,7 @@ int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) { turn_count(); }   /* 2F86:0078 (spirit.c) */
 uint16_t word_922e, word_8604, word_927e;
 int ovl_377c6(void) { return level_kind == 4 ? head_biting(Char.index, Char.room) : 0; }   /* 366C:1106 */ void ovl_3741a(void) {} 
-int rtlink_0dd5(void) { return 0; } 
+
 void control_0d9_0e2(void) { note(" 0d9_0e2?"); }
 
 static uint8_t kidtab[20736];
@@ -166,7 +166,7 @@ void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 
     env_bank2[i] = (int16_t)(ram[0x3B250 + 0x5AC + 2 * i] | ram[0x3B250 + 0x5AD + 2 * i] << 8); } }
 
 /* guard.c / play_all_chars stubs */
-int ovl_383d2(void) { note(" 383d2?"); return 1; }
+
 void ovl_shadow_37f0_78(void) { note(" shadow78"); } void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
 int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */ void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); }
 
@@ -176,7 +176,7 @@ void music_1286_07ce(uint8_t k) { (void)k; } void ovl_366c_f24(void) { if (level
 void anim_tile_other(uint8_t t) { char m[24]; snprintf(m, sizeof m, " ANIM%02X?", t); note(m); }
 void level_kind_tick(void) { if (level_kind == 5) kind5_tick();   /* 33FD:0232 (kind5.c) */
   else if (level_kind == 2) temple_tick();   /* 347C:0FC4 */
-  else if (level_kind == 3) { if (level_number == 5 && (drawn_room == 10 || drawn_room == 7 || drawn_room == 12)) note(" KIND3WATER?"); }   /* 33FD:0BEA */
+  else if (level_kind == 3) { if (level_number == 5 && (drawn_room == 10 || drawn_room == 7 || drawn_room == 12)) water_tick(); }   /* 33FD:0BEA */
   else if (level_kind == 1) kind1_tick();   /* 33FD:0170 */
   else if (level_kind == 4) {}   /* DS:0654[4] is null: no kind tick */
   else if (level_kind == 6) kind6_tick();   /* 33FD:03C6 (final.c) */
@@ -202,7 +202,7 @@ void glue_select_guard_dat(uint8_t type)
 	uint16_t n; const uint8_t *f = gf ? dat_find(gf, "MARF", 750, &n) : NULL;
 	frame_table_guard = f ? f : kidtab;
 }
-int ovl_2a31_ddf(void) { note(" ddf?"); return 1; }
+
 void seq_music_1611(uint8_t m) { (void)m; } void restart_prompt(void) { note(" restart"); }   /* 1611:0002 death music; 169B:123E prompt */
 __attribute__((weak)) int death_sound_playing(int both) { (void)both; return 0; }
 __attribute__((weak)) int level_end_sound_playing(void) { return 0; }

@@ -69,7 +69,7 @@ static void sword_range(int16_t *far_ax, int16_t *near_bx)
 /* 366C:0CAA advance, 0D4A block, 0DC4 strike (PoP1's per-skill probabilities) */
 static void guard_advance(void)
 {
-	if (lvl5_water() && rtlink_0dd5()) return;
+	if (lvl5_water() && rtlink_0dd5()) { move_forward(); return; }   /* (the water's edge ahead: on) */
 	uint8_t skill = guard_skill();
 	if (skill != 0 && word_68ec != 0) return;
 	if (lvl5_water() && !ovl_383d2()) return;
@@ -92,6 +92,7 @@ static void guard_strike(void)
 }
 /* 366C:00DE: put the sword away */
 static void guard_sheathe(void) { seqtbl_offset_char(Char.charid == 4 ? 0x66 : 0x54); Char.f10 = 0; Char.f23 = 0; }
+void guard_sheathe_pub(void) { guard_sheathe(); }
 /* 366C:0C42: in reach: block and strike, else advance */
 static void guard_in_reach(int16_t d)
 {

@@ -105,6 +105,7 @@ static void animate_tile(void)
 	else if (t == 0x24 && level_kind == 3) anim_rock();   /* 33FD:017C */
 	else if (t == 0x17 && level_kind == 3) anim_floor();   /* 33FD:05AE */
 	else if (t == 0xD && (level_kind == 2 || level_kind == 4)) anim_blade();   /* 33FD:0000 (OVL05) */
+	else if (t == 0x2C) anim_tile2c();   /* 2A31:0DCB -> 37F0:0588 (water.c) */
 	else if (level_kind == 6 && t == 0x1F) anim_tile1f();   /* 33FD:15A2 (OVL08, final.c) */
 	else if (level_kind == 6 && t == 0x28) anim_tile28();   /* 33FD:162A */
 	else if (level_kind == 6 && t == 0x29) anim_tile29();   /* 33FD:17AC */
@@ -151,7 +152,7 @@ void start_room_anims(void)
 		case 0x02: trap_room_entry(tp, room); break;   /* 186A:0226 (every kind: the tile only exists on kind 3) */
 		case 0x17: if (level_kind == 3) { if (si < 0x21) floor_room_entry(room, tp); break; } anim_start_other(t, tp, room, si); break;   /* 33FD:0A54 */
 		case 0x1E: if (level_kind == 1) { tile1e_start(room, tp, 3); break; } anim_start_other(t, tp, room, si); break;   /* 33FD:0A18 */
-		case 0x2C: anim_start_other(t, tp, room, si); break;
+		case 0x2C: anim_start_2c(anim_attrs, tp, room); break;   /* 2A31:0DF3 -> 37F0:0742 */
 		default: if ((room == 6 || room == 7 || room == 8) && level_kind == 6 && (anim_mod & 0x1000)) anim_start_final(anim_attrs, tp, room); break;   /* 33FD:1962 / 1B94 */
 		}
 	}

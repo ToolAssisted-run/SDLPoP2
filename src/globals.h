@@ -211,3 +211,4 @@ int spirit_cast(void); int can_bump_into_gate(void); int16_t ovl_352ca(void);
 int spawn_flag80(uint8_t room);   /* room.c 2D3E:0E54 */
 void kind5_tick(void); void grab_start(void); void kind5_room_palette(uint8_t room); extern int16_t word_6938; extern uint8_t byte_693a;   /* kind5.c */
 void hp_bars_reload(void); int sound_on(void);
+void water_tick(void); void water_room_enter(void); int rtlink_0dd5(void); int ovl_2a31_ddf(void); void anim_tile2c(void); void anim_start_2c(uint32_t *attrs, int8_t tp, uint8_t room); void bubble_update(void); extern int16_t word_693c; extern uint8_t byte_2b78; void guard_sheathe_pub(void); void sword_engage_pub(void); extern uint8_t water_693e[10];   /* water.c */

@@ -601,3 +601,4 @@ int under_gate(void)
 	int16_t x = char_dx_forward(-6) - 0xE;
 	return pos != 0 && pos < 0xC8 && col_x_left[tile_col] + 0xC <= x && col_x_right[tile_col] + 4 >= x;
 }
+void sword_engage_pub(void) { sword_engage(); }

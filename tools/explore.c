@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 	size_t n = pop2_state_size();
 	pop2_new_game(level, seed);
 	if (getenv("EXPLORE_RNG")) rng = (uint32_t)strtoul(getenv("EXPLORE_RNG"), NULL, 0);   /* the explorer's own choices */
-	if (getenv("EXPLORE_HP")) { Kid.f12 = Kid.f13 = (uint8_t)atoi(getenv("EXPLORE_HP")); }   /* (the oracle script pokes the same at tick 1) */
+	if (getenv("EXPLORE_HP") && *getenv("EXPLORE_HP")) { Kid.f12 = Kid.f13 = (uint8_t)atoi(getenv("EXPLORE_HP")); }   /* (the oracle script pokes the same at tick 1) */
 	static pop2_input path[4096]; int plen = 0, order = 0, best = -1; int room_seen[33] = {0};
 	if (getenv("EXPLORE_PREFIX")) {   /* a plan to play first (kept at the start of every path) */
 		FILE *pf = fopen(getenv("EXPLORE_PREFIX"), "r"); int x, y, sh;

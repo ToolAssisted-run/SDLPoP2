@@ -276,6 +276,13 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   edge). 03D2: room ahead (column < 3 facing right, > 3 facing left). Tile 0x2C anim (0588): frame 0/1 by
   random(3) where DS:2B78 has the column.
 
+### 5.7c Level 13's shadow room (OVL13 at 37F0, shadow13.c)
+- Room 4 (background 0x20): the kind-2 tick (347C:0FC4 -> 37F0:0236): walking left on row 1 past x 0xDA kills the
+  prince (seq 0xE6, x 0xD2, DS:310C = 0x85); dying there (frame 0xB9, f24 != 0xC) once (DS:0996 1 -> -1) raises the
+  shadow (02E4: a room-4 record, charid 1, 1 hp, seq 0xE7). The shadow's control (0078) walks/jumps to the prince
+  and, lying on him (f24 0xD, frame 0xB9), merges (0000: prince full hp, f24 0xD). Restart is refused while a shadow
+  is in room 4 (0823:050A -> 03CA). Tile 0x2B (040A): a flame counter. Hook 0x20 (0510/06E0): graphics.
+
 ### 5.8 Level 2 (kind 1; OVL03 33FD, kind1.c)
 - Room 1 puzzle: six tiles 0x1E at positions 12..17; entering starts them rising after a random delay (0A18 mode 3);
   standing on one (a standing frame) and leaving presses it; the kind tick (0170) counts in the gate's attribute while
@@ -375,6 +382,15 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 
 ---------------------------------------------------------------------------------------------------------------------
 
+### 5.13b More drawing-pass state (found by the fleet runs)
+- Object drawing (1375:1FBA, table 1375:201E by type): floors 0/1/3 (2062): one in the left room reaching past its
+  edge (DS:082A[type]) moves into the drawn room; traps 4 (186A:0008): kept only in the drawn room (or moved in from
+  the left room's column 10), else speed -1 (removed next tick); walls 6 / bubbles 0xB draw without lasting state.
+- The prince's drawing (0993:07F8 -> 0C04 body, 0C3A / 0D40 sword) leaves obj_* at his last sprite, usually the
+  sword (chtab 0: PRINCE.DAT SHAP 1001 + image, 1201 with sword type 2 on levels 7/8; chtab 1: 3001 + image). A
+  character drawn next whose frame has no image (0xFFFF, e.g. a collapsing skeleton at 0xB9) gets its box from it.
+- KID.DAT 25065 is a 1-byte placeholder; the original reads the heap after it (h 0, w 5 as observed).
+
 ### 5.14 Drawing the sword (Ctrl)
 - Ctrl (BIOS flag 4) gives ctrl1_shift -2. Standing (index 0xA = the prince) with -2 and no direction: 2FDF:19D4
   (control.c sword_seq_0317c4): seq 0x37 (sound 0x13), first stepping back so the stance fits: from a wall in front
@@ -442,3 +458,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - 2026-09-23: 1286:087E at level load: type-0 guard sprites take the free palette slots (DS:5D08/09, Char.pal_slot);
   DS:0670 = loaded type. Every cold start is now byte-exact. Deep explorations (300k iterations, hp 12, Ctrl) of
   levels 1-13 reach no unreconstructed routine.
+- 2026-09-23: fleet (jaffanator2, 256 cores): 252 explorations (all levels, hp 12, Ctrl) in ~10 min, captured and
+  compared in ~20 min: 232 identical; fixes: level 13 shadow (OVL13), trap/floor draw state, 3212:0582 uses the
+  below-left/right neighbours (not above), crouch + forward (seq 0x4F) and DS:4406 (a stray variable before), sword
+  sprites and their image bases, the placeholder image. Now 252/252 and all 137 local captures identical.

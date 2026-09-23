@@ -50,7 +50,7 @@ void play_sound(uint16_t n) { (void)n; } void sound_1611_01a8(uint16_t n) { (voi
 void shadow_hook_2f9a2(void) {}   /* 2F86:0142: level 13 room 4 f24 0xD: 0FB3:294C (a digital sound); palette */
 void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", code); note(t); }
 /* control.c externs not yet reconstructed */
-uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_6d46, word_8a84;
+uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_8a84;
 
 void ovl_2f86_0a5c(void) { turn_flash(); } 
 void ovl_383fa(void) { note(" 383fa"); } void ovl_35a88(void) { ruins_open_tile7(); }   /* 347C:12C8 (ruins.c) */ int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ 
@@ -138,6 +138,13 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 		if (!r) { note(" NOESHAP"); return 0; }
 		*height = r[0] | (r[1] << 8); *width_m1 = r[2] | (r[3] << 8); return 1;
 	}
+	if ((chtab == 0 || chtab == 1) && image >= 0) {   /* the sword sprites: PRINCE.DAT SHAP 1001 (1201 with sword type 2, levels 7/8) / 3001 + image (DS:60E6/60E8) */
+		static dat_file pdat; static int pdat_ok;
+		if (!pdat_ok) pdat_ok = dat_open(&pdat, game_path("PRINCE.DAT")) ? 1 : -1;
+		uint16_t n; const uint8_t *r = pdat_ok > 0 ? dat_find(&pdat, "PAHS", (chtab ? 3001 : byte_5cba == 2 ? 1201 : 1001) + image, &n) : NULL;
+		if (!r) { note(" NOSSHAP"); return 0; }
+		*height = r[0] | (r[1] << 8); *width_m1 = r[2] | (r[3] << 8); return 1;
+	}
 	if (chtab != 2 || image < 0) { note(" IMGSIZE?"); return 0; }
 	if (!kiddat_ok) { kiddat_ok = dat_open(&kiddat, game_path("KID.DAT")) ? 1 : -1; }
 	if (kiddat_ok < 0) return 0;
@@ -149,6 +156,8 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 		r = envdat.data ? dat_find(&envdat, "PAHS", id, &n) : NULL;
 	}
 	if (!r) { note(" NOSHAP"); return 0; }
+	if (n < 4) { *height = 0; *width_m1 = 5; return 1; }   /* a 1-byte placeholder (KID.DAT 25065): the original reads the heap
+	                                                         * past it; h 0, w 5 as observed (F7_9) */
 	*height = r[0] | (r[1] << 8); *width_m1 = r[2] | (r[3] << 8); return 1;
 }
 
@@ -167,7 +176,7 @@ void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 
 
 /* guard.c / play_all_chars stubs */
 
-void ovl_shadow_37f0_78(void) { note(" shadow78"); } void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
+void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
 int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */ void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); }
 
 /* fight/tick stubs */

@@ -104,12 +104,12 @@ int wall_type(uint8_t t)
 	return t == 0xC ? 6 : 0;
 }
 
-/* OVL01 0326A2: x in the drawn room's coordinate space for a tile of a neighbouring room */
+/* OVL01 0326A2 (3212:0582): x in the drawn room's coordinate space for a tile of a neighbouring room (left / below-left, right / below-right) */
 static int16_t x_in_drawn_room(int16_t x, uint8_t room)
 {
 	if (room != drawn_room) {
-		if (room == room_L || room == room_AL) x -= 320;
-		else if (room == room_R || room == room_AR) x += 320;
+		if (room == room_L || room == room_BL) x -= 320;
+		else if (room == room_R || room == room_BR) x += 320;
 	}
 	return x;
 }

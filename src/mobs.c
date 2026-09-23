@@ -412,3 +412,17 @@ void add_mob_pub(void) { add_mob(); }
 int8_t mob_col_pub(void) { return mob_col(); }
 int door_speed_0776(int st) { return (int8_t)door_speeds_open[st]; }   /* DS:0776 */
 void remove_loose_pub(int8_t tp, uint8_t room) { remove_loose(tp, room); }
+/* 1375:2062 (drawing a falling floor, types 0/1/3): one in the left room reaching past its edge (DS:082A[type] wide)
+ * moves into the drawn room */
+void floor_draw_state(void)
+{
+	if (cur_mob.room == room_L && (int16_t)ds_word(0x082A + 2 * cur_mob.type) + cur_mob.x > 0x140) { cur_mob.x -= 0x140; cur_mob.room = drawn_room; }
+}
+/* 186A:0008 (drawing a trap, type 4): one in the left room's column 10 moves into the drawn room; one elsewhere ends */
+void trap_draw_state(void)
+{
+	int16_t x = cur_mob.x; int8_t col = (int8_t)(x < 0 ? -((-x) >> 5) : x >> 5);
+	if (cur_mob.room == drawn_room) return;
+	if (cur_mob.room == room_L && col == 10) { cur_mob.room = drawn_room; cur_mob.x -= 0x140; return; }
+	cur_mob.speed = -1;
+}

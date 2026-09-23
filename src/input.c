@@ -59,6 +59,6 @@ int hotkeys_02be(void)
 	if (control_shift != 0 || di != 0) {
 		if ((minutes_left != 0 && Kid.alive > 6) || word_2ba8) { restart = 1; if (word_2ba8) word_2baa = 1; }
 	}
-	if (restart && !word_5ce8 && !(drawn_room == 4 && level_number == 13)) word_5cd8 = 1;   /* (level 13 room 4: 2A31:0E11 decides) */
+	if (restart && !word_5ce8 && !(drawn_room == 4 && level_number == 13 && shadow13_present())) word_5cd8 = 1;   /* 2A31:0E11 -> 37F0:03CA */
 	return di;
 }

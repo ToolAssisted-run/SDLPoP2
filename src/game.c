@@ -42,22 +42,43 @@ void frame_begin(void)
 void draw_chars_state(void);
 kid_sprite_t kid_sprite;   /* the prince's entry of the frame's sprite list (DS:5D3A..), read by biting heads */
 /* 0993:07F8 / 0C04 (the prince's pass of the drawing): only where his sprite goes (chtab 2, layer = his charid 0),
- * computed without touching the tick's state */
+ * and the sprite it leaves in obj_* */
+/* 0993:0C3A / 0D40 (after the prince's body): his sword's sprites; the last one drawn stays in obj_* */
+static void sword_sprite(uint16_t sw, uint8_t chtab)
+{
+	const uint8_t *e = sword_table + sw * 4; int16_t img = (int16_t)(e[0] | e[1] << 8);
+	if (img == -1) return;
+	obj_id = img; obj_x += Char.direction == 0 ? (int8_t)e[2] : -(int8_t)e[2];   /* 0AFF:0390 */
+	obj_y += (int8_t)e[3]; obj_chtab = chtab;
+}
+static void kid_sword_sprites(void)
+{
+	uint16_t sw = cur_frame.sword, f = Char.frame;
+	int dead = Char.f24 == 4 || Char.f24 == 5 || Char.f24 == 6 || Char.f24 == 7 || Char.f24 == 0xA || Char.f24 == 0xC
+	        || (level_kind == 5 && Char.room != 0x13 && Char.room != 0x10 && Char.room != 0xF && is_dead_frame(f));   /* 0AFF:1A64 */
+	if (!dead && sw != 0 && (sw <= 0x90 || (sw >= 0xC8 && sw < 0xFB) || (sw >= 0x124 && sw <= 0x130))
+	    && !(Char.charid == 0 && Char.f10 == 0 && !(f == 0x85 || (f >= 0xE5 && f <= 0xF0) || f == 0x143 || f == 0x144)))
+		sword_sprite(sw, 0);
+	if (sw >= 0x91 && sw <= 0xA8) sword_sprite(sw, 1);
+}
 static void kid_sprite_state(void)
 {
 	kid_sprite.valid = 0;
 	if (Kid.room == 0 || Kid.room != drawn_room || Kid.frame == 0 || Kid.charid != 0) return;
-	char_type save = Char; frame_type cf = cur_frame; int16_t ox = obj_x, oy = obj_y, oid = obj_id; uint8_t oc = obj_chtab;
-	Char = Kid; load_frame_to_obj();
+	char_type save = Char;
+	Char = Kid; load_frame_to_obj();   /* (obj_* and cur_frame stay: a character drawn next without an image keeps them) */
 	if (obj_chtab == 2) { kid_sprite.valid = 1; kid_sprite.x = obj_x < 0 ? obj_x - 1 : obj_x; kid_sprite.y = obj_y; kid_sprite.image = (uint16_t)obj_id; }   /* 0AFF:08D0 */
-	Char = save; cur_frame = cf; obj_x = ox; obj_y = oy; obj_id = oid; obj_chtab = oc;
+	kid_sword_sprites();
+	Char = save;
 }
 /* 1375:1FBA (0FB3:12F4 draws the mobs before the characters): the state their drawing changes */
 static void draw_mobs_state(void)
 {
 	for (int i = 0; i < (int16_t)mob_count; i++) {
 		cur_mob = mobs[i];
-		if (cur_mob.type == 10 && level_kind == 2) slab_draw_state();   /* 347C:0C22 */
+		if (cur_mob.type <= 1 || cur_mob.type == 3) floor_draw_state();   /* 1375:2062 */
+		else if (cur_mob.type == 4) trap_draw_state();                   /* 186A:0008 */
+		else if (cur_mob.type == 10 && level_kind == 2) slab_draw_state();   /* 347C:0C22 */
 		else if (cur_mob.type == 0xC) fireball_draw_state();   /* 33FD:1BE6 (final.c) */
 		mobs[i] = cur_mob;
 	}

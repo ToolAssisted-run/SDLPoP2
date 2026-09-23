@@ -60,7 +60,7 @@ int shadow_seq_2f86a(void); int sword_seq_0317c4(void); void ovl_2f86_0a5c(void)
 void ovl_383fa(void); void ovl_35f5a(void);
 extern const int16_t *col_x_left, *col_x_right;   /* DS:5CC5; column x tables DS:0D06 / 0D08 */
 void ovl_35a88(void); int ovl_34350(void); int ovl_35240(int a); int ovl_34ab2(void); void control_hanging_climb(void); int seq_peek_frame_decreases(void);
-extern uint16_t word_6d46, word_8a84; int control_sword_check_030e3c(void); void ovl_384e8(void); int ovl_32a0e(void); int8_t tile_col_in_drawn_room(void);
+extern uint16_t word_8a84; int control_sword_check_030e3c(void); void ovl_384e8(void); int ovl_32a0e(void); int8_t tile_col_in_drawn_room(void);
 extern uint8_t byte_2ab4, edge_type, start_room;
 int gate_blocks_0329b6(void); void ovl_2f86_08d8(void); int get_edge_distance(void); int level_door_open_0cfa(void); void ovl_30b52(void);
 void control_jumpup_grab_031074(void); int opp_distance(void); void control_standing_turn(void); int control_standing_step(int dist);
@@ -213,3 +213,6 @@ void kind5_tick(void); void grab_start(void); void kind5_room_palette(uint8_t ro
 void hp_bars_reload(void); int sound_on(void);
 void water_tick(void); void water_room_enter(void); int rtlink_0dd5(void); int ovl_2a31_ddf(void); void anim_tile2c(void); void anim_start_2c(uint32_t *attrs, int8_t tp, uint8_t room); void bubble_update(void); extern int16_t word_693c; extern uint8_t byte_2b78; void guard_sheathe_pub(void); void sword_engage_pub(void); extern uint8_t water_693e[10];   /* water.c */
 void guard_sprites_loaded(uint8_t type); extern uint8_t byte_0670;   /* level.c 1286:087E, DS:0670 */
+void shadow13_tick(void); int shadow13_present(void); void anim_tile2b(void); void try_grab_ledge_pub(void); void set_char_collision(void);   /* shadow13.c */
+void floor_draw_state(void); void trap_draw_state(void);   /* mobs.c */
+#define word_4406 (*(uint16_t *)((uint8_t *)&level + 0x184E))   /* DS:4406 */

@@ -239,11 +239,12 @@ void control_crouched(void)
 	id = -1;
 	if (ctrl1_down == 0) {
 		if (!ovl_32a0e()) {
-			if (word_6d46 != 0 && ovl_34350()) goto forward;
+			if (word_4406 != 0 && ovl_34350()) goto forward;   /* DS:4406 (level+0x184E) */
 			id = 0x31;                            /* seq 49: stand up from crouch */
 		} else {
 		forward:
 			if (ctrl1_forward >= 0) goto done;
+			id = 0x4F; goto done;   /* 2FDF:08D8 -> 08E2 */
 		}
 	} else {
 		if (ctrl1_forward >= 0) goto done;

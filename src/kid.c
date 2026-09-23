@@ -134,6 +134,7 @@ static void try_grab_ledge(void)
 	word_8a84 = 0xC; word_6142 = 0;
 }
 
+void try_grab_ledge_pub(void) { try_grab_ledge(); }
 /* 0AFF:0AAA: start falling from the current frame */
 static void start_fall(void)
 {

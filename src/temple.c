@@ -50,4 +50,4 @@ void slab_draw_state(void)
 	}
 }
 /* 347C:0FC4: the kind's tick */
-void temple_tick(void) { if (drawn_room == 4 && level_number == 13) note_missing("37F0_0236"); }
+void temple_tick(void) { if (drawn_room == 4 && level_number == 13) shadow13_tick(); }   /* 37F0:0236 (shadow13.c) */

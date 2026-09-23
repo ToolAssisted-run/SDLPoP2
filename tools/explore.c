@@ -14,7 +14,17 @@
 
 typedef struct { uint8_t *state; pop2_input *path; int len, tries, order; uint8_t room; } cell;
 static cell cells[33 * 4 * 12 * 2 * 4]; static int ncells; static int key_trobs;   /* EXPLORE_KEY=trobs: the live animations (gates, buttons) count too */
-static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return (((key_trobs ? (int)(trob_count & 3) : 0) * 2 + (Kid.charid == 1)) * 33 * 4 + room * 4 + row + 1) * 12 + col + 1; }   /* the spirit (charid 1) apart */
+static int key_jaffar;   /* EXPLORE_KEY=jaffar (level 14): the Jaffars killed count instead (0..3+), a win ends the search */
+static int jaffars_dead(void)
+{
+	int live = 0;
+	for (int r = 6; r <= 8; r++) {
+		if (r == drawn_room) { for (int i = 0; i < room_nchars(r); i++) live += chars[i].charid == 6 && chars[i].alive < 0; }
+		else for (int i = 0; i < ROOM_REC(r)->nchars; i++) live += ROOM_REC(r)->chars[i].type == 3;   /* (records keep hp 0 until drawn) */
+	}
+	return live >= 4 ? 0 : 4 - live;
+}
+static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return (((key_trobs ? (int)(trob_count & 3) : key_jaffar ? (jaffars_dead() > 3 ? 3 : jaffars_dead()) : 0) * 2 + (Kid.charid == 1)) * 33 * 4 + room * 4 + row + 1) * 12 + col + 1; }   /* the spirit (charid 1) apart */
 static uint32_t rng = 1; static char miss[64][80]; static int nmiss;   /* unreconstructed routines reached */
 static uint32_t rnd(void) { rng = rng * 1103515245u + 12345u; return rng >> 16; }
 
@@ -26,7 +36,7 @@ int main(int argc, char **argv)
 	uint32_t seed = (uint32_t)strtoul(argv[3], NULL, 0);
 	size_t n = pop2_state_size();
 	pop2_new_game(level, seed);
-	key_trobs = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "trobs");
+	key_trobs = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "trobs"); key_jaffar = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "jaffar"); int best_dead = 0, won = 0;
 	if (getenv("EXPLORE_RNG")) rng = (uint32_t)strtoul(getenv("EXPLORE_RNG"), NULL, 0);   /* the explorer's own choices */
 	if (getenv("EXPLORE_HP") && *getenv("EXPLORE_HP")) { Kid.f12 = Kid.f13 = (uint8_t)atoi(getenv("EXPLORE_HP")); }   /* (the oracle script pokes the same at tick 1) */
 	static pop2_input path[4096]; int plen = 0, order = 0, best = -1; int room_seen[33] = {0};
@@ -55,10 +65,12 @@ int main(int argc, char **argv)
 			int hold = 1 + rnd() % 8;
 			for (int h = 0; h < hold && t < 60 && plen < 4000; h++, t++) {
 				path[plen++] = in; int res = pop2_frame(&in); ticks++;
+				if (key_jaffar && res > 0 && res != lv) { int k2 = cell_index(Kid.room ? Kid.room : 1, 0, 0); if (k2 >= 0) { ADD_CELL(k2); best = k2; } won = 1; fprintf(stderr, "iteration %d: level won after %d ticks\n", it, plen); t = 60; it = iters; break; }
 				if (res == POP2_QUIT || (res > 0 && res != lv)) { t = 60; break; }   /* left the level: stop there */
 				if (Kid.alive >= 0) { deaths++; t = 60; break; }                                /* dead: not a useful state */
 				int k = cell_index(Kid.room, Kid.curr_row, Kid.curr_col);
 				if (k < 0) continue;
+				if (key_jaffar && jaffars_dead() > best_dead) { best_dead = jaffars_dead(); fprintf(stderr, "iteration %d: %d Jaffars dead after %d ticks\n", it, best_dead, plen); }
 				if (!cells[k].state || cells[k].len > plen) { int fresh = !room_seen[Kid.room < 33 ? Kid.room : 0]; ADD_CELL(k); if (fresh) { room_seen[Kid.room < 33 ? Kid.room : 0] = 1; fprintf(stderr, "iteration %d: room %d after %d ticks\n", it, Kid.room, plen); } }
 			}
 		}

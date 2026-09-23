@@ -535,3 +535,6 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   channels and lengths; the driver's tempo byte swap (194C:3171) and 240 Hz 16.16 counter (194C:2FB4) explain the
   MIDI lengths; frame timer reload 5/6 (169B:0BA6). Model-only e2e: 74/154 captures fully identical (35 before the
   tempo findings); the default suite unchanged.
+- 2026-09-24: 0AFF:0DF6 (outside the level) tests the level kind (DS:43FD), not the number: on level 14 (kind 6) a
+  character in room 3 or 5 at row >= 11 is out of the level (the pits; the spirit falling there dies and the body
+  takes over). G14_fall (the spirit walks into room 5's gap) identical. Explorer EXPLORE_KEY=jaffar (Jaffar kills).

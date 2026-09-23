@@ -29,10 +29,10 @@ void load_char(int n)   { if (n >= 0 && n < 5) Char = chars[n]; else rtlink_fata
 void loadkid(void) { Char = Kid; }
 /* 0AFF:0878 */
 void load_char_and_opp(int n) { load_char(n); Opp = Kid; }
-/* 0AFF:0DF6: 1 = the character is outside the level (room 0, or level 6 rooms 3/5 below row 11) */
+/* 0AFF:0DF6: 1 = the character is outside the level (room 0, or level kind 6 rooms 3/5 from row 11: level 14's pits) */
 int char_out_of_level(void)
 {
-	if (Char.room != 0 && (((Char.room != 3 || level_number != 6) && (Char.room != 5 || level_number != 6)) || Char.curr_row < 11)) return 0;
+	if (Char.room != 0 && (((Char.room != 3 || level_kind != 6) && (Char.room != 5 || level_kind != 6)) || Char.curr_row < 11)) return 0;   /* DS:43FD: the level kind (level 14's pits) */
 	return 1;
 }
 

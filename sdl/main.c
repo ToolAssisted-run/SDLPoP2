@@ -1,5 +1,6 @@
 /* SDLPoP2's SDL2 frontend: a window, the keyboard, the game's tick timing, the renderer's screen and palette.
- * usage: sdlpop2 GAME_DIR [LEVEL] */
+ * The program itself (title, menus, scenes, levels) is src/shell.c, stepped one VGA frame (70.086 Hz) at a time.
+ * usage: sdlpop2 GAME_DIR [DOS command line words] */
 #include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,13 +8,10 @@
 #include "../src/core.h"
 #include "../src/render.h"
 #include "../src/audio.h"
+#include "../src/shell.h"
+#include <time.h>
 
-extern uint16_t frame_delay;   /* DS:24DE: 60 Hz ticks per game tick (5, or 6 while the prince is ...) */
 
-/* the renderer's frame (render_frame.c when present): weak defaults draw nothing */
-__attribute__((weak)) void render_frame(void) {}
-__attribute__((weak)) void render_redraw_all(void) {}
-__attribute__((weak)) uint8_t render_palette[768];   /* 6-bit VGA DAC values */
 
 extern void (*sound_start_hook)(int), (*sound_stop_hook)(int);   /* src/sound.c: where the game calls the driver */
 static SDL_AudioDeviceID adev;
@@ -45,54 +43,62 @@ static void present(void)
 	SDL_UpdateTexture(tex, NULL, argb, SCREEN_W * 4);
 	SDL_RenderClear(ren); SDL_RenderCopy(ren, tex, NULL, NULL); SDL_RenderPresent(ren);
 }
-/* the DOS game's movement keys: arrows and the keypad's 3x3 grid (Home/PgUp/End/PgDn diagonals) */
-static void read_input(pop2_input *in)
+void platform_sound_volume(int v) { audio_volume(v); }   /* (Alt+S, 194C:3380) */
+static int ascii_of(SDL_Keycode k, Uint16 mod)
 {
-	const Uint8 *k = SDL_GetKeyboardState(NULL);
-	int x = 0, y = 0;
-	if (k[SDL_SCANCODE_LEFT] || k[SDL_SCANCODE_KP_4] || k[SDL_SCANCODE_KP_7] || k[SDL_SCANCODE_KP_1] || k[SDL_SCANCODE_HOME] || k[SDL_SCANCODE_END]) x = -1;
-	if (k[SDL_SCANCODE_RIGHT] || k[SDL_SCANCODE_KP_6] || k[SDL_SCANCODE_KP_9] || k[SDL_SCANCODE_KP_3] || k[SDL_SCANCODE_PAGEUP] || k[SDL_SCANCODE_PAGEDOWN]) x = x ? 0 : 1;
-	if (k[SDL_SCANCODE_UP] || k[SDL_SCANCODE_KP_8] || k[SDL_SCANCODE_KP_7] || k[SDL_SCANCODE_KP_9] || k[SDL_SCANCODE_HOME] || k[SDL_SCANCODE_PAGEUP]) y = -1;
-	if (k[SDL_SCANCODE_DOWN] || k[SDL_SCANCODE_KP_2] || k[SDL_SCANCODE_KP_5] || k[SDL_SCANCODE_KP_1] || k[SDL_SCANCODE_KP_3] || k[SDL_SCANCODE_END] || k[SDL_SCANCODE_PAGEDOWN]) y = y ? 0 : 1;
-	in->x = (int8_t)x; in->y = (int8_t)y;
-	in->shift = (k[SDL_SCANCODE_LCTRL] || k[SDL_SCANCODE_RCTRL]) ? 2 : (k[SDL_SCANCODE_LSHIFT] || k[SDL_SCANCODE_RSHIFT]) ? 1 : 0;
+	if (k == SDLK_RETURN || k == SDLK_KP_ENTER) return 0x0D;
+	if (k == SDLK_ESCAPE) return 0x1B;
+	if (k == SDLK_TAB) return 0x09;
+	if (k == SDLK_BACKSPACE) return 0x08;
+	if (k == SDLK_SPACE) return 0x20;
+	if (mod & (KMOD_ALT | KMOD_CTRL)) return 0;
+	if (k >= SDLK_a && k <= SDLK_z) return (mod & (KMOD_SHIFT | KMOD_CAPS)) ? (int)(k - 32) : (int)k;
+	if (k >= 0x20 && k < 0x7F) return (int)k;
+	return 0;
 }
 int main(int argc, char **argv)
 {
-	if (argc < 2) { fprintf(stderr, "usage: %s GAME_DIR [LEVEL]\n", argv[0]); return 2; }
-	int level = argc > 2 ? atoi(argv[2]) : 1;
-	if (!pop2_init(argv[1])) { fprintf(stderr, "cannot load the game from %s\n", argv[1]); return 1; }
+	if (argc < 2) { fprintf(stderr, "usage: %s GAME_DIR [DOS COMMAND LINE WORDS, e.g. yippeeyahoo LEVEL3]\n", argv[0]); return 2; }
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) { fprintf(stderr, "SDL: %s\n", SDL_GetError()); return 1; }
+	shell_set_seed((uint32_t)time(NULL));
+	if (!shell_init(argv[1], argc - 2, (const char **)argv + 2)) { fprintf(stderr, "cannot load the game from %s\n", argv[1]); return 1; }
 	win = SDL_CreateWindow("SDLPoP2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_W * 3, SCREEN_H * 3 * 6 / 5, SDL_WINDOW_RESIZABLE);
-	ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_PRESENTVSYNC);
+	ren = SDL_CreateRenderer(win, -1, 0);
 	SDL_RenderSetLogicalSize(ren, SCREEN_W * 4, SCREEN_H * 4 * 6 / 5);   /* (the 4:3 aspect of mode 13h) */
 	tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_W, SCREEN_H);
 	open_audio(argv[1]);
-	if (adev) SDL_LockAudioDevice(adev);
-	pop2_new_game(level, (uint32_t)SDL_GetTicks());
-	if (adev) SDL_UnlockAudioDevice(adev);
-	render_redraw_all();
+	static shell_input in;
 	Uint64 next = SDL_GetPerformanceCounter(), hz = SDL_GetPerformanceFrequency();
-	int keystroke = 0, quit = 0;
-	while (!quit) {
+	for (;;) {
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
-			if (e.type == SDL_QUIT) quit = 1;
-			else if (e.type == SDL_KEYDOWN && !e.key.repeat) { if (e.key.keysym.sym == SDLK_ESCAPE && (e.key.keysym.mod & KMOD_CTRL)) quit = 1; keystroke = 1; }
+			if (e.type == SDL_QUIT) goto out;
+			if ((e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)) {
+				int sc = shell_pc_scancode(e.key.keysym.scancode);
+				shell_input_key(&in, sc, e.type == SDL_KEYDOWN, e.type == SDL_KEYDOWN ? ascii_of(e.key.keysym.sym, e.key.keysym.mod) : 0);
+			}
 		}
-		pop2_input in; read_input(&in); in.keystroke = (uint8_t)keystroke; keystroke = 0;
+		SDL_Keymod m = SDL_GetModState();
+		in.shift_flags = (uint8_t)(((m & KMOD_RSHIFT) ? 1 : 0) | ((m & KMOD_LSHIFT) ? 2 : 0) | ((m & KMOD_CTRL) ? 4 : 0) | ((m & KMOD_ALT) ? 8 : 0));
 		if (adev) SDL_LockAudioDevice(adev);
-		int r = pop2_frame(&in);
+		int r = shell_step(&in);
 		if (adev) SDL_UnlockAudioDevice(adev);
-		if (r == POP2_QUIT) break;
-		if (r != POP2_PLAYING) render_redraw_all(); else render_frame();
+		in.ntyped = 0;
+		if (r == SHELL_EXIT) break;
 		present();
-		/* one game tick = frame_delay ticks of the 60 Hz timer */
-		next += hz * (frame_delay ? frame_delay : 5) / 60;
+		if (getenv("SDLPOP2_SHOT") && shell_frame_count() == (uint32_t)atoi(getenv("SDLPOP2_SHOT"))) {   /* (tests: the screen as a PPM) */
+			FILE *f = fopen(getenv("SDLPOP2_SHOT_FILE") ? getenv("SDLPOP2_SHOT_FILE") : "shot.ppm", "wb");
+			if (f) { fprintf(f, "P6 %d %d 255\n", SCREEN_W, SCREEN_H);
+				for (int i = 0; i < SCREEN_W * SCREEN_H; i++) { const uint8_t *c = render_palette + 3 * screen_buf[i]; fputc(c[0] << 2, f); fputc(c[1] << 2, f); fputc(c[2] << 2, f); }
+				fclose(f); }
+		}
+		next += (Uint64)((double)hz / 70.086);   /* one VGA frame */
 		Uint64 now = SDL_GetPerformanceCounter();
 		if (next > now) SDL_Delay((Uint32)((next - now) * 1000 / hz)); else next = now;
 	}
+out:
+	if (shell_exit_message()) printf("%s\n", shell_exit_message());
 	if (adev) SDL_CloseAudioDevice(adev);
 	SDL_Quit();
-	return 0;
+	return shell_exit_code();
 }

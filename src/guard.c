@@ -266,7 +266,7 @@ void autocontrol(void)
 	case 4: case 10: skel_ai(); break;
 	case 6: ovl_33fd_694(); break;
 	case 7: case 8: ovl_366c_e0a(); break;
-	case 11: ovl_366c_11(); break;
+	case 11: if (level_kind == 4) beast_ai(); else ovl_366c_11(); break;   /* 366C:11DA in OVL09 */
 	default: if (Char.charid != 0) guard_ai(); break;
 	}
 }

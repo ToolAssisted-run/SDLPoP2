@@ -45,7 +45,7 @@ void play_seq(void)
 	while (need_frame) {
 		uint16_t item = seq_fetch_word();
 		if (item < 0xFFE8) {                         /* a frame number */
-			Char.frame = (uint8_t)item;
+			Char.frame = item;   /* 0AFF:0424 stores the whole word */
 			need_frame = 0;
 			continue;
 		}
@@ -65,7 +65,7 @@ void play_seq(void)
 			Char.f24 = seq_fetch_word();
 			break;
 		case SEQ_OP_EC:                              /* 0424 (table entry FFEC): frame = opcode value, then stop */
-			Char.frame = (uint8_t)item;
+			Char.frame = item;   /* 0AFF:0424 stores the whole word */
 			need_frame = 0;
 			break;
 		case SEQ_Y_TO_FLOOR:                         /* 04A2 -> 07B0 */
@@ -76,7 +76,7 @@ void play_seq(void)
 			break;
 		case SEQ_CLEAR_CHAR:                         /* 04B4 -> 1BA2, then the OP_EC path */
 			clear_char();
-			Char.frame = (uint8_t)item;
+			Char.frame = item;   /* 0AFF:0424 stores the whole word */
 			need_frame = 0;
 			break;
 		case SEQ_LVL6_COUNTER:                       /* 04BC */

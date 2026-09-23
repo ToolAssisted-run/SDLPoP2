@@ -307,7 +307,7 @@ void enter_room_chars(void)
 		else Char.pal_slot = 4;
 		if (rec->seq_pos == 0) {
 			if (Char.charid == 4) rec = skel_room_entry(rec);
-			else if (Char.charid == 7 || Char.charid == 8 || Char.charid == 0xB) rec = ovl_36ada(rec);
+			else if (Char.charid == 7 || Char.charid == 8 || Char.charid == 0xB) rec = level_kind == 4 ? beast_room_entry(rec) : ovl_36ada(rec);   /* 366C:041A in OVL09 */
 			else if (Char.charid == 10) {
 				if (!tile_is_floor(get_tile_at_char())) { rec->seq_id = 0x6A; Char.f10 = 1; Char.f23 = 3; Char.direction = Char.x < Kid.x ? 0 : -1; }
 				else { rec->seq_id = 0x69; Char.f10 = 0; }
@@ -432,3 +432,4 @@ void chars_fell_below(void)
 		if (Kid.opp_index == Char.index) Kid.opp_index = 0xFF;
 	}
 }
+int8_t scan_to_wall_pub(int8_t dir, int8_t row, int8_t col, uint8_t room) { return scan_to_wall(dir, row, col, room); }

@@ -185,3 +185,4 @@ void guards_see_kid(void)
 	}
 }
 void char_dies_pub(void) { char_dies(); }
+void save_char_restore_kid_pub(void) { save_char_restore_kid(); }

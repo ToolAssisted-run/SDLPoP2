@@ -96,3 +96,12 @@ level_char_init *beast_room_entry(level_char_init *r)
 	}
 	return r;
 }
+/* 366C:166A (the room record written back as the charid-11 creature leaves the drawn room): resting, it sleeps a
+ * random while; walking at a gap or a wall (not an open door 7), it turns and steps back */
+void beast_record_fixup(level_char_init *rec)
+{
+	if (Char.f19 == 0xAB || Char.f24 == 9) { Char.f24 = 6; *(uint8_t *)&rec->y = (uint8_t)(random_2751(0x3C) + 0x24); return; }
+	uint8_t t = get_tile_infrontof(1);
+	if (tile_is_floor(t) || (t == 7 && (curr_modifier & 0x80))) return;
+	if (Char.f19 == 0xB0 || Char.f19 == 0xA8 || Char.f19 == 0xAA) { rec->direction = ~Char.direction; rec->x = char_dx_forward(-0x20); }
+}

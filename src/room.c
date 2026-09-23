@@ -46,7 +46,7 @@ static void record_fixup(level_char_init *rec)
 		if (Char.f19 == 100 || Char.f19 == 0xBA) rec->y = Char.y;
 		if (level.type == 7) rec->type = 7;
 	} else {
-		if (Char.charid == 0xB) ovl_37d2a();
+		if (Char.charid == 0xB) beast_record_fixup(rec);   /* 366C:166A */
 		if (Char.charid == 6) ovl_352b4();
 	}
 }

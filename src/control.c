@@ -22,6 +22,7 @@ int16_t distance_to_edge_weight(void) { return distance_to_edge(dx_weight()); }
 int control_rest(void) { ctrl1_down = ctrl1_up = ctrl1_forward = ctrl1_backward = 0; return 1; }
 
 /* 2FDF:0E2E (030c1e): crouch */
+void kid_crouch_pub(void);
 static void kid_crouch(void)
 {
 	int id = Char.charid == 1 ? shadow_seq_2f86a() : -1;
@@ -548,4 +549,14 @@ void control_by_charid_cc1e(void)
 	}
 	ctrl1_down = 1;
 	seqtbl_offset_char(0x50);
+}
+void kid_crouch_pub(void) { kid_crouch(); }
+/* 3212:08EE: crouched under a gate that is not open enough to stand up (not level 8's room 9) */
+int under_gate(void)
+{
+	if (Char.room == 9 && level_number == 8) return 0;
+	if (get_tile_at_char() != 4 && get_tile_infrontof(1) != 4 && get_tile_behind_char() != 4) return 0;
+	uint16_t pos = curr_modifier & 0xFF;   /* the gate found last */
+	int16_t x = char_dx_forward(-6) - 0xE;
+	return pos != 0 && pos < 0xC8 && col_x_left[tile_col] + 0xC <= x && col_x_right[tile_col] + 4 >= x;
 }

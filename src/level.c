@@ -85,9 +85,9 @@ static void reset_record_seqs(void)
 /* 169B:0FB4 */
 static void level_kind_reset(void)
 {
-	if (level_kind == 3) { floor_free_all(); if (level_number == 5) note_missing("33FD_0C1A"); }
-	else if (level_kind == 4) note_missing("DS2BAE_RESET");   /* DS:2BAE/2BB0/2BB2 = 0 */
-	else if (level_kind == 6) note_missing("DS2BB4_RESET");   /* DS:2BB4 = 0 */
+	if (level_kind == 3) { floor_free_all(); if (level_number == 5) memset(water_693e, 0, sizeof water_693e); }   /* 33FD:0C1A: DS:693E and 6940..6947 (level 5's water) */
+	else if (level_kind == 4) memset(tiles0 + 0x14, 0, 6);   /* DS:2BAE/2BB0/2BB2 = 0 */
+	else if (level_kind == 6) memset(tiles0 + 0x1A, 0, 2);   /* DS:2BB4 = 0 */
 }
 /* 3212:083C: collision history rows unknown */
 static void reset_collisions(void) { uint8_t *c = (uint8_t *)&coll; memset(c + 0x1A, 0xFF, 10); memset(c + 0x24, 0xFF, 10); memset(c + 0x2E, 0xFF, 10); memset(c + 0x38, 0xFF, 10); c[0xA] = 0xFF; }
@@ -177,6 +177,7 @@ int load_level(int n)
 	return 1;
 }
 uint16_t word_0366;   /* DS:0366 */
+uint8_t water_693e[10];   /* DS:693E..6947 (level 5, 33FD:0BEA, not reconstructed) */
 int last_scene;       /* the scene story_scene() chose before this load (the original's 169B:0070 `si`) */
 uint8_t byte_2b68, byte_6937;   /* DS:2B68, DS:6937 (kind 5) */
 /* 1286:03B6: the level kind's overlay initialiser (only the state parts; kinds 2, 3, 4, 6 set nothing compared here) */

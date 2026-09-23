@@ -43,6 +43,7 @@ void draw_chars_state(void);
 uint16_t word_2b90, word_2b92, word_5cee, word_5cce;   /* DS:2B90 / 2B92 / 5CEE / 5CCE: redraw requests (whole screen, message, new room, flip) */
 uint8_t byte_6b6c;                                   /* DS:6B6C */
 /* 0823:139C: turn the upside-down view on (0x438 frames) or off */
+void toggle_upside_down_pub(void);
 static void toggle_upside_down(void) { word_5d38 = word_5d38 ? 0 : 0x438; play_sound(word_5d38 ? 0x99 : 0x9A); word_5cce = 1; }
 /* 169B:0430: redraw everything (state side: flags cleared, DS:68EA = 2) */
 static void redraw_all(void) { word_5cee = 0; if (!word_2b92) draw_chars_state(); word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
@@ -122,3 +123,4 @@ void frame_wait(void)
 }
 /* one pass of 169B:0505 */
 int play_frame(void) { frame_begin(); int r = frame_after_tick(tick_main()); frame_wait(); return r; }
+void toggle_upside_down_pub(void) { toggle_upside_down(); }

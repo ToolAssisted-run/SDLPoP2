@@ -61,7 +61,7 @@ int play_kid_control(void)
 	if (Char.alive == 6) { seq_music_1611(byte_5cb8); Char.alive++; return si; }
 	if (Char.alive != 7 || death_sound_playing(1)) return si;   /* DS:0882 or DS:0884 still playing */
 	if (minutes_left == 0) { restart_prompt(); si = -1; }   /* out of time */
-	else if (word_5cdc != 0x258) { word_5cdc = word_5cda = 0x258; note_missing("FB3_20A4"); }
+	else if (word_5cdc != 0x258) word_5cdc = word_5cda = 0x258;   /* 0FB3:20A4 shows the "press a key" message */
 	Char.alive++;
 	return si;
 }

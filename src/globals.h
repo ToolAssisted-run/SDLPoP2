@@ -114,6 +114,7 @@ void char_control_step(void); void play_all_chars(void); void remove_record_pub(
 int ovl_383d2(void); void ovl_shadow_37f0_78(void); void ovl_366c_10cc(void); void ovl_33fd_694(void); void ovl_366c_e0a(void); void ovl_366c_11(void);
 int ovl_36ed6(int16_t d); void dead_char_sound_1611(void); void ovl_15db_64(void); void ovl_37d28(void); void level_kind_hooks_char(void);
 #define word_2ba8 (*(uint16_t *)(tiles0 + 0xE))   /* DS:2BA8 */
+#define word_2bb2 (*(uint16_t *)(tiles0 + 0x18))   /* DS:2BB2 */
 #define word_2ba4 (*(uint16_t *)(tiles0 + 0xA))   /* DS:2BA4: the lateness meter (0..0x14), 169B:05A1 */
 int frame_on_time(void);   /* platform: the frame was done before the frame timer ran out (default: always) */
 /* fight.c, spawns, tick.c */
@@ -184,3 +185,7 @@ void scene_played(int si);   /* level.c */
 #define ROOM_REC(r)   ((level_room *)((uint8_t *)&level + 0x1867 + ((int)(r) - 1) * 0x74))
 void turn_flash(void); void turn_count(void);   /* spirit.c */
 int8_t row_tilepos(int8_t row);   /* tiles.c 0AFF:07D4 */
+int try_pick_up(void); void drink(void); void kid_crouch_pub(void); void toggle_upside_down_pub(void);   /* items.c, control.c, game.c */
+extern uint8_t water_693e[10];   /* level.c */
+int under_gate(void);   /* control.c 3212:08EE */
+void beast_record_fixup(level_char_init *rec);   /* beast.c */

@@ -21,13 +21,21 @@ static int same_frame_keys;   /* keys set at the tick's own frame were already s
 /* The keys as the tick at `frame` saw them. A key set during the tick's own frame may arrive before or after the tick
  * (the keyboard interrupt vs the tick's place in the frame): the controls control() received (probe kc_ctrl, 3 bytes,
  * after the facing flips) decide. */
-static void keys_at(int frame, const uint8_t *seen)
+static void keys_at(int frame, const uint8_t *seen, int dead, int reload_follows)
 {
 	static uint8_t before[0x70], with[0x70];
 	memset(before, 0, sizeof before); memset(with, 0, sizeof with);
 	for (int i = 0; i < nkeyev && keyev[i].frame <= frame; i++) { if (keyev[i].frame < frame) before[keyev[i].pos] = keyev[i].down; with[keyev[i].pos] = keyev[i].down; }
 	int8_t x, y, sh; const uint8_t *pick = with; same_frame_keys = 1;
-	if (seen && memcmp(before, with, sizeof with)) {
+	/* a dead prince's controls may stay zero (then they say nothing): if they show the new keys, the keys were in; else a
+	 * level reload right after this tick says they were */
+	if (dead && memcmp(before, with, sizeof with)) {
+		int in = reload_follows;
+		if (seen) { keyboard_controls(with, flags_of(with), &x, &y, &sh); if (Kid.direction == 0) x = -x; if (word_5d38) y = -y;
+			if ((x || y || sh) && (uint8_t)x == seen[0] && (uint8_t)y == seen[1] && (uint8_t)sh == seen[2]) in = 1; }
+		if (!in) { pick = before; same_frame_keys = 0; }
+	}
+	else if (!dead && seen && memcmp(before, with, sizeof with)) {
 		keyboard_controls(with, flags_of(with), &x, &y, &sh);
 		if (Kid.direction == 0) x = -x;
 		if (word_5d38) y = -y;
@@ -104,14 +112,15 @@ int main(int argc, char **argv)
 	FILE *ef = fopen(argv[4], "r"); if (!ef) return 2;
 	/* first pass: the prince's death count before and after each tick (the death sound is not modelled: a count that
 	 * did not advance means it was still playing) */
-	static int8_t alive_a[8192], alive_b[8192]; static uint8_t kc[8192][3]; static char kc_ok[8192]; int nt = 0;
+	static int8_t alive_a[8192], alive_b[8192]; static char reload_after[8192]; static uint8_t kc[8192][3]; static char kc_ok[8192]; int nt = 0;
 	{ static char l2[0x20000]; while (fgets(l2, sizeof l2, ef)) {
 		char *p = strstr(l2, " probe="), *m = strstr(l2, "mem="); if (!p || !m) continue;
 		char nm2[32] = ""; sscanf(strchr(p + 1, ' ') + 1, "%31s", nm2);
 		if (!strcmp(nm2, "kc_ctrl") && nt && !kc_ok[nt - 1]) { for (int q = 0; q < 3; q++) kc[nt - 1][q] = hexval(m[4 + 2 * q]) << 4 | hexval(m[5 + 2 * q]); kc_ok[nt - 1] = 1; continue; }
 		int off = (0x5B36 + 0x11 - 0x2900) * 2; if ((int)strlen(m + 4) < off + 2) continue;
 		int8_t v = (int8_t)(hexval(m[4 + off]) << 4 | hexval(m[5 + off]));
-		if (!strcmp(nm2, "ds_tick") && nt < 8191) { alive_a[nt] = v; alive_b[nt] = -128; kc_ok[nt] = 0; nt++; }
+		if (!strcmp(nm2, "ls_a") && nt) reload_after[nt - 1] = 1;
+		if (!strcmp(nm2, "ds_tick") && nt < 8191) { alive_a[nt] = v; alive_b[nt] = -128; kc_ok[nt] = 0; reload_after[nt] = 0; nt++; }
 		else if (!strcmp(nm2, "ds_postroom") && nt) { alive_b[nt - 1] = v; int so = (0x2B7A - 0x2900) * 2; uint32_t w = 0; for (int q = 3; q >= 0; q--) w = w << 8 | (hexval(m[4 + so + 2 * q]) << 4 | hexval(m[5 + so + 2 * q])); seed_b[nt - 1] = w; seed_b_ok[nt - 1] = 1; }
 	} rewind(ef); }
 	for (int q = 0; q + 1 < nt; q++) if (alive_b[q] == -128) alive_b[q] = alive_a[q + 1];   /* ticks without a post-tick sample: the next tick's start */
@@ -161,7 +170,7 @@ int main(int argc, char **argv)
 			/* one frame: 169B:0BA6, then the tick with this tick's keys */
 			const char_type *ak = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++;
-			keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL); cur_tick_frame = frame; missing_reset();
+			keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL, Kid.alive >= 0, tick_ix - 1 < nt && reload_after[tick_ix - 1]); cur_tick_frame = frame; missing_reset();
 			if (getenv("E2E_TRACE") && ticks + 1 >= atoi(getenv("E2E_TRACE")) - 8 && ticks + 1 <= atoi(getenv("E2E_TRACE"))) printf("  t%d frame %d: kid alive %d busy %d keyq %d/%d next %.1f\n", ticks + 1, frame, Kid.alive, sound_busy, keyq_next, nkeyq, keyq_next < nkeyq ? keyq[keyq_next] : -1.0);
 			frame_begin(); cur_tick_ix = tick_ix - 1;
 			int r = tick_main(); ticks++; cur_tick_ix = -1;

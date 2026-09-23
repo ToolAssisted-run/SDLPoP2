@@ -13,14 +13,14 @@
 #include "../src/core.h"
 
 typedef struct { uint8_t *state; pop2_input *path; int len, tries, order; uint8_t room; } cell;
-static cell cells[33 * 4 * 12 * 2 * 4]; static int ncells; static int key_trobs;   /* EXPLORE_KEY=trobs: the live animations (gates, buttons) count too */
+static cell cells[33 * 4 * 12 * 2 * 6]; static int ncells; static int key_trobs;   /* EXPLORE_KEY=trobs: the live animations (gates, buttons) count too */
 static int key_jaffar;   /* EXPLORE_KEY=jaffar (level 14): the progress against the Jaffars instead of the animation count; a hit in rooms 7/8 or a win ends the search */
 static int jaffar_hit;   /* a Jaffar in rooms 7/8 on seq 0xF3 (hit by a fireball: the win follows) */
 static int jaffars_dead(void)   /* progress: Jaffars gone from room 6 plus those in rooms 7/8 (0..3); sets jaffar_hit */
 {
 	int live6 = 0, n78 = 0; jaffar_hit = 0;
 	for (int r = 6; r <= 8; r++) {
-		if (r == drawn_room) { for (int i = 0; i < room_nchars(r); i++) if (chars[i].charid == 6 && (r == 6 || chars[i].alive < 0)) { if (r == 6) live6++;   /* (room 6: bodies count too, the last one leaves only when alone) */ else { n78++; jaffar_hit |= chars[i].f19 == 0xF3; } } }
+		if (r == drawn_room) { for (int i = 0; i < room_nchars(r); i++) if (chars[i].charid == 6 && (r == 6 || chars[i].alive < 0 || chars[i].f19 == 0xF3)) { if (r == 6) live6++;   /* (room 6: bodies count too, the last one leaves only when alone) */ else { n78++; jaffar_hit |= chars[i].f19 == 0xF3; } } }
 		else for (int i = 0; i < ROOM_REC(r)->nchars; i++) if (ROOM_REC(r)->chars[i].type == 3) { if (r == 6) live6++; else n78++; }
 	}
 	int p = 4 - live6 + n78;
@@ -29,6 +29,11 @@ static int jaffars_dead(void)   /* progress: Jaffars gone from room 6 plus those
 		if (drawn_room == 7 || drawn_room == 8) for (int i = 0; i < room_nchars(drawn_room); i++) row |= chars[i].charid == 6 && chars[i].alive < 0 && chars[i].curr_row == Kid.curr_row;
 		for (int i = 0; i < mob_count; i++) fire |= mobs[i].type == 0xC && mobs[i].speed >= 0 && mobs[i].row == (uint8_t)Kid.curr_row;
 		p = (Kid.charid == 1 && (int8_t)Kid.f12 > 2 && (drawn_room == 7 || drawn_room == 8)) ? 1 + row + (row && fire) : (row && fire) ? 3 : 0;
+		if (jaffar_hit) {   /* 4 a Jaffar hit there (seq 0xF3), 5 his dying frames under way (0x15F wins) */
+			int fr = 0; for (int i = 0; i < room_nchars(drawn_room); i++) if (chars[i].charid == 6 && chars[i].f19 == 0xF3 && chars[i].frame > fr) fr = chars[i].frame;
+			p = fr >= 0x150 ? 5 : 4;
+		}
+		return p;
 	}
 	return p > 3 ? 3 : p;
 }
@@ -39,7 +44,7 @@ static int puzzle_key(void)
 	for (int i = 0; i < 6; i++) if (i != puzzle_answer && (ROOM_ATTRS(1)[12 + i] & 0xF) == 0) n++;
 	return n >= 5 ? 3 : n >= 4 ? 2 : n >= 3 ? 1 : 0;
 }
-static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return (((key_trobs ? (int)(trob_count & 3) : key_puzzle ? puzzle_key() : key_jaffar ? (jaffars_dead() > 3 ? 3 : jaffars_dead()) : 0) * 2 + (Kid.charid == 1)) * 33 * 4 + room * 4 + row + 1) * 12 + col + 1; }   /* the spirit (charid 1) apart */
+static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return (((key_trobs ? (int)(trob_count & 3) : key_puzzle ? puzzle_key() : key_jaffar ? (jaffars_dead() > 5 ? 5 : jaffars_dead()) : 0) * 2 + (Kid.charid == 1)) * 33 * 4 + room * 4 + row + 1) * 12 + col + 1; }   /* the spirit (charid 1) apart */
 static uint32_t rng = 1; static char miss[64][80]; static int nmiss;   /* unreconstructed routines reached */
 static uint32_t rnd(void) { rng = rng * 1103515245u + 12345u; return rng >> 16; }
 

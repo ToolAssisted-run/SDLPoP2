@@ -40,7 +40,7 @@ int shadow_seq_2f86a(void) { return -1; } int sword_seq_0317c4(void) { note(" sw
 void ovl_2f86_0a5c(void) { note(" 2f86_0a5c"); } void shadow_2fba4(void) {} void ovl_34024(void) {}
 void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) {} int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { (void)a; return 0; } int ovl_34ab2(void) { return 0; }
 int control_sword_check_030e3c(void) { note(" swordcheck?"); return 0; } void ovl_384e8(void) {} int ovl_32a0e(void) { note(" 32a0e?"); return 0; } 
-int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) {} int level_door_open_0cfa(void) { return curr_modifier > 0x29; } void ovl_30b52(void) { note(" 30b52"); }
+int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) {}
 uint16_t word_922e, word_922c, word_8604, word_927e;
 int ovl_377c6(void) { return 0; } void ovl_3741a(void) {} 
 int rtlink_0dd5(void) { return 0; } 
@@ -72,7 +72,7 @@ uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR; int16_t word
 void ovl_366c2(void) { note(" 366c2"); } void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return 0; }
 void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { (void)f; (void)r; (void)row; } int ovl_343c2(void) { note(" 343c2?"); return 0; }
 int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { (void)row; (void)room; (void)dir; return 0; } int16_t ovl_352ca(void) { return 0; } void ovl_3211a(void) { note(" 3211a"); }
-void ovl_348e6(void) { note(" CHOMPER"); } void ovl_3564e(void) { note(" 3564e"); }
+void ovl_348e6(void) { if (level_kind == 4) ruins_crumble(); else note(" CHOMPER"); }   /* 347C:0126 */ void ovl_3564e(void) { note(" 3564e"); }
 void ovl_34724(void) { note(" 34724"); } void ovl_37826(void) { note(" 37826"); }
 void ovl_349be(void) {} void fall_scream_1611_0030(void) {} void sound_194c_83d2(uint16_t n) { (void)n; } int sound_playing_8426(void) { return 0; }
 

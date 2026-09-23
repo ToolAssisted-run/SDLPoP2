@@ -351,12 +351,16 @@ void control_jumpup_grab_031074(void)
 	jumpup_plain();
 }
 
+/* 1375:0CFA: the level door at curr_tile is open */
+static int level_door_open(void) { return (uint8_t)curr_modifier >= 0x2A; }
+/* 2FDF:0D62: step into the open level door (facing left, lined up with it) */
+static void enter_level_door(void) { Char.x = col_x_left[tile_col - 1] + 0x1E; Char.direction = -1; seqtbl_offset_char(0x46); }
 /* 2FDF:0C42 (030a32): up pressed while standing */
 void control_standing_up(void)
 {
-	if (start_room != drawn_room && Char.charid == 0
+	if (level.start_room != drawn_room && Char.charid == 0
 	    && (get_tile_at_char() == 0x11 || get_tile_behind_char() == 0x11 || get_tile_infrontof(1) == 0x11)
-	    && level_door_open_0cfa()) { ovl_30b52(); return; }
+	    && level_door_open()) { enter_level_door(); return; }
 	if (ctrl1_forward != 0) { control_jump_031062(); return; }
 	control_jumpup_grab_031074();
 }

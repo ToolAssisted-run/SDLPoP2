@@ -6,3 +6,5 @@
 *.img
 *.iso
 build/
+sdl/sdlpop2
+tools/__pycache__/

@@ -66,10 +66,9 @@ static void snd_load(void)
 	extern char glue_dir[400]; const char *dir = glue_dir[0] ? glue_dir : getenv("PRINCE2_DIR"); if (!dir) return;
 	char p[512]; dat_file d; uint16_t n;
 	snprintf(p, sizeof p, "%s/DIGISND.DAT", dir);
-	if (dat_open(&d, p)) for (int i = 0; i < NSND; i++) { const uint8_t *r = dat_find(&d, "DNS", 10000 + i, &n); if (r && n >= 6) { unsigned rate = r[1] | r[2] << 8, len = r[4] | r[5] << 8; snd_kind[i] = 1; snd_len[i] = (uint32_t)((double)len * 1e6 / (rate ? rate : 11000)); } }
-	/* packed samples (byte 3 0xFF, no length in the header; 0x20 0x26 0x2F 0x31 0x36 0x258): measured in the oracle */
-	snd_len[0x31] = 1391000;    /* 97-98 frames (level 1) */
-	snd_len[0x36] = 60000000;   /* level 13's moving wall: still playing after 286 frames when replaced (a loop, it seems) */
+	if (dat_open(&d, p)) for (int i = 0; i < NSND; i++) { const uint8_t *r = dat_find(&d, "DNS", 10000 + i, &n); if (r && n >= 6) { unsigned rate = r[1] | r[2] << 8, len = r[4] | r[5] << 8; snd_kind[i] = 1;
+		if (r[3] == 0xFF && n >= 12) len = r[10] | r[11] << 8;   /* packed (0x20 0x26 0x2F 0x31 0x36 0x258): the unpacked length at +0xA (docs/AUDIO.md) */
+		snd_len[i] = (r[0] & 0x80) ? 0x7FFFFFFF : (uint32_t)((double)len * 1e6 / (rate ? rate : 11000)); } }   /* byte 0 bit 7: loops until stopped */
 	snprintf(p, sizeof p, "%s/MIDISND.DAT", dir);
 	if (dat_open(&d, p)) for (int i = 0; i < NSND; i++) { const uint8_t *r = dat_find(&d, "DNS", 10000 + i, &n); if (r && !snd_kind[i] && (r[0] & 2)) { snd_kind[i] = 2; snd_len[i] = (r[0] & 0x80) ? 0x7FFFFFFF : midi_length(r, n); } }   /* byte 0: 2 MIDI, 0x80 loops (level 14's room music) */
 }

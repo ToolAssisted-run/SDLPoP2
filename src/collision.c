@@ -399,3 +399,4 @@ void check_gate_guard(void)
 	}
 	if (l < char_x_right && char_x_left < r) gate_push_out();
 }
+int16_t wall_distance_pub(int8_t col, uint8_t room, uint8_t t) { return wall_distance(col, room, t); }

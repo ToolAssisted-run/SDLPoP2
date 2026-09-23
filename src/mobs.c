@@ -94,7 +94,7 @@ void press_button(int link, uint8_t tile)
 	uint8_t timer = link_timer(link); int8_t tp = curr_tilepos; uint16_t mod = curr_modifier | 0x800; uint8_t room = curr_room;
 	if (timer != 0x1F) {
 		set_link_timer(link, 5);
-		if (timer < 2) {
+		if ((int8_t)timer < 2) {
 			add_trob(tile, 1, curr_tilepos, curr_room);
 			if (Char.frame != 0xB9 && !(curr_room == 4 && level_number == 13)) play_sound(3);
 			trigger_links(link, tile); word_6140 = 1;
@@ -111,9 +111,9 @@ void anim_button(void)
 {
 	if ((int8_t)cur_trob.state < 0) return;
 	uint8_t link = (uint8_t)anim_mod, timer = link_timer(link);
-	if (timer >= 0x1F) { cur_trob.state = 0xFF; return; }
+	if ((int8_t)timer >= 0x1F) { cur_trob.state = 0xFF; return; }
 	set_link_timer(link, timer - 1);
-	if (timer < 2) { cur_trob.state = 0xFF; anim_mod &= ~0x800u; }
+	if ((int8_t)timer < 2) { cur_trob.state = 0xFF; anim_mod &= ~0x800u; }
 }
 
 /* 1375:0910: gate animation. Position (modifier low byte) 0 closed .. 200 open, 0xFF stuck open.

@@ -169,3 +169,6 @@ void keyboard_controls(const uint8_t *keys, uint8_t flags, int8_t *x, int8_t *y,
 /* heads.c */ void heads_ai(void); int head_knock_back(void); int head_hit(void); int head_biting(int i, uint8_t room); int head_wall(int near); int nearest_foe_2d3e_a26(void);
 void heads_set_tables(const uint8_t *ds); uint8_t ds_byte(uint16_t a); uint16_t ds_word(uint16_t a); int16_t wall_distance_pub(int8_t col, uint8_t room, uint8_t t);
 const uint8_t *guard_frame_table(uint8_t charid);   /* platform: FRAM 750 of the chtab-3 file (the character's type: charid 10/12 by DS:00A2, others the level's) */
+
+/* kind1.c (level 2, OVL03) */ extern int8_t puzzle_answer, puzzle_last; extern uint8_t byte_14a0; int sound_playing(uint16_t id);
+void anim_tile1e(void); int tile1e_start(uint8_t room, int8_t tp, uint8_t mode); void anim_gate_kind1(void); void kind1_tick(void);

@@ -70,6 +70,16 @@ int bios_key(void)
 }
 static int hexval(int c) { return c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10; }
 static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes; int death_sound_playing(int both) { (void)both; return sound_busy; }
+/* sounds gating a random draw inside a tick (level 2's room-3 edge, 33FD:02E9): not playing if the capture's
+ * post-tick seed lies ahead of ours */
+static uint32_t seed_b[8192]; static int seed_b_ok[8192], cur_tick_ix = -1;
+int sound_playing(uint16_t id)
+{
+	(void)id; if (cur_tick_ix < 0 || !seed_b_ok[cur_tick_ix]) return 1;
+	uint32_t s = random_seed, want = seed_b[cur_tick_ix];
+	for (int k = 1; k <= 4; k++) { s = s * 0x343FD + 0x269EC3; if (s == want) return 0; }
+	return 1;
+}
 
 int main(int argc, char **argv)
 {
@@ -95,7 +105,7 @@ int main(int argc, char **argv)
 		int off = (0x5B36 + 0x11 - 0x2900) * 2; if ((int)strlen(m + 4) < off + 2) continue;
 		int8_t v = (int8_t)(hexval(m[4 + off]) << 4 | hexval(m[5 + off]));
 		if (!strcmp(nm2, "ds_tick") && nt < 8191) { alive_a[nt] = v; alive_b[nt] = -128; kc_ok[nt] = 0; nt++; }
-		else if (!strcmp(nm2, "ds_postroom") && nt) alive_b[nt - 1] = v;
+		else if (!strcmp(nm2, "ds_postroom") && nt) { alive_b[nt - 1] = v; int so = (0x2B7A - 0x2900) * 2; uint32_t w = 0; for (int q = 3; q >= 0; q--) w = w << 8 | (hexval(m[4 + so + 2 * q]) << 4 | hexval(m[5 + so + 2 * q])); seed_b[nt - 1] = w; seed_b_ok[nt - 1] = 1; }
 	} rewind(ef); }
 	for (int q = 0; q + 1 < nt; q++) if (alive_b[q] == -128) alive_b[q] = alive_a[q + 1];   /* ticks without a post-tick sample: the next tick's start */
 	int tick_ix = 0;
@@ -130,8 +140,8 @@ int main(int argc, char **argv)
 			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++;
 			keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL); cur_tick_frame = frame; stubs_reset();
 			if (getenv("E2E_TRACE") && ticks + 1 >= atoi(getenv("E2E_TRACE")) - 8 && ticks + 1 <= atoi(getenv("E2E_TRACE"))) printf("  t%d frame %d: kid alive %d busy %d keyq %d/%d next %.1f\n", ticks + 1, frame, Kid.alive, sound_busy, keyq_next, nkeyq, keyq_next < nkeyq ? keyq[keyq_next] : -1.0);
-			frame_begin();
-			int r = tick_main(); ticks++;
+			frame_begin(); cur_tick_ix = tick_ix - 1;
+			int r = tick_main(); ticks++; cur_tick_ix = -1;
 			if (r == 0) { pending = 1; tick_n = ticks; continue; }   /* compared at ds_postroom (169B:064F) */
 			r = frame_after_tick(r); frame_wait();   /* frozen (-2) or quit (-1): no post-tick sample */
 			if (r == -1) { printf("tick %d: level left (-1)\n", ticks); break; }

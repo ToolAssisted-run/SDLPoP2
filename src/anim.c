@@ -23,7 +23,7 @@ static int tile_visible(int8_t tilepos, uint8_t room)
 	if (room == room_BL && tilepos == 9) return 1;
 	return 0;
 }
-/* kind 5 (level 1) handlers, OVL 33FD */
+/* kind 5 (level 1) handlers, OVL 33FD (0x25 also serves kind 1's 0x1C/0x1D) */
 static void anim_torch_25(void)   /* 33FD:0652: cycles 0..7 while visible */
 {
 	if (!tile_visible(cur_trob.tilepos, cur_trob.room)) { cur_trob.state = 0xFF; return; }
@@ -93,7 +93,10 @@ static void animate_tile(void)
 	if (level_kind == 5 && t == 0x25) anim_torch_25();
 	else if (level_kind == 5 && t == 0x26) anim_26();
 	else if (level_kind == 5 && t == 0x27) anim_27();
-	else if (t == 4 && level_kind != 1) anim_gate();
+	else if (t == 4 && level_kind == 1) anim_gate_kind1();   /* 33FD:0538 */
+	else if (t == 4) anim_gate();
+	else if ((t == 0x1C || t == 0x1D) && level_kind == 1) anim_torch_25();   /* 33FD:06E4 / 0658: same as kind 5's 0x25 */
+	else if (t == 0x1E && level_kind == 1) anim_tile1e();   /* 33FD:07CE */
 	else if (t == 5 || t == 6 || t == 0x22) anim_button();
 	else if (t == 0xA) anim_0a();
 	else if (t == 0xB) anim_loose();
@@ -143,7 +146,8 @@ void start_room_anims(void)
 		case 0x13: case 0x20: start_torch(tp, room); break;
 		case 0x02: trap_room_entry(tp, room); break;   /* 186A:0226 (every kind: the tile only exists on kind 3) */
 		case 0x17: if (level_kind == 3) { if (si < 0x21) floor_room_entry(room, tp); break; } anim_start_other(t, tp, room, si); break;   /* 33FD:0A54 */
-		case 0x1E: case 0x2C: anim_start_other(t, tp, room, si); break;
+		case 0x1E: if (level_kind == 1) { tile1e_start(room, tp, 3); break; } anim_start_other(t, tp, room, si); break;   /* 33FD:0A18 */
+		case 0x2C: anim_start_other(t, tp, room, si); break;
 		default: if ((room == 6 || room == 7 || room == 8) && level_kind == 6 && (anim_mod & 0x1000)) anim_start_other(t, tp, room, si); break;
 		}
 	}

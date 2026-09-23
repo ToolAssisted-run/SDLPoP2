@@ -226,7 +226,7 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
 - Not deterministic from game state alone: the ambient sounds (1611:03CC) and the death-sound waits depend on the
   sound driver's timing (platform hooks ambient_sound(), death_sound_playing()).
 
-## Other level kinds (verified end to end: levels 1, 4, 6, 10)
+## Other level kinds (verified end to end: levels 1, 2, 4..14)
 - Overlays by kind: kind 3 uses OVL04 at 33FD; kinds 2 and 4 share OVL05 at 33FD (slicer blades, tiles 0xC/0xD);
   kind 2 loads OVL07 at 347C (torches, slabs 0x1A -> mob type 10) and OVL10 at 366C; kind 4 loads OVL06 at 347C
   (level-6 entrance, crumbling floors 0xF -> mob type 3) and OVL09 at 366C (creatures: charid 11 AI 11DA,
@@ -237,3 +237,12 @@ line of sight (Char+0x23) -> play_kid_frame -> play_all_chars -> 2D3E:1F48 sword
   when empty, and the rest of the frame pumps the BIOS buffer into it (drops when full). With DOSBox's key repeat
   (500 ms, then 33 ms) a held key fills it. A dead prince restarts on any keystroke.
 - play_seq stores the whole 16-bit item as the frame (0AFF:0424).
+- Kind 1 (level 2) loads OVL03 at 33FD (kind1.c): room 1 has a gate at position 10 that only opens (33FD:0538,
+  0..0x14) and six tiles 0x1E at positions 12..17. Entering the room starts them rising after a random delay
+  (0A18 mode 3); the prince stepping off one (DS:2B6B = his column on a standing frame) presses it (mode 1).
+  The kind tick (0170 via DS:0658) counts in the gate's attribute high byte while only tile DS:2B6A is down and
+  opens the gate at 0x14. At room 3's right edge (x >= 0x1E9) a random(0x14) draw happens whenever sound 0x273E
+  is not playing: a platform hook (`sound_playing`); the end-to-end test decides it from the capture's seed.
+  Tiles 0x1C/0x1D cycle like kind 5's 0x25.
+- Button link timers idle at 0xFF and are compared signed (1375:15D4/16BC): a first press adds the button's own
+  animation.

@@ -40,13 +40,22 @@ void frame_begin(void)
 }
 
 void draw_chars_state(void);
+/* 1375:1FBA (0FB3:12F4 draws the mobs before the characters): the state their drawing changes */
+static void draw_mobs_state(void)
+{
+	for (int i = 0; i < (int16_t)mob_count; i++) {
+		cur_mob = mobs[i];
+		if (cur_mob.type == 10 && level_kind == 2) slab_draw_state();   /* 347C:0C22 */
+		mobs[i] = cur_mob;
+	}
+}
 uint16_t word_2b90, word_2b92, word_5cee, word_5cce;   /* DS:2B90 / 2B92 / 5CEE / 5CCE: redraw requests (whole screen, message, new room, flip) */
 uint8_t byte_6b6c;                                   /* DS:6B6C */
 /* 0823:139C: turn the upside-down view on (0x438 frames) or off */
 void toggle_upside_down_pub(void);
 static void toggle_upside_down(void) { word_5d38 = word_5d38 ? 0 : 0x438; play_sound(word_5d38 ? 0x99 : 0x9A); word_5cce = 1; }
 /* 169B:0430: redraw everything (state side: flags cleared, DS:68EA = 2) */
-static void redraw_all(void) { word_5cee = 0; if (!word_2b92) draw_chars_state(); word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
+static void redraw_all(void) { word_5cee = 0; if (!word_2b92) { draw_mobs_state(); draw_chars_state(); } word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
 /* 169B:0A30: after each tick: drawing, the upside-down countdown and the message / restart countdown. -2 go on, -1 leave */
 int frame_end(void)
 {
@@ -54,7 +63,7 @@ int frame_end(void)
 	if (word_2b90) { redraw_all(); word_2b90 = 0; }
 	else if (word_5cee) { drawn_room = next_room; redraw_all(); }
 	else if (word_5cce) { word_5cce = 0; redraw_all(); }
-	else { draw_chars_state(); if (word_5d38) { if (word_5d38 == 1) toggle_upside_down(); else if (Kid.alive < 0) word_5d38--; } }
+	else { draw_mobs_state(); draw_chars_state(); if (word_5d38) { if (word_5d38 == 1) toggle_upside_down(); else if (Kid.alive < 0) word_5d38--; } }
 	ambient_sound();   /* 1611:04D0 / 1611:03CC(DS:2B98): the level's ambient sounds pick random variants when none is playing */
 	if (word_5cda == 1) {
 		if (word_5cdc == 0x24 || word_5cdc == 0x258) { byte_6b6c = 0; return -1; }   /* the countdown after a death ran out */

@@ -83,7 +83,7 @@ extern int16_t obj_x, obj_y, obj_id; extern uint8_t obj_chtab;   /* DS:60FC.. sp
 extern int16_t image_height, image_width, char_x_left, char_x_right, char_x_left_coll, char_x_right_coll, char_top_y;   /* DS:6112.. */
 extern int8_t char_col_left, char_col_right, char_top_row, char_bottom_row;   /* DS:6135.. */
 extern uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR;   /* DS:5CDF.. (861F..8626) */
-extern int16_t word_440a;                  /* DS:440A (6d4a): level-7 moving objects */
+#define word_440a (*(int16_t *)((uint8_t *)&level + 0x1852))   /* DS:440A level header: the level has moving walls (temple levels) */
 extern const uint8_t *sword_table;         /* FRAM 1000/1200 resource: 4-byte sword frame entries */
 int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);   /* 0993:0FE2 + 26BC:06B6: SHAP header words */
 int8_t col_from_x18(int16_t x18); int8_t y_to_row(int16_t y);
@@ -189,3 +189,8 @@ int try_pick_up(void); void drink(void); void kid_crouch_pub(void); void toggle_
 extern uint8_t water_693e[10];   /* level.c */
 int under_gate(void);   /* control.c 3212:08EE */
 void beast_record_fixup(level_char_init *rec);   /* beast.c */
+void slab_draw_state(void);   /* temple.c */
+/* walls.c (347C, temple levels) */
+mob_type *wall_find(uint8_t room, int8_t row); void wall_trigger(uint8_t room, int8_t tp, int k); void wall_move(void); void wall_push_kid(void);
+int16_t wall_edge(int8_t dir, uint8_t room, int8_t row); void wall_collision(int8_t row, uint8_t *rooms, uint8_t *flags); int wall_near(int16_t dist);
+int wall_near_blade(void); int16_t wall_limit(uint8_t room, int8_t row); void trap_kill_pub(void); uint16_t ds_word(uint16_t a);

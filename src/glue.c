@@ -52,7 +52,7 @@ void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", co
 uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_6d46, word_8a84;
 int shadow_seq_2f86a(void) { return -1; } int sword_seq_0317c4(void) { note(" sword0317c4?"); return -1; }
 void ovl_2f86_0a5c(void) { turn_flash(); } void shadow_2fba4(void) {} void ovl_34024(void) {}
-void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) {} int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { (void)a; return 0; } int ovl_34ab2(void) { return 0; }
+void ovl_383fa(void) { note(" 383fa"); } void ovl_35f5a(void) { note(" 35f5a"); } void ovl_35a88(void) {} int ovl_34350(void) { return (level_kind == 2 || level_kind == 4) ? blade_running_here() : 0; }   /* 33FD:0380 in OVL05 */ int ovl_35240(int a) { return wall_near(a); }   /* 347C:0A80 */ int ovl_34ab2(void) { return 0; }
 int control_sword_check_030e3c(void) { return try_pick_up(); }   /* items.c 2FDF:104C */ void ovl_384e8(void) {} int ovl_32a0e(void) { return under_gate(); }   /* 3212:08EE (control.c) */ 
 int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8(void) { turn_count(); }   /* 2F86:0078 (spirit.c) */
 uint16_t word_922e, word_922c, word_8604, word_927e;
@@ -73,10 +73,11 @@ void glue_load_exe_tables(const char *exe)
 }
 
 /* collision / kid stubs */
-uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR; int16_t word_440a; const uint8_t *sword_table;
-void ovl_366c2(void) { note(" 366c2"); } void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return 0; }
-void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { (void)f; (void)r; (void)row; } int ovl_343c2(void) { note(" 343c2?"); return 0; }
-int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { (void)row; (void)room; (void)dir; return 0; } int16_t ovl_352ca(void) { return 0; } void ovl_3211a(void) { note(" 3211a"); }
+uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR; const uint8_t *sword_table;
+void ovl_366c2(void) { note(" 366c2"); } void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return wall_find(Char.room, Char.curr_row) != NULL; }   /* 347C:0526 */
+void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { wall_collision(row, r, f); }   /* 347C:0412 */ int ovl_343c2(void) { note(" 343c2?"); return 0; }
+int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { return wall_edge(dir, room, row); }   /* 347C:0368 */
+int16_t ovl_352ca(void) { return wall_limit(Char.room, Char.curr_row); }   /* 1375:14FC -> 347C:0B0A */ void ovl_3211a(void) { note(" 3211a"); }
 void ovl_348e6(void) { if (level_kind == 4) ruins_crumble(); else note(" CHOMPER"); }   /* 347C:0126 */ void ovl_3564e(void) { note(" 3564e"); }
 void ovl_34724(void) { note(" 34724"); } void ovl_37826(void) { note(" 37826"); }
 void ovl_349be(void) {} void fall_scream_1611_0030(void) {} void sound_194c_83d2(uint16_t n) { (void)n; } int sound_playing_8426(void) { return 0; }
@@ -158,11 +159,12 @@ void level_kind_tick(void) { if (level_kind == 5) { if (Kid.room == 0x13 || Kid.
   else note(" KINDTICK?"); }
 void anim_start_other(uint8_t t, int8_t tp, uint8_t room, int si) { (void)tp; (void)room; (void)si; char m[24]; snprintf(m, sizeof m, " ASTART%02X?", t); note(m); }
 /* mobs stubs */
-void ovl_347c_b3e(uint8_t r, int8_t tp, int k) { (void)r; (void)tp; (void)k; note(" b3e?"); }
+void ovl_347c_b3e(uint8_t r, int8_t tp, int k) { wall_trigger(r, tp, k); }   /* walls.c */
 int ovl_2a31_dad(uint8_t r, int8_t tp) { (void)r; (void)tp; note(" dad?"); return -1; }
 void ovl_347c_e8e(void) { slab_shake(); } void ovl_347c_126(void) { if (level_kind == 4) ruins_crumble(); else note(" 126?"); }
-void ovl_mob_other(uint8_t t) { if (t == 10 && level_kind == 2) { slab_mob(); return; } char m[24]; snprintf(m, sizeof m, " MOB%u?", t); note(m); } int ovl_torch_347c(int c) { if (level_kind == 2) return temple_torch(c); note(" torch347c?"); return c; }
-int ovl_347c_a0e(void) { note(" a0e?"); return 0; }
+void ovl_mob_other(uint8_t t) { if (t == 10 && level_kind == 2) { slab_mob(); return; } if (t == 6 && level_kind == 2) { wall_move(); wall_push_kid(); return; }   /* 347C:07D4, 027A */
+ char m[24]; snprintf(m, sizeof m, " MOB%u?", t); note(m); } int ovl_torch_347c(int c) { if (level_kind == 2) return temple_torch(c); note(" torch347c?"); return c; }
+int ovl_347c_a0e(void) { return wall_near_blade(); }   /* 347C:0A0E */
 void note_missing(const char *what) { char m[40]; snprintf(m, sizeof m, " %s?", what); note(m); }
 void ovl_347c_e48(void) { slab_step(); } void ovl_kind6_char(void) { note(" kind6?"); }
 

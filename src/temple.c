@@ -38,5 +38,16 @@ void slab_mob(void)
 	if ((cur_mob.wd & 0x1F) <= 0x10) cur_mob.wd++;
 	/* sound 0x5F unless 0x276E / 0x276F play */
 }
+/* 347C:0C22 (drawing a type-10 mob, 1375:1FBA every frame): a settled slab goes back up to its place */
+void slab_draw_state(void)
+{
+	int8_t col = (int8_t)((cur_mob.x < 0 ? -((-cur_mob.x) >> 5) : cur_mob.x >> 5));
+	int8_t tp = (int8_t)(row_tilepos((int8_t)cur_mob.row) + col);
+	if ((cur_mob.wd & 0x1F) > 0x10) {
+		cur_mob.speed = -1;
+		*(uint8_t *)&ROOM_ATTRS(cur_mob.room)[tp] = 0; ROOM_TILES(cur_mob.room)[tp] = 0x1A;
+		/* sound 0x276F stops, sound 3 */
+	}
+}
 /* 347C:0FC4: the kind's tick */
 void temple_tick(void) { if (drawn_room == 4 && level_number == 13) note_missing("37F0_0236"); }

@@ -52,6 +52,7 @@ static void trap_trigger(int8_t tp, uint8_t room)
 	mob_type *m = find_trap(Char.curr_row, Char.room); if (m) m->wd = v;
 }
 /* 186A:02AA: the blade catches Char */
+void trap_kill_pub(void);
 static void trap_kill(void)
 {
 	uint16_t *a = attr_at(curr_room, curr_tilepos);
@@ -107,3 +108,4 @@ void trap_update(void)
 	((uint16_t *)curr_room_attrs)[curr_tilepos * 2] = v;
 	cur_mob.wd = v;
 }
+void trap_kill_pub(void) { trap_kill(); }

@@ -31,7 +31,7 @@ static const uint8_t *pal_res(const char *tag, int id, uint16_t *n)
 	static const char *guards[10] = {NULL, "FLAME.DAT", "SKELETON.DAT", NULL, NULL, "HEAD.DAT", "HEAD.DAT", "BIRD.DAT", "HEAD.DAT", "JINNEE.DAT"};
 	const char *order[4] = {NULL, NULL, NULL, NULL}; int k = 0;
 	if (id == 750 && level.type < 10 && guards[level.type]) order[k++] = guards[level.type];
-	order[k++] = level_kind_dat();   /* (the ids are unique to their files: the scenery file's first) */
+	if (level_kind_dat()) order[k++] = level_kind_dat();   /* (the ids are unique to their files: the scenery file's first) */
 	order[k++] = id == 25001 ? "KID.DAT" : "PRINCE.DAT";
 	for (int j = 0; j < k; j++) {
 		int f = -1; for (int i = 1; i < 12; i++) if (names[i] && order[j] && !strcmp(names[i], order[j])) f = i;
@@ -39,7 +39,7 @@ static const uint8_t *pal_res(const char *tag, int id, uint16_t *n)
 		if (!ok[f]) ok[f] = dat_open(&files[f], game_path(names[f])) ? 1 : -1;
 		if (ok[f] < 0) continue;
 		const uint8_t *r = dat_find(&files[f], tag, (uint16_t)id, n);
-		if (r) return r;
+		if (r) { (*n)++; return r; }   /* (dat_find's size is one short: the checksum byte) */
 	}
 	return NULL;
 }
@@ -50,13 +50,14 @@ int render_pal_load(int sub, int count, int start, int res)
 	uint16_t n; const uint8_t *c = pal_res("CLAP", res, &n);   /* 0FB3:2C60 */
 	int nsub = c ? (c[0] | (n > 1 ? c[1] << 8 : 0)) : 0;
 	const uint8_t *p = pal_res("SLAP", res, &n);
-	if (!p || (uint8_t)nsub <= (uint8_t)sub) return 0;
+	if (!p || (uint8_t)nsub <= (uint8_t)sub || sub * count * 3 >= n) return 0;
 	const uint8_t *src = p + sub * count * 3;
+	if ((sub + 1) * count * 3 > n) count = (n - (int)(src - p)) / 3;   /* (the game reads on past a short resource; here only what it has) */
 	if (start < 0x10) {
 		int direct = count;
 		if (saved_hi_on) {
 			direct = 0x10 - start < count ? 0x10 - start : count;
-			if (count - direct > 0) memcpy(saved_hi, p + (sub * count + direct) * 3, (size_t)(count - direct) * 3);
+			if (count - direct > 0) memcpy(saved_hi, src + direct * 3, (size_t)(count - direct) * 3);
 		}
 		dac_set(src, direct, start);
 	} else if (saved_hi_on) memcpy(saved_hi + (start - 0x10) * 3, src, (size_t)count * 3);
@@ -103,16 +104,18 @@ void render_pal_guards(void)
 }
 /* a level's palette as its start sets it: PALS 10 (colors 0..0xF, 0FB3:293A), PRINCE.DAT 3000 at 0xE0 (not on the
  * final level, 1286:01DE), the level kind's 3500 at 0x40 (0xA0 colors, 1286:00EA), the guard file's 750 at 0x20
- * (1286:096D), the prince's KID.DAT 25001 sub-palette kind - 1 at 0x10 (1286:07CE) */
+ * (1286:096D), the prince's KID.DAT 25001 sub-palette kind - 1 at 0x10 (1286:07CE); image set 0's list (SHPL 1000,
+ * mask 0x8000, loaded by 26BC:0034 with its colors: those of PALS 1000) at 0xF0 */
 void render_pal_level_reset(void);
 void render_pal_level_start(void)
 {
-	memset(render_palette, 0, sizeof render_palette); saved_hi_on = saved_lo_on = 0; render_pal_level_reset();
+	saved_hi_on = saved_lo_on = 0; render_pal_level_reset();   /* (colors the level does not set keep what the last scene left: 0xF0..0xFF, the image set 0 sprites' colors) */
 	render_pal_load(0, 0x10, 0, 10);
 	if (level_kind != 6) render_pal_load(0, 0x10, 0xE0, 3000);
 	render_pal_load(0, 0xA0, 0x40, 3500);
 	if (level.type < 10 && level.type != 4) render_pal_load(0, 0x10, 0x20, 750);
 	render_pal_load(level_kind - 1, 0x10, 0x10, 25001);
+	render_pal_load(0, 0x10, 0xF0, 1000);
 }
 
 /* ---- the rooms with a description: the palette parts of their hooks (0CD6:02BE / 073A call entry 0 / 1 of the
@@ -136,15 +139,15 @@ void render_room_enter_palette(int bg)
 		fill_offscreen(0x8B);   /* (DS:2450 = DS:5CC2: the offscreen port stays the current one) */
 		break;
 	case 0x19: case 0x1A: case 0x1B:                         /* 33FD:1494 (OVL08) */
-		render_pal_load(1, 0xC0, 0x40, 3500); render_pal_load(0, 0xF0, 0x10, 1000);
+		render_pal_load(1, 0xC0, 0x40, 3500); render_pal_load(0, 0x10, 0xF0, 1000);
 		if (drawn_room == 4 && level_kind == 6) fill_offscreen(0);   /* (then sound 0x10C) */
 		else if (drawn_room == 3 && level_kind == 6) render_pal_load(0, 0x10, 0xE0, 3000);   /* (then sound 0x10D) */
 		break;
 	case 0x1C: case 0x1D: case 0x1E:                         /* 33FD:1708 (OVL08, level 14 rooms 6..8) */
-		render_pal_load(2, 0xC0, 0x40, 3500); render_pal_load(0, 0xF0, 0x10, 1000); render_pal_load(7, 0x10, 0x20, 25001);
+		render_pal_load(2, 0xC0, 0x40, 3500); render_pal_load(0, 0x10, 0xF0, 1000); render_pal_load(7, 0x10, 0x20, 25001);
 		if (drawn_room == 7 || drawn_room == 8) render_pal_load(0, 0x10, 0xE0, 3000);
 		break;
-	case 0: render_pal_load(0, 0x10, 0x20, 25303); break;   /* 37F0:0000 -> 0436 (OVL11, level 5's lever room) */
+	case 0: render_pal_load(0, 0x20, 0x10, 25303); break;   /* 37F0:0000 -> 0436 (OVL11, level 5's lever room): 0x20 colors at 0x10 */
 	case 0x21: if (level_number == 5 && drawn_room == 0xA) render_pal_load(1, 0xA0, 0x40, 3500); break;   /* 37F0:0426 (OVL12) */
 	case 0x20: {                                             /* 37F0:0510 (OVL13): after its images, 5DD / 5F0 */
 		const uint8_t *d = render_desc_raw();
@@ -166,3 +169,4 @@ void render_room_leave_palette(int bg)
 	default: break;
 	}
 }
+

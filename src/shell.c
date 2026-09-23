@@ -18,6 +18,8 @@
 #include "menu.h"
 #include "shell.h"
 #include "nis.h"
+#include "render_frame.h"
+int checkpoint_in_use(void);   /* level.c */
 
 extern uint16_t word_2baa;
 int load_level_ex(int n, int full);   /* level.c */
@@ -160,28 +162,12 @@ static const char *ds_str(int a)
 	return "";
 }
 
-/* ---- palettes (0FB3:29B8 / 294C / 293A, 2631) ---- */
-static uint8_t game_pal[0x2D0]; static int game_pal_saved;
-void pal_game_save(void)   /* 0FB3:29B8: the game's colours 16..255 put aside, black meanwhile */
-{
-	if (game_pal_saved) return;
-	pal_get(game_pal, 0x10, 0xF0); pal_set(NULL, 0x10, 0xF0); game_pal_saved = 1;
-}
-void pal_game_restore(void) { if (!game_pal_saved) return; pal_set(game_pal, 0x10, 0xF0); game_pal_saved = 0; }   /* 0FB3:294C */
-/* 0FB3:2B1C: `count` colours from entry `index` of palette `id` (PALC id: the entry count, PALS id: the colours) to
- * the DAC from `first`; the colours from 16 on go to the put-aside game palette while a menu shows */
-static void pal_entry(uint16_t id, int index, int count, int first)
-{
-	uint16_t n; const uint8_t *c = res_get("PALC", id, &n), *p = res_get("PALS", id, &n);
-	if (!c || !p || index >= (c[0] | c[1] << 8) || (index + 1) * count * 3 > n) return;
-	const uint8_t *src = p + index * count * 3;
-	for (int i = 0; i < count; i++) {
-		int k = first + i;
-		if (k >= 16 && game_pal_saved) memcpy(game_pal + (k - 16) * 3, src + i * 3, 3); else pal_set(src + i * 3, k, 1);
-	}
-}
-void pal_std16(void) { pal_entry(10, 0, 16, 0); }   /* 0FB3:293A: colours 0..15 from PALS 10 */
-void render_after_menu(uint8_t kind) { pal_entry(25001, kind - 1, 16, 16); }   /* 1286:07CE: colours 16..31, KID.DAT's PALS 25001 entry kind - 1 */
+/* ---- palettes (0FB3:29B8 / 294C / 293A, 2631): the renderer's (render_palette.c), one copy of the colours put aside ---- */
+static const int16_t *kid_old_box(void) { static int16_t r[4]; for (int k = 0; k < 4; k++) r[k] = (int16_t)(Kid.f2c[2 * k] | Kid.f2c[2 * k + 1] << 8); return r; }   /* DS:5B62 (Kid +0x2C) */
+void pal_game_save(void) { render_room_switch(kid_old_box()); }   /* 0FB3:29B8: colours 16..255 put aside and black, the prince's old box erased */
+void pal_game_restore(void) { render_pal_restore(); }              /* 0FB3:294C */
+void pal_std16(void) { render_pal_load(0, 16, 0, 10); }            /* 0FB3:293A: colours 0..15 from PALS 10 */
+void render_after_menu(uint8_t kind) { if (kind >= 1) render_pal_load(kind - 1, 16, 16, 25001); }   /* 1286:07CE: colours 16..31, KID.DAT's PALS 25001 entry kind - 1 */
 /* 2631:037E: 64 steps, one per video frame (each waits for the retrace), from the current DAC to target (NULL:
  * black) for the 16-colour banks in mask; the poll routine's key stops it */
 int sh_fade(int delay, uint16_t mask, const uint8_t *target)
@@ -229,8 +215,6 @@ int sh_transition(int dur, gport *src, const qrect *r)
 	}
 	return key;
 }
-__attribute__((weak)) void render_frame(void) {}           /* the renderer's frame (169B:0A30's drawing) */
-__attribute__((weak)) void render_redraw_all(void) {}      /* 169B:0430 */
 /* the renderer draws from the game state; what the drawing itself changes in the game is modelled by the core (game.c's
  * draw_*_state), so the game state is kept as it was around the renderer's calls */
 static void draw(void (*f)(void))
@@ -238,6 +222,49 @@ static void draw(void (*f)(void))
 	static uint8_t *save; static size_t n;
 	if (!save) { n = pop2_state_size(); save = malloc(n); }
 	pop2_save(save); f(); pop2_load(save);
+}
+
+/* ---- the core's drawing hooks (weak no-ops in the core: game.c, level.c, roomhooks.c, glue.c), on while the shell
+ * runs the game ---- */
+static int hooks_on;
+static int16_t hp_args[3];
+static void draw_whole(void) { render_redraw_all(); }
+static void draw_frame(void) { render_frame(); }
+static void draw_hp_bars(void) { render_hp_bars(); }
+static void draw_opp_clear(void) { render_opp_hp(0xFF, 0, 0); }
+static void draw_opp_hp(void) { render_opp_hp((uint8_t)hp_args[0], hp_args[1], hp_args[2]); }
+void hook_draw(int whole) { if (hooks_on) draw(whole ? draw_whole : draw_frame); }   /* 169B:0430 / 0A98 */
+void hook_hp_bars(void) { if (hooks_on) draw(draw_hp_bars); }                    /* 0FB3:259C */
+void hp_bar_clear(void) { if (hooks_on) draw(draw_opp_clear); }                  /* 0FB3:25D4 with no opponent */
+void hp_bar_draw(uint8_t index, int a, uint8_t hp) { if (!hooks_on) return; hp_args[0] = index; hp_args[1] = (int16_t)a; hp_args[2] = hp; draw(draw_opp_hp); }   /* 0FB3:25D4 */
+void hook_level_loaded(void) { if (hooks_on) render_level_loaded(); }            /* 1286:01F2's image sets and palettes */
+void hook_room_enter(int bg) { if (hooks_on) render_room_enter_palette(bg); }
+void hook_room_leave(int bg) { if (hooks_on) render_room_leave_palette(bg); }
+/* 0AAC:00AE: the first room is the picture the story scene before it ended on (no checkpoint (DS:5AB2), not a
+ * restart (DS:5CB6); DS:2BB6, a restored game, not kept here): level 6 room 0x1B, level 10 room 0x16, level 14 room
+ * 1 (DS:4418 the level's start room), level 8 room 9 (DS:6B6D, the room entered); with a checkpoint: level 8 room 9 */
+static int scene_room(void)
+{
+	if (word_5cb6) return 0;
+	if (!checkpoint_in_use()) return (start_room == 0x1B && level_number == 6) || (start_room == 0x16 && level_number == 10) || (start_room == 1 && level_number == 14) || (next_room == 9 && level_number == 8);
+	return Kid.room == 9 && level_number == 8;
+}
+static int in_first_room, first_room_5cdc;
+/* 0FB3:29B8 (0823:0E72): not for the first room of a scene's picture (0823:0E72(1)) */
+void redraw_room(void) { if (hooks_on && !(in_first_room && scene_room())) render_room_switch(kid_old_box()); }
+/* 169B:03AE's screen parts: 03DE erases the screen (DS:1F2A) or 03EE clears the message (0FB3:2136(1), the whole line
+ * while DS:5CDC was 0x258), 0409 the hit points (0FB3:24EA, DS:5B48 / 5B49) */
+void hook_first_room(int stage)
+{
+	if (!hooks_on) return;
+	if (stage == 0) { in_first_room = 1; first_room_5cdc = word_5cdc; return; }
+	if (stage == 1) {
+		in_first_room = 0;
+		if (!scene_room()) render_erase_screen((const int16_t[4]){0, 0, 200, 320});
+		else { uint16_t w = word_5cdc; word_5cdc = (uint16_t)first_room_5cdc; status_clear(0); word_5cdc = w; }
+		return;
+	}
+	render_kid_hp((int8_t)Kid.f12, (int8_t)Kid.f13);
 }
 
 /* ---- scenes (0AAC:0274) ---- */
@@ -255,6 +282,8 @@ __attribute__((weak)) void shell_nis_room(int lv, int room, uint8_t *pixels, int
 	static uint8_t *save; if (!save) save = malloc(pop2_state_size());
 	pop2_save(save);
 	uint8_t kind = level_kind;
+	int hooks = hooks_on; hooks_on = 0;   /* (the room's picture only: the scene keeps its palette) */
+	uint8_t pal[768]; memcpy(pal, render_palette, sizeof pal);
 	word_2b96 = 0;                                   /* 169B:018E */
 	if (load_level_ex(lv, 1)) {                      /* 1286:02EE / 00A2 / 043A / 03B6 / 0592 */
 		drawn_room = 0; next_room = (uint8_t)room;
@@ -263,6 +292,7 @@ __attribute__((weak)) void shell_nis_room(int lv, int room, uint8_t *pixels, int
 		for (int y = 0; y < 192; y++) memcpy(pixels + y * rowbytes, screen_buf + y * SCREEN_W, SCREEN_W);
 	}
 	pop2_load(save); level_kind = kind;
+	memcpy(render_palette, pal, sizeof pal); hooks_on = hooks;
 }
 static void nis_room(int lv, int room, uint8_t *pixels, int rowbytes, void *u) { (void)u; shell_nis_room(lv, room, pixels, rowbytes); }
 int sh_scene(int n)
@@ -452,8 +482,7 @@ static int frame_on_time_shell(void) { return frame_delay != 0; }
 static int first_room(int n)   /* 169B:03AE */
 {
 	(void)n;
-	int r = level_first_room();   /* (0823:0E72, status line, 169B:0430, hit points) */
-	draw(render_redraw_all);
+	int r = level_first_room();   /* (0823:0E72, status line, 169B:0430, hit points: the drawing through the hooks) */
 	frame_delay = 5; sh_wait_timer(1);   /* DS:24DE = 5, pumping keys (0823:12FA) */
 	return r;
 }
@@ -465,8 +494,7 @@ static int play_loop(void)   /* 169B:0504 */
 		frame_begin();                               /* 169B:0BA6 */
 		if (shell_tick_hook) shell_tick_hook();
 		int r = frame_after_tick(tick_main());      /* 169B:05E0 .. 0A30 */
-		frame_wait();                                /* 18C8:0008 */
-		draw(render_frame);
+		frame_wait();                                /* 18C8:0008 (the drawing was done in 169B:0A30 through hook_draw) */
 		if (r != -2) return r;
 		if (frame_delay) sh_wait_timer(1);   /* on time: 2797:0134(1) */
 	}
@@ -569,6 +597,7 @@ int shell_init(const char *dir, int argc, const char **argv)
 	getcontext(&ctx_shell);
 	ctx_shell.uc_stack.ss_sp = shell_stack; ctx_shell.uc_stack.ss_size = 1 << 20; ctx_shell.uc_link = NULL;
 	makecontext(&ctx_shell, entry, 0);
+	hooks_on = 1; render_track_tiles = 1;   /* (the tick-time redraw requests the core leaves out: from the tile changes) */
 	running = 1; shell_done = 0; frames = 0; sh_ticks60 = 0; tick_acc = 0;
 	return 1;
 }

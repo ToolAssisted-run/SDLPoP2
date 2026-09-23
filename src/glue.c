@@ -173,7 +173,8 @@ void ovl_37d2a(void) { note(" 37d2a"); }
 void ovl_34958(void) { level6_entrance(); } void ovl_2f9f2(void) {}   /* 2F86:0192: palette by hp */
 void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {}
 level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
-void ovl_36712(void) { note(" 36712"); } void room_music_087e(void) {} void redraw_room(void) {} void hp_bar_clear(void) {} void hp_bar_draw(uint8_t index, int a, uint8_t hp) { (void)index; (void)a; (void)hp; }
+void ovl_36712(void) { note(" 36712"); } void room_music_087e(void) {}
+__attribute__((weak)) void redraw_room(void) {} __attribute__((weak)) void hp_bar_clear(void) {} __attribute__((weak)) void hp_bar_draw(uint8_t index, int a, uint8_t hp) { (void)index; (void)a; (void)hp; }   /* (0FB3:29B8 / 25D4 on the screen: the frontend's, shell.c) */
 static uint8_t dstables[0x20];
 void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 charid->type (static data) */
 { memcpy(ds_img, ram + 0x3B250, 0x10000); memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; guard_set_prob_tables(ram + 0x3B250); mobs_set_tables(ram + 0x3B250); caverns_set_tables(ram + 0x3B250); heads_set_tables(ram + 0x3B250); blades_set_tables(ram + 0x3B250); byte_016a = (int8_t)ram[0x3B250 + 0x16A]; byte_14a0 = ram[0x3B250 + 0x14A0]; byte_0670 = ram[0x3B250 + 0x670]; cheat_mode = ram[0x3B250 + 0x10C2] | ram[0x3B250 + 0x10C3] << 8; word_0366 = ram[0x3B250 + 0x366] | ram[0x3B250 + 0x367] << 8;; fireball_width = (int16_t)(ram[0x3B250 + 0x842] | ram[0x3B250 + 0x843] << 8);   /* outside the snapshot window */ for (int i = 0; i < 16; i++) refract_tbl[i] = ram[0x3B250 + 0x13D0 + 2 * i] | ram[0x3B250 + 0x13D1 + 2 * i] << 8; refract_timer = refract_tbl;

@@ -532,15 +532,18 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   2 KID 25001+n (-0x190 from 0xDE), 3 the guard file 750+n (ranges DS:06BC / 06D2 per type enabled by 1286:07EE ->
   851+i; charids 10/12 by their own type), 4 the scenery file 3500+n (+200 from DS:05AC[kind]).
 - The palette (0FB3:2B1C: PALC count / PALS colors; while blacked out colors from 0x10 go to the saved copy
-  DS:27DA): level load 1286: PALS 10 at 0 (0FB3:293A), 3000 at 0xE0 (not final), 3500 sub 0 x 0xA0 at 0x40,
-  750 at 0x20 (guard types but 4), KID 25001 sub kind-1 at 0x10. A room switch (0823:0E72 -> 0FB3:29B8): unless
+  DS:27DA; 2B1C's arguments are pushed resource, start, count, sub; a short resource is read on past its end): level
+  load 1286: PALS 10 at 0 (0FB3:293A), 3000 at 0xE0 (not final), 3500 sub 0 x 0xA0 at 0x40, 750 at 0x20 (guard
+  types but 4), KID 25001 sub kind-1 at 0x10, and image set 0's shape list (SHPL 1000, mask 0x8000, 26BC:0034
+  installs its 16 colors, those of PALS 1000) at 0xF0: the swords' colors. The level's own load keeps what it does
+  not set (no clearing). A room switch (0823:0E72 -> 0FB3:29B8): unless
   already saved (a flash, 2A34, also saves), colors 0x10..0xFF saved and black and the prince's old box (DS:5B62)
   erased on the current port cut to DS:097E; 294C restores after the redraw. Description rooms' hooks (DS:02FE[bg]
   -> far pointers from DS:01AA, entry 0 on load 0CD6:02BE, 1 on leave 073A) change palettes: ruins bg 0x16 sub 1
   (347C:01EE; leave 0202 sub 0 while alive and time left), level 8 bg 0x22 sub 2 (37F0:001C / 0060), final bgs
-  0x17 / 0x19..0x1B / 0x1C..0x1E (33FD:145E / 1494 / 1708: 3500 subs 0/1/2 x 0xC0, PRINCE 1000 x 0xF0 at 0x10,
+  0x17 / 0x19..0x1B / 0x1C..0x1E (33FD:145E / 1494 / 1708: 3500 subs 0/1/2 x 0xC0, PRINCE 1000 at 0xF0,
   25001 sub 7 at 0x20, 3000 at 0xE0 in rooms 3 / 7 / 8; 145E and 1494 room 4 also fill the offscreen DS:097E),
-  level 5's OVL11 / 12 / 13 (25303 at 0x20 / 3500 sub 1 in room 0xA / the description's first id at 0xE0 and 2000
+  level 5's OVL11 / 12 / 13 (25303 x 0x20 at 0x10 / 3500 sub 1 in room 0xA / the description's first id at 0xE0 and 2000
   at 0x30; leave: 750 at 0x20 / 3500 sub 0 / 3000 at 0xE0).
 - The status line (drawn straight to the screen): hit points 0FB3:24EA (KID images 0xD8 / 0xD9 from x 2 by 8, the
   rest to x 0x62 erased below the level's start value DS:6B71), opponents 25D4 (image 0x83 from x 0x134 by -10,
@@ -555,6 +558,13 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   mid-copy or within two frames of a tick-time write, and captures made before the msgclral probe.
 - Not reconstructed (logged by note_missing): the level 5 / 8 / 13 overlay objects 37F0:023A / 08D2 / 0782 / 044A /
   05FC and their images 0x62D7..0x62E2, the tick-time palette animations (37F0:032D, 2699:0048 users).
+- In the program (shell.c): the core calls weak hooks (game.c hook_draw at 169B:0430 / 0A98 before its state parts,
+  hook_hp_bars 0FB3:259C, hook_first_room 169B:03AE's screen steps; glue.c redraw_room 0FB3:29B8, hp_bar_draw /
+  hp_bar_clear 25D4; level.c hook_level_loaded; roomhooks.c hook_room_enter / leave) that the shell turns into
+  renderer calls with the game state put back after each. The requests the game logic makes at tick time (the tile
+  animations 1375:01F4..0416, the overlays' 0F5A / 0E8C) are not in the core: the shell has the renderer redraw
+  every tile of the drawn room (and the row above) whose type or modifier changed since the last frame, whole, with
+  the characters over it (render_track_tiles). Checked: tests/run_shell.sh's in-game shots (MENU1, DEATH1) exact.
 
 ## 6. The C core (`src/core.h`)
 - `pop2_init(dir)`, `pop2_new_game(level, seed)`, `pop2_frame(&input)` (one tick), `pop2_save/load/hash`,

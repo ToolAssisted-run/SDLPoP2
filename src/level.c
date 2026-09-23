@@ -14,6 +14,7 @@ static struct {
 	uint8_t tiles[0x3C0], attrs[0xF00], records[0xE80], spawns[0x440];   /* level +0, +0x3C0, +0x1867, +0x26F9 (rooms 1..32) */
 } cp;
 #define LV ((uint8_t *)&level)
+int checkpoint_in_use(void) { return cp.used; }   /* (DS:5AB2 not 0: for the frontend) */
 size_t checkpoint_state_size(void) { return sizeof cp; }
 void checkpoint_state_save(uint8_t *buf) { memcpy(buf, &cp, sizeof cp); }
 void checkpoint_state_load(const uint8_t *buf) { memcpy(&cp, buf, sizeof cp); }
@@ -173,6 +174,8 @@ void level_begin(void)
 }
 
 static void kind_level_init(void); extern int last_scene; int load_level_ex(int n, int full);
+/* the frontend's hooks (shell.c; no-ops for the core alone) */
+__attribute__((weak)) void hook_level_loaded(void) {}
 /* 1286:01F2 / 02EE: load level n (resource 0x7CF + n, +0x14 with the GAMEPLAY switch), then the checkpoint copy.
  * A different level than the current one drops the checkpoint. */
 int load_level(int n) { return load_level_ex(n, n != (int8_t)word_32d8 || last_scene); }
@@ -193,6 +196,7 @@ int load_level_ex(int n, int full)
 		guard_sprites_loaded(level.type);   /* 1286:027E -> 087E */
 		kind_level_init();
 		if (level_kind == 1) byte_14a0 = 0xFF;   /* 33FD:0324 (1286:02D9) */
+		hook_level_loaded();   /* (the drawing: the level's image sets and palettes, 1286:066A / 00EA / 01DE / 096D / 07CE) */
 	}
 	last_scene = 0;
 	return 1;

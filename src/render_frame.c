@@ -382,11 +382,38 @@ static void room_prepare(void)
 	if (level_kind == 4) { if (room_A == 0) { int16_t r[4]; for (int k = 0; k < 4; k++) r[k] = (int16_t)ds_word((uint16_t)(0x0986 + 2 * k)); render_erase_rect(r); } }
 	else if (level_kind == 5) room_palette_33fd_0186();
 }
+/* ---- the tick-time redraw requests (frontends) ----
+ * The game logic asks for redraws when it changes the drawn room's tiles (the tile animations 1375:01F4..0416, the
+ * overlays' 1375:0F5A / 0E8C calls, items, gates); the core leaves those requests out. With render_track_tiles on,
+ * a frame compares the drawn room's tiles and modifiers (and the row above's) with those of the last frame and asks
+ * for every changed tile to be redrawn whole (1375:0E8C, with the characters over it: 1375:0F5A) - more than the
+ * game's own requests, drawing the same pixels. Off for the tests (they take the game's requests from its state). */
+int render_track_tiles;
+static uint8_t seen_room, seen_above, seen_tiles[40]; static uint32_t seen_mods[40]; static int seen_ok;
+static void tiles_now(uint8_t *t, uint32_t *m)
+{
+	for (int i = 0; i < 30; i++) { t[i] = drawn_room ? ROOM_TILES(drawn_room)[i] : 0; m[i] = drawn_room ? ROOM_ATTRS(drawn_room)[i] : 0; }
+	for (int c = 0; c < 10; c++) { t[30 + c] = room_A ? ROOM_TILES(room_A)[20 + c] : 0; m[30 + c] = room_A ? ROOM_ATTRS(room_A)[20 + c] : 0; }
+}
+static void tiles_seen(void) { tiles_now(seen_tiles, seen_mods); seen_room = drawn_room; seen_above = room_A; seen_ok = 1; }
+static void mark_changed_tiles(void)
+{
+	uint8_t t[40]; uint32_t m[40]; tiles_now(t, m);
+	if (seen_ok && seen_room == drawn_room && seen_above == room_A)
+		for (int i = 0; i < 40; i++) {
+			if (t[i] == seen_tiles[i] && m[i] == seen_mods[i]) continue;
+			int8_t row = i < 30 ? (int8_t)(i / 10) : -1, col = (int8_t)(i < 30 ? i % 10 : i - 30);
+			int16_t r[4]; tile_rect(row, col, r);
+			mark_tile(tile_index_of(row, col)); mark_chars(r, 0xFF);
+		}
+	memcpy(seen_tiles, t, sizeof t); memcpy(seen_mods, m, sizeof m); seen_room = drawn_room; seen_above = room_A; seen_ok = 1;
+}
 /* 169B:0A8A .. 0A9D: a frame: the tables filled (0FB3:12F4) and drawn (0FB3:13C2) */
 void render_frame(void)
 {
 	tile_drawers = kind_drawers_for(level_kind);   /* (the level kind's overlay, loaded with the level) */
 	render_check_pieces();
+	if (render_track_tiles) mark_changed_tiles();
 	render_frame_tables();
 	render_draw_tables();
 	render_present();   /* 0FB3:218A */
@@ -409,6 +436,7 @@ void render_redraw_room(void)
 	render_draw_tables();
 	render_desc_after_redraw();   /* 0CD6:0792(0) */
 	redraw_all_flag = 0;
+	if (render_track_tiles) tiles_seen();
 }
 static int loaded_level = -1;   /* the level render_level_loaded() last ran for */
 void render_check_level(void) { if (loaded_level != level_number) render_level_loaded(); }   /* (a level whose load was not reported) */

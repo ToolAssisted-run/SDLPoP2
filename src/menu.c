@@ -565,7 +565,7 @@ void copy_protection(void)   /* 0D5E:1288 */
 			int page = tab[2 + r * 4] | tab[3 + r * 4] << 8, answer = tab[4 + r * 4] | tab[5 + r * 4] << 8;
 			the_port = port_back; cp_screen(attempt, set, page); the_port = &port_screen;
 			if (attempt == 0) menu_fade_in(); else gfx_copy_bits(port_back, &port_screen, &rect_cp, &rect_cp);
-			int c = cp_choose();
+			int c = getenv("SDLPOP2_CP_ANSWER") ? answer : cp_choose();   /* (tests, dummy runs: the right symbol at once) */
 			ok = c == answer || c == -2;
 			if (ok) break;
 		}

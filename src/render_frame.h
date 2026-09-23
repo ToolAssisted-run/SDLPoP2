@@ -75,6 +75,7 @@ void render_pal_guards(void);     /* 2D3E:0F50 */
 void render_pal_level_start(void);
 void render_room_enter_palette(int bg);   /* the palette parts of the description rooms' hooks (entry 0, room loaded) */
 void render_room_leave_palette(int bg);   /* (entry 1, room left) */
+extern int render_track_tiles;   /* frontends: redraw the drawn room's changed tiles (render_frame.c) */
 void render_level_loaded(void);
 void render_check_level(void);       /* render_level_loaded() unless done for this level number */      /* 1286:01F2 (a full level load): image colors forgotten, the level's palettes */
 void render_mob_rect(int16_t *r);  /* 1375:219E */

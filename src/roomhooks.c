@@ -14,9 +14,13 @@ int room_has_description(uint8_t room)
 	for (int tp = 0; tp < 30; tp++) if ((uint16_t)ROOM_ATTRS(room)[tp] & 0xC000) return 1;
 	return 0;
 }
+/* the frontend's hooks for the palette parts of the entries below (shell.c -> render_palette.c; no-ops for the core) */
+__attribute__((weak)) void hook_room_enter(int bg) { (void)bg; }
+__attribute__((weak)) void hook_room_leave(int bg) { (void)bg; }
 /* entry 0 of the background's hooks */
 static void room_enter_hook(int16_t bg)
 {
+	hook_room_enter(bg);
 	switch (bg) {
 	case 6: kind1_level_init(); break;   /* 33FD:0380 (level 2's puzzle room) */
 	case 0x22:                            /* 37F0:001C (OVL14, level 8 room 9): the sword room's music, once */
@@ -40,6 +44,7 @@ static void room_enter_hook(int16_t bg)
 /* entry 1 */
 static void room_leave_hook(int16_t bg)
 {
+	hook_room_leave(bg);
 	switch (bg) {
 	case 0x22: break;   /* 37F0:0060: palette */
 	case 0x16: break;   /* 347C:0202 (OVL06): palette (alive, time left) */

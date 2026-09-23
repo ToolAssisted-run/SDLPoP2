@@ -389,7 +389,8 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - The prince's drawing (0993:07F8 -> 0C04 body, 0C3A / 0D40 sword) leaves obj_* at his last sprite, usually the
   sword (chtab 0: PRINCE.DAT SHAP 1001 + image, 1201 with sword type 2 on levels 7/8; chtab 1: 3001 + image). A
   character drawn next whose frame has no image (0xFFFF, e.g. a collapsing skeleton at 0xB9) gets its box from it.
-- KID.DAT 25065 is a 1-byte placeholder; the original reads the heap after it (h 0, w 5 as observed).
+- KID.DAT 25065 is a 1-byte placeholder; the original reads the heap after it: h 0 and a width that depends on the
+  heap's history (5 in F7_9, 0xC00A in R3_7_2, both level 7). The core uses 5; R3_7_2 is kept in oracle/known/.
 
 ### 5.14 Drawing the sword (Ctrl)
 - Ctrl (BIOS flag 4) gives ctrl1_shift -2. Standing (index 0xA = the prince) with -2 and no direction: 2FDF:19D4
@@ -465,3 +466,5 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - 2026-09-23: fleet round 2 (fresh seeds, half at the normal 3 hp): 250/252; fixes: 3212:06BA compares the gate
   modifier as a byte (> 0x40), 366C:1166 (skeleton collapse on landing), 33FD:0754 wired (caverns floor landing).
   The pulled F*/R* captures joined tests/run_all.sh.
+- 2026-09-23: fleet round 3 (1M-iteration explorations): 251/252; the one difference is the heap-dependent placeholder
+  width above (a character's box for one tick).

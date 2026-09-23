@@ -6,6 +6,7 @@
 #include <string.h>
 #include "../src/core.h"
 #include "../src/render.h"
+#include "../src/audio.h"
 
 extern uint16_t frame_delay;   /* DS:24DE: 60 Hz ticks per game tick (5, or 6 while the prince is ...) */
 
@@ -14,6 +15,23 @@ __attribute__((weak)) void render_frame(void) {}
 __attribute__((weak)) void render_redraw_all(void) {}
 __attribute__((weak)) uint8_t render_palette[768];   /* 6-bit VGA DAC values */
 
+extern void (*sound_start_hook)(int), (*sound_stop_hook)(int);   /* src/sound.c: where the game calls the driver */
+static SDL_AudioDeviceID adev;
+static void audio_cb(void *u, Uint8 *out, int len) { (void)u; audio_render((int16_t *)out, len / 2, 44100); }
+static void on_start(int n) { audio_request((uint16_t)(10000 + n)); }   /* (called from pop2_frame, the audio device locked) */
+static void on_stop(int n) { audio_stop(n == -10000 ? 0 : (uint16_t)(10000 + n)); }
+static void open_audio(const char *dir)
+{
+	if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0 || !audio_init(dir, 3)) return;
+	char p[512];
+	snprintf(p, sizeof p, "%s/NISDIGI.DAT", dir); audio_add_file(p);
+	snprintf(p, sizeof p, "%s/NISMIDI.DAT", dir); audio_add_file(p);
+	SDL_AudioSpec want = {0}, have; want.freq = 44100; want.format = AUDIO_S16SYS; want.channels = 1; want.samples = 1024; want.callback = audio_cb;
+	adev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+	if (!adev) return;
+	sound_start_hook = on_start; sound_stop_hook = on_stop;
+	SDL_PauseAudioDevice(adev, 0);
+}
 static SDL_Window *win; static SDL_Renderer *ren; static SDL_Texture *tex;
 static void present(void)
 {
@@ -49,7 +67,10 @@ int main(int argc, char **argv)
 	ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_PRESENTVSYNC);
 	SDL_RenderSetLogicalSize(ren, SCREEN_W * 4, SCREEN_H * 4 * 6 / 5);   /* (the 4:3 aspect of mode 13h) */
 	tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_W, SCREEN_H);
+	open_audio(argv[1]);
+	if (adev) SDL_LockAudioDevice(adev);
 	pop2_new_game(level, (uint32_t)SDL_GetTicks());
+	if (adev) SDL_UnlockAudioDevice(adev);
 	render_redraw_all();
 	Uint64 next = SDL_GetPerformanceCounter(), hz = SDL_GetPerformanceFrequency();
 	int keystroke = 0, quit = 0;
@@ -60,7 +81,9 @@ int main(int argc, char **argv)
 			else if (e.type == SDL_KEYDOWN && !e.key.repeat) { if (e.key.keysym.sym == SDLK_ESCAPE && (e.key.keysym.mod & KMOD_CTRL)) quit = 1; keystroke = 1; }
 		}
 		pop2_input in; read_input(&in); in.keystroke = (uint8_t)keystroke; keystroke = 0;
+		if (adev) SDL_LockAudioDevice(adev);
 		int r = pop2_frame(&in);
+		if (adev) SDL_UnlockAudioDevice(adev);
 		if (r == POP2_QUIT) break;
 		if (r != POP2_PLAYING) render_redraw_all(); else render_frame();
 		present();
@@ -69,6 +92,7 @@ int main(int argc, char **argv)
 		Uint64 now = SDL_GetPerformanceCounter();
 		if (next > now) SDL_Delay((Uint32)((next - now) * 1000 / hz)); else next = now;
 	}
+	if (adev) SDL_CloseAudioDevice(adev);
 	SDL_Quit();
 	return 0;
 }

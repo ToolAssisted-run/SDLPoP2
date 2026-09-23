@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 	static const char *strict[400]; static int strict_bad[400]; int nstrict = 0;
 	/* not compared: drawing and sound state (DS:2B68 the level-1 palette, 33FD:0128; DS:2B9A the ambient sound, 1611:03CC) */
 	if (getenv("E2E_STRICT")) { for (int i = 0; i < snap_nfields && nstrict < 399; i++) if (strcmp(snap_fields[i].name, "byte_2b68")) strict[nstrict++] = snap_fields[i].name; strict[nstrict] = NULL; }
-	int started = 0, n = 0, bad = 0, first_bad = 0, pending = 0, ticks = 0, tick_n = 0;
+	int started = 0, n = 0, bad = 0, first_bad = 0, pending = 0, ticks = 0, tick_n = 0, frozen_n = 0, frozen = 0;
 	while (fgets(big, sizeof big, ef)) {
 		char *lab = strstr(big, " probe="); if (!lab) continue;
 		int frame = atoi(big + 6); char *m = strstr(big, "mem="); char nm[32] = ""; sscanf(strchr(lab + 1, ' ') + 1, "%31s", nm);
@@ -185,6 +185,15 @@ int main(int argc, char **argv)
 			int k; uint32_t s = random_seed;
 			for (k = 0; k <= 4 && s != want; k++) s = s * 0x343FD + 0x269EC3;
 			if (k <= 4) { random_seed = s; ambient_draws += k; } else rng_lost++;
+			if (frozen) {   /* a frozen tick (no post-tick sample): compared with this tick's start */
+				static uint8_t *fz; if (!fz) fz = malloc(state_size());
+				frozen = 0; state_save(fz); frame_begin(); memcpy(got, mem, SNAP_SIZE); snap_store(got); state_load(fz); n++; frozen_n++;   /* (the sample is after 169B:0BA6) */
+				if (nstrict) memcpy(got + 0x2B9A - SNAP_BASE, mem + 0x2B9A - SNAP_BASE, 2);
+				static const char *drawn[] = {"obj_x", "obj_y", "obj_id", "obj_chtab", "curr_tile", "tile_col", "tile_row", NULL};   /* the drawing pass's scratch */
+				#define DRAWN(nm) ({ int d_ = 0; for (int j = 0; drawn[j]; j++) if (!strcmp(drawn[j], nm)) d_ = 1; d_; })
+				if (nstrict) for (int i = 0; i < nstrict; i++) { const char *one[2] = {strict[i], NULL}; if (!DRAWN(strict[i]) && snap_diff(got, mem, one, 0) && !strict_bad[i]++ && getenv("E2E_STRICT")[0] == 'v') { printf("strict: %s first differs at frozen tick %d\n", strict[i], ticks); snap_diff(got, mem, one, 1); } }
+				if (snap_diff(got, mem, regions, 0)) { bad++; if (!first_bad) first_bad = ticks; if (bad <= 5) { printf("frozen tick %d (frame %d) [%s]\n", ticks, frame, missing_log()); snap_diff(got, mem, regions, 1); } }
+			}
 			/* one frame: 169B:0BA6, then the tick with this tick's keys */
 			const char_type *ak = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++; pace_ix = tick_ix - 1;
@@ -219,6 +228,7 @@ int main(int argc, char **argv)
 			ticks++; cur_tick_ix = -1;
 			if (r == 0) { pending = 1; tick_n = ticks; continue; }   /* compared at ds_postroom (169B:064F) */
 			r = frame_after_tick(r); frame_wait();   /* frozen (-2) or quit (-1): no post-tick sample */
+			if (r == -2 && !resync) frozen = 1;
 			if (r == -1) { printf("tick %d: level left (-1)\n", ticks); break; }
 			if (r >= 0) { printf("tick %d: level %d (re)starts\n", ticks, r); if (r == 0) break; restarts++; if (!word_5cb6 && (sc = story_scene((int8_t)word_32d8, r))) { scene_played(sc); resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
 			continue;
@@ -237,6 +247,6 @@ int main(int argc, char **argv)
 		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0) break; restarts++; if (!word_5cb6 && (sc = story_scene((int8_t)word_32d8, r))) { scene_played(sc); resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
 	}
 	if (nstrict) { printf("strict:"); for (int i = 0; i < nstrict; i++) if (strict_bad[i]) printf(" %s(%d)", strict[i], strict_bad[i]); printf("\n"); }
-	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts (%d after a story scene, resynced); %d ambient random draws synced, %d unmatched; %d same-frame key timings and %d sound answers taken from the capture\n", ticks, n, bad, first_bad, restarts, scenes, ambient_draws, rng_lost, timing_flips, sound_answers);
+	printf("e2e: %d ticks free-running (%d compared, %d of them frozen), %d mismatching (first at tick %d); %d restarts (%d after a story scene, resynced); %d ambient random draws synced, %d unmatched; %d same-frame key timings and %d sound answers taken from the capture\n", ticks, n, frozen_n, bad, first_bad, restarts, scenes, ambient_draws, rng_lost, timing_flips, sound_answers);
 	return bad != 0;
 }

@@ -312,6 +312,9 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   reload. X2_1's first capture crashed DOS ("Corrupt MCB chain"): the copy-protection answer keys (TAB/ENTER) were
   typed on levels 1-2, where no question is asked; plan2script.py now types them only on levels > 2.
 - Warm-started level-2 runs need DS:14A0 = 0xFF (the puzzle answer is chosen at level load; e2e.c resets it).
+- Frozen ticks (169B:05E0 returns before 0823:0E72: prince dead/out of the level, no post-tick sample) are compared
+  at the next tick's start sample (after 169B:0BA6 frame_begin, applied to a copy), without the drawing pass's
+  scratch (obj_*, curr_tile, tile_col/row): 9150 such ticks over the captures, all identical.
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
@@ -332,3 +335,4 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   37F0 is level 8's room-9 script; pickups add 0xC000 only with a description loaded (fixed X5_1).
 - 2026-09-23: 1611:0164 opponent reload after the fight code (fixed the last strict differences); X2_1 crash was
   copy-protection keys on levels 1-2; run_all.sh now covers the X captures too. All captures strict-clean.
+- 2026-09-23: e2e compares frozen ticks too (all identical); X14_1 (level 14 planned run: falls out of the level).

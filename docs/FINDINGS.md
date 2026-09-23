@@ -540,3 +540,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   takes over). G14_fall (the spirit walks into room 5's gap) identical. Explorer EXPLORE_KEY=jaffar (Jaffar kills).
 - 2026-09-24: G14_hit6 (a spirit's fireball hits a Jaffar in room 6, seq 0xF3) identical. Level 14's win (counter
   +1 at seq 0xF3 frame 0x15F, only in 33FD:1186, i.e. a Jaffar in rooms 7/8) not reached by 780M explorer ticks.
+- 2026-09-24: level 14 room 6, verified: Jaffars standing still fall through room 6's floor gaps (seq 0x52) and
+  leave the room's list when they fall out of it (G14_k3); a dead Jaffar's body stays in the list, and the last one
+  starts seq 0xF0 only when the list holds him alone (nchars 1, the spirit not counted), then waits in room 8's list
+  (G14_leave: the spirit kills one with the sword, the last leaves). Explorer EXPLORE_J78 / EXPLORE_STOPKEY.

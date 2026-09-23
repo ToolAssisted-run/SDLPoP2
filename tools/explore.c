@@ -1,7 +1,7 @@
 /* Explore a level with the core (Go-Explore style): keep the first state that reached each cell (room, row, column),
  * restart from rarely tried cells and play random held inputs. Writes the per-tick inputs that lead to the chosen
  * cell (default: the last new room found; or a given room) as a plan file: one line per tick "x y shift".
- * EXPLORE_HP=n starts the prince with n hp.
+ * EXPLORE_HP=n starts the prince with n hp; EXPLORE_PREFIX=plan plays a plan first; EXPLORE_CTRL=1 presses Ctrl too.
  * usage: explore GAME_DIR LEVEL SEED ITERATIONS OUT.plan [TARGET_ROOM]
  * build: cc -O2 -o explore tools/explore.c src/(all).c -lm */
 #include <stdio.h>
@@ -28,6 +28,11 @@ int main(int argc, char **argv)
 	pop2_new_game(level, seed);
 	if (getenv("EXPLORE_HP")) { Kid.f12 = Kid.f13 = (uint8_t)atoi(getenv("EXPLORE_HP")); }   /* (the oracle script pokes the same at tick 1) */
 	static pop2_input path[4096]; int plen = 0, order = 0, best = -1; int room_seen[33] = {0};
+	if (getenv("EXPLORE_PREFIX")) {   /* a plan to play first (kept at the start of every path) */
+		FILE *pf = fopen(getenv("EXPLORE_PREFIX"), "r"); int x, y, sh;
+		while (pf && plen < 3000 && fscanf(pf, "%d %d %d", &x, &y, &sh) == 3) { pop2_input in = {0}; in.x = x; in.y = y; in.shift = sh; path[plen++] = in; pop2_frame(&in); }
+		if (pf) fclose(pf);
+	}
 	#define ADD_CELL(ci) do { cell *c = &cells[ci]; if (!c->state) { c->state = malloc(n); ncells++; c->order = order++; c->room = Kid.room; \
 		if (Kid.room == target || (target < 0 && !room_seen[Kid.room < 33 ? Kid.room : 0])) best = ci; } else free(c->path); \
 		pop2_save(c->state); c->path = malloc(sizeof(pop2_input) * (plen ? plen : 1)); memcpy(c->path, path, sizeof(pop2_input) * plen); c->len = plen; } while (0)
@@ -44,7 +49,7 @@ int main(int argc, char **argv)
 		int lv = level;
 		for (int t = 0; t < 60 && plen < 4000; ) {
 			pop2_input in = {0}; uint32_t a = rnd();
-			in.x = (int8_t)(a % 3) - 1; in.y = (int8_t)((a / 3) % 3) - 1; in.shift = (a / 9) % 4 == 0;
+			in.x = (int8_t)(a % 3) - 1; in.y = (int8_t)((a / 3) % 3) - 1; in.shift = (a / 9) % 4 == 0 ? 1 + ((a / 36) % 2 && getenv("EXPLORE_CTRL")) : 0;   /* EXPLORE_CTRL: Ctrl too */
 			int hold = 1 + rnd() % 8;
 			for (int h = 0; h < hold && t < 60 && plen < 4000; h++, t++) {
 				path[plen++] = in; int res = pop2_frame(&in); ticks++;

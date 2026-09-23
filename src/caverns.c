@@ -215,3 +215,4 @@ int gate_squeeze(int si)
 	else if (Kid.frame == 0x10A) cur_trob.state = 0xFF;   /* 1375:0388 redraws */
 	return si;
 }
+int boxes_overlap_pub(const int16_t *a, const int16_t *b) { return boxes_overlap(a, b); }

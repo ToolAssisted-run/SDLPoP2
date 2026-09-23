@@ -9,17 +9,17 @@ static void kind3_platform(void) { floor_touch_check(); }
 void level_kind_hooks(void)
 {
 	switch (level_kind) {
-	case 2: trap_touch_check(); ovl_347c_e48(); if (word_5ce8 == 0) trap_catch_check(); ovl_33fd_b2(); if (word_5ce8 == 0) ovl_33fd_118(); break;
+	case 2: trap_touch_check(); ovl_347c_e48(); if (word_5ce8 == 0) trap_catch_check(); blade_touch(); if (word_5ce8 == 0) blade_hits(); break;
 	case 3: trap_touch_check(); if (word_5ce8 == 0) { kind3_objects_hit(); trap_catch_check(); kind3_platform(); } break;
-	case 4: ovl_33fd_b2(); if (word_5ce8 == 0) ovl_33fd_118(); break;
+	case 4: blade_touch(); if (word_5ce8 == 0) blade_hits(); break;
 	}
 }
 void level_kind_hooks_char(void)
 {
 	switch (level_kind) {
-	case 2: trap_touch_check(); ovl_347c_e48(); trap_catch_check(); ovl_33fd_b2(); ovl_33fd_118(); break;
+	case 2: trap_touch_check(); ovl_347c_e48(); trap_catch_check(); blade_touch(); blade_hits(); break;
 	case 3: trap_touch_check(); kind3_objects_hit(); trap_catch_check(); kind3_platform(); break;
-	case 4: ovl_33fd_b2(); ovl_33fd_118(); break;
+	case 4: blade_touch(); blade_hits(); break;
 	case 6: ovl_kind6_char(); break;
 	}
 }

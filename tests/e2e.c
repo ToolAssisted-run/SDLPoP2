@@ -34,19 +34,31 @@ static void keys_at(int frame, const uint8_t *seen)
 	}
 	memcpy(key_table, pick, sizeof key_table); bios_shift_flags = flags_of(pick);
 }
-/* the BIOS keystroke buffer: every key-down of a non-modifier key queues one keystroke (read by 0823:02BE) */
-static int cur_tick_frame, keybuf_next;
+/* the keystroke queue read by 0823:02BE (2768:02CA, the library's event queue): every key-down of a non-modifier key,
+ * plus the keyboard's auto-repeat of the last key pressed (DOSBox-X: after 500 ms, then every 33 ms; frames at 70.086 Hz) */
+static double keyq[65536]; static int nkeyq, keyq_next;
+static void build_keyq(void)
+{
+	const double fr = 1000.0 / 70.086;
+	for (int i = 0; i < nkeyev; i++) {
+		int p = keyev[i].pos;
+		if (!keyev[i].down || p == 0x37 || p == 0x43 || p == 0x2A || p == 0x45) continue;
+		keyq[nkeyq++] = keyev[i].frame;
+		/* repeats until this key is released or another key goes down */
+		double end = 1e9;
+		for (int j = i + 1; j < nkeyev; j++) if ((keyev[j].pos == p && !keyev[j].down) || (keyev[j].down && keyev[j].pos != p)) { end = keyev[j].frame; break; }
+		for (double t = keyev[i].frame + 500 / fr; t < end && nkeyq < 65535; t += 33 / fr) keyq[nkeyq++] = t;
+	}
+	for (int i = 1; i < nkeyq; i++) for (int j = i; j > 0 && keyq[j - 1] > keyq[j]; j--) { double t = keyq[j]; keyq[j] = keyq[j - 1]; keyq[j - 1] = t; }
+}
+static int cur_tick_frame;
 int bios_key(void)
 {
-	for (; keybuf_next < nkeyev; keybuf_next++) {
-		if (keyev[keybuf_next].frame > cur_tick_frame || (keyev[keybuf_next].frame == cur_tick_frame && !same_frame_keys)) return 0;
-		int p = keyev[keybuf_next].pos;
-		if (keyev[keybuf_next].down && p != 0x37 && p != 0x43 && p != 0x2A && p != 0x45) { keybuf_next++; return 0x100 * p; }
-	}
+	if (keyq_next < nkeyq && (keyq[keyq_next] < cur_tick_frame || (keyq[keyq_next] == cur_tick_frame && same_frame_keys))) { keyq_next++; return 0x100; }
 	return 0;
 }
 static int hexval(int c) { return c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10; }
-static int sound_busy, ambient_draws, rng_lost, restarts; int death_sound_playing(int both) { (void)both; return sound_busy; }
+static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes; int death_sound_playing(int both) { (void)both; return sound_busy; }
 
 int main(int argc, char **argv)
 {
@@ -60,6 +72,7 @@ int main(int argc, char **argv)
 		if (sscanf(line, "key %d %31s %d", &f, name, &d) != 3) continue;
 		for (int k = 0; keymap[k].name; k++) if (!strcmp(keymap[k].name, name) && nkeyev < 4096) { keyev[nkeyev].frame = f; keyev[nkeyev].pos = keymap[k].pos; keyev[nkeyev++].down = d; }
 	}
+	build_keyq();
 	FILE *ef = fopen(argv[4], "r"); if (!ef) return 2;
 	/* first pass: the prince's death count before and after each tick (the death sound is not modelled: a count that
 	 * did not advance means it was still playing) */
@@ -84,6 +97,10 @@ int main(int argc, char **argv)
 		char *lab = strstr(big, " probe="); if (!lab) continue;
 		int frame = atoi(big + 6); char *m = strstr(big, "mem="); char nm[32] = ""; sscanf(strchr(lab + 1, ' ') + 1, "%31s", nm);
 		int len = 0; if (m) for (char *p = m + 4; p[0] && p[1] && p[0] != '\n' && len < (int)sizeof mem; p += 2) mem[len++] = hexval(p[0]) << 4 | hexval(p[1]);
+		if (resync && !strcmp(nm, "ls_a") && len == 0x4300) {   /* a story scene (NIS, not reconstructed) played before this level load */
+			snap_load(mem); stubs_select_guard_dat(level.type); level_begin(); level_first_room(); resync = 0; pending = 0; continue;
+		}
+		if (resync) continue;
 		if (!started) {
 			if (strcmp(nm, "ls_a") || len != 0x4300) continue;
 			SNAP_SIZE = 0x4300; SNAP_BASE = 0x6C00 - SNAP_SIZE; snap_load(mem); stubs_select_guard_dat(level.type);
@@ -105,7 +122,7 @@ int main(int argc, char **argv)
 			if (r == 0) { pending = 1; tick_n = ticks; continue; }   /* compared at ds_postroom (169B:064F) */
 			r = frame_after_tick(r); frame_wait();   /* frozen (-2) or quit (-1): no post-tick sample */
 			if (r == -1) { printf("tick %d: level left (-1)\n", ticks); break; }
-			if (r >= 0) { printf("tick %d: level %d (re)starts\n", ticks, r); if (r == 0) break; if (!word_5cb6) story_scene((int8_t)word_32d8, r); if (!load_level(r)) break; level_begin(); level_first_room(); restarts++; }
+			if (r >= 0) { printf("tick %d: level %d (re)starts\n", ticks, r); if (r == 0) break; restarts++; if (!word_5cb6 && story_scene((int8_t)word_32d8, r)) { resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
 			continue;
 		}
 		if (strcmp(nm, "ds_postroom") || !pending) continue;
@@ -117,8 +134,8 @@ int main(int argc, char **argv)
 		if (getenv("E2E_ALL") && tick_n >= atoi(getenv("E2E_ALL")) - 2 && tick_n <= atoi(getenv("E2E_ALL"))) { printf("tick %d other state:\n", tick_n); snap_diff(got, mem, extra, 1); }
 		int r = frame_after_tick(0); frame_wait();
 		if (r == -1) { printf("tick %d: level left (-1)\n", tick_n); break; }
-		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0) break; if (!word_5cb6) story_scene((int8_t)word_32d8, r); if (!load_level(r)) break; level_begin(); level_first_room(); restarts++; }
+		if (r >= 0) { printf("tick %d: level %d (re)starts\n", tick_n, r); if (r == 0) break; restarts++; if (!word_5cb6 && story_scene((int8_t)word_32d8, r)) { resync = 1; scenes++; continue; } if (!load_level(r)) break; level_begin(); level_first_room(); }
 	}
-	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts; %d ambient random draws synced, %d unmatched\n", ticks, n, bad, first_bad, restarts, ambient_draws, rng_lost);
+	printf("e2e: %d ticks free-running (%d compared), %d mismatching (first at tick %d); %d restarts (%d after a story scene, resynced); %d ambient random draws synced, %d unmatched\n", ticks, n, bad, first_bad, restarts, scenes, ambient_draws, rng_lost);
 	return bad != 0;
 }

@@ -162,3 +162,5 @@ int frame_after_tick(int r);
 extern uint16_t cheat_mode; void frame_wait(void);
 extern uint16_t word_0366; int story_scene(int prev, int n);
 void keyboard_controls(const uint8_t *keys, uint8_t flags, int8_t *x, int8_t *y, int8_t *shift);
+/* blades.c */ void blades_set_tables(const uint8_t *ds); void anim_blade(void); void blade_touch(void); void blade_hits(void); int blade_running_here(void); int boxes_overlap_pub(const int16_t *a, const int16_t *b);
+/* temple.c */ int temple_torch(int cur); void slab_step(void); void slab_shake(void); void slab_mob(void); void temple_tick(void);

@@ -101,6 +101,7 @@ static void animate_tile(void)
 	else if (t == 0x13 || t == 0x20) anim_torch();
 	else if (t == 0x24 && level_kind == 3) anim_rock();   /* 33FD:017C */
 	else if (t == 0x17 && level_kind == 3) anim_floor();   /* 33FD:05AE */
+	else if (t == 0xD && (level_kind == 2 || level_kind == 4)) anim_blade();   /* 33FD:0000 (OVL05) */
 	else if (t < 4 || t > 0x2C || t == 7 || t == 8 || t == 9 || t == 0xC || t == 0xE || t == 0xF || t == 0x10 || t == 0x12 || t == 0x14 || t == 0x15 || t == 0x16
 	         || t == 0x18 || t == 0x19 || t == 0x1A || t == 0x21 || t == 0x23) cur_trob.state = 0xFF;
 	else anim_tile_other(t);

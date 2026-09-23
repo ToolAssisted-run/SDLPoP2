@@ -20,6 +20,7 @@ void game_clock(void)
 	if (word_5cb6) { word_5cc0 = word_5cb6; word_5cb6 = 0; return; }
 	if (!word_5cd0) return;
 	/* 0FB3:204C shows "N MINUTES LEFT" / "N SECONDS LEFT" / "TIME HAS EXPIRED" (DS:09BA / 09AA / 099C / 09CA) */
+	shell_status(0);
 	word_5cdc = word_5cda = 0x18; word_5cd0 = 0;
 }
 /* 169B:0E7C */
@@ -90,23 +91,34 @@ void toggle_upside_down_pub(void);
 static void toggle_upside_down(void) { word_5d38 = word_5d38 ? 0 : 0x438; play_sound(word_5d38 ? 0x99 : 0x9A); word_5cce = 1; }
 /* 169B:0430: redraw everything (state side: flags cleared, DS:68EA = 2) */
 static void redraw_all(void) { word_5cee = 0; if (!word_2b92) { kind5_room_palette(drawn_room);   /* 0CD6:003A */ draw_mobs_state(); kid_sprite_state(); draw_chars_state(); } word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
+/* 0FB3:259C (the hit points shown again after a flip redraw), its state part: the prince's opponent into Opp
+ * (0AFF:080A: loadkid, then Opp = chars[i]) and 0FB3:25D4's load_char of that character */
+static void hp_display_state(void)
+{
+	int8_t i = (int8_t)Kid.opp_index;
+	if (i < 0 || i >= 5) return;
+	loadkid(); Opp = chars[i];
+	if (Opp.index != 0xFF) load_char(Opp.index);   /* (0xFF: 2D3E:08E8 looks for one, not reached here) */
+}
 /* 169B:0A30: after each tick: drawing, the upside-down countdown and the message / restart countdown. -2 go on, -1 leave */
 int frame_end(void)
 {
 	tick++;
 	if (word_2b90) { redraw_all(); word_2b90 = 0; }
 	else if (word_5cee) { drawn_room = next_room; redraw_all(); }
-	else if (word_5cce) { word_5cce = 0; room_load(drawn_room); redraw_all(); }   /* 0CD6:02BE */
+	else if (word_5cce) { word_5cce = 0; room_load(drawn_room); redraw_all(); hp_display_state(); }   /* 0CD6:02BE, 169B:0430, 0FB3:259C */
 	else { draw_mobs_state(); kid_sprite_state(); draw_chars_state(); if (word_5d38) { if (word_5d38 == 1) toggle_upside_down(); else if (Kid.alive < 0) word_5d38--; } }
 	ambient_sound();   /* 1611:04D0 / 1611:03CC(DS:2B98): the level's ambient sounds pick random variants when none is playing */
 	if (word_5cda == 1) {
 		if (word_5cdc == 0x24 || word_5cdc == 0x258) { byte_6b6c = 0; return -1; }   /* the countdown after a death ran out */
-		return -2;   /* 0FB3:2136 clears the message */
+		shell_status(1); word_5cdc = word_5cda = 0; return -2;   /* 0FB3:2136(1) clears the message and the countdown */
 	}
 	if (word_5cda && word_5cdc != 0x4A4) {
 		if (word_0996 != 0xFFFF) word_5cda--;
 		if (word_5cdc == 0x258 && drawn_room == 4 && level_number == 13 && word_0996 == 0) word_0996 = 1;
-		/* below 0x78 the message blinks (0FB3:20A4 / 2136) */
+		if (word_5cdc == 0x258 && word_5cda < 0x78) {   /* below 0x78 the message blinks (0FB3:20A4 / 2136) */
+			if (word_5cda % 12 > 3) shell_status(2); else if (word_5cda % 12 == 3) { shell_status(3); sound_res_start(0xFFFE); }   /* 169B:0B9C: 194C:840E(0xFFFE) */
+		}
 	}
 	return -2;
 }

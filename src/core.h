@@ -24,3 +24,4 @@ void     pop2_save(void *buf);
 void     pop2_load(const void *buf);
 uint64_t pop2_hash(void);
 void pop2_new_game_loaded(int level, uint32_t seed);   /* (tests) pop2_new_game up to the level load */
+void pop2_reset_state(void);                          /* (shell.c) the game state as the program starts */

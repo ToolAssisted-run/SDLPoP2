@@ -50,6 +50,7 @@ static void room_leave_hook(int16_t bg)
 }
 /* 0CD6:073A */
 static void room_unload(void) { if (room_bg == 0) return; room_leave_hook(room_bg - 1); room_bg = 0; }
+void room_unload_pub(void) { room_unload(); }   /* (shell: the options menu, 0D5E:0696) */
 /* 0CD6:02BE (switch_room 0823:0EAF, the flip redraw 169B:0A79): load the drawn room's description */
 void room_load(uint8_t room)
 {

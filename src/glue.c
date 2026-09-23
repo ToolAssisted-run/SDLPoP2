@@ -183,7 +183,7 @@ void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 
 /* guard.c / play_all_chars stubs */
 
 void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
-int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */ void ovl_15db_64(void) { note(" 15db"); } void ovl_37d28(void) { note(" 37d28"); }
+int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */ __attribute__((weak)) void ovl_15db_64(void) { note(" 15db"); }   /* (shell.c: the demo player) */ void ovl_37d28(void) { note(" 37d28"); }
 
 /* fight/tick stubs */
 int ovl_366c_6ac(void) { if (level_kind == 4) return head_hit(); note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } 
@@ -218,9 +218,12 @@ void glue_select_guard_dat(uint8_t type)
 	frame_table_guard = f ? f : kidtab;
 }
 
-void restart_prompt(void) { sound_stop_all(); note(" restart"); }   /* 1611:0002 death music; 169B:123E prompt */
+__attribute__((weak)) void restart_prompt(void) { sound_stop_all(); note(" restart"); }   /* 1611:0002 death music; 169B:123E prompt (shell.c) */
 int pop2_keystrokes;   /* keystrokes waiting (core input) */
 __attribute__((weak)) int bios_key(void) { if (pop2_keystrokes > 0) { pop2_keystrokes--; return 0x100; } return 0; }
 __attribute__((weak)) void platform_wait_frame(void) {}
-__attribute__((weak)) int frame_on_time(void) { return 1; }
+int (*frame_on_time_hook)(void);   /* the shell: the frame timer DS:24DE still runs */
+__attribute__((weak)) int frame_on_time(void) { return frame_on_time_hook ? frame_on_time_hook() : 1; }
+__attribute__((weak)) int demo_timing_check(void) { return -2; }   /* 15DB:000C (shell.c) */
+__attribute__((weak)) void shell_status(int op) { (void)op; }   /* the status line (shell.c): 0 time message, 1 clear, 2 clear the area, 3 "press key" */
 const uint8_t *level_resource(uint16_t id, uint16_t *size) { static dat_file d; static int ok; if (!ok) ok = dat_open(&d, game_path("PRINCE.DAT")) ? 1 : -1; return ok > 0 ? dat_find(&d, NULL, id, size) : NULL; }

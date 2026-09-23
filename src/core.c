@@ -23,11 +23,16 @@ int pop2_init(const char *dir)
 	glue_load_exe_tables(p); glue_load_ds_tables(ram);
 	return 1;
 }
-void pop2_new_game_loaded(int lv, uint32_t seed)   /* up to the level load (169B:00F5) */
+/* the program's memory as it starts: zeroes, then PRINCE.EXE's initialised data (the shell starts from here too) */
+void pop2_reset_state(void)
 {
 	static uint8_t *zero; size_t n = state_size();
 	if (!zero) zero = calloc(1, n);
-	state_load(zero); state_load_ds_statics(ram + 0x3B250);   /* the program's memory at start */
+	state_load(zero); state_load_ds_statics(ram + 0x3B250);
+}
+void pop2_new_game_loaded(int lv, uint32_t seed)   /* up to the level load (169B:00F5) */
+{
+	pop2_reset_state();
 	random_seed = seed; cheat_mode = lv != 1; level_switch = lv != 1; byte_6b6c = (uint8_t)lv; pop2_keystrokes = 0;
 	sound_init_ambient(); game_start();
 	scene = story_scene((int8_t)word_32d8, lv); scene_played(scene);

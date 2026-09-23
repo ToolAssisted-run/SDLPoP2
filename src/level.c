@@ -46,6 +46,24 @@ void checkpoint_restore(void)
 	memcpy(LV, cp.tiles, 0x3C0); memcpy(LV + 0x3C0, cp.attrs, 0xF00); memcpy(LV + 0x1867, cp.records, 0xE80); memcpy(LV + 0x26F9, cp.spawns, 0x440);
 	word_5d38 = cp.updown;
 }
+/* the checkpoint as the program keeps it, a 0x2597-byte far block (DS:5AB2), which saved games store (0D5E:0CF2 /
+ * 0E5A): +0 index, +8 level, +9 max hp, +A direction, +C sword type, +F upside-down count, +17 tiles, +3D7 attributes,
+ * +12D7 room records, +2157 guard spawns (a saved game adds +4 minutes, +6 clock ticks, +B DS:5CB9, +11 DS:016A) */
+int checkpoint_get_block(uint8_t *b)
+{
+	if (!cp.used) return 0;
+	memset(b, 0, 0x2597);
+	b[0] = (uint8_t)cp.index; b[1] = (uint8_t)(cp.index >> 8); b[8] = cp.level; b[9] = cp.hp; b[0xA] = (uint8_t)cp.dir; b[0xC] = cp.sword;
+	b[0xF] = (uint8_t)cp.updown; b[0x10] = (uint8_t)(cp.updown >> 8);
+	memcpy(b + 0x17, cp.tiles, 0x3C0); memcpy(b + 0x3D7, cp.attrs, 0xF00); memcpy(b + 0x12D7, cp.records, 0xE80); memcpy(b + 0x2157, cp.spawns, 0x440);
+	return 1;
+}
+void checkpoint_put_block(const uint8_t *b)
+{
+	cp.used = 1; cp.index = (uint16_t)(b[0] | b[1] << 8); cp.level = b[8]; cp.hp = b[9]; cp.dir = (int8_t)b[0xA]; cp.sword = b[0xC];
+	cp.updown = (uint16_t)(b[0xF] | b[0x10] << 8);
+	memcpy(cp.tiles, b + 0x17, 0x3C0); memcpy(cp.attrs, b + 0x3D7, 0xF00); memcpy(cp.records, b + 0x12D7, 0xE80); memcpy(cp.spawns, b + 0x2157, 0x440);
+}
 /* 0D5E:1094 (new level) */
 void checkpoint_free(void) { cp.used = 0; }
 /* 0D5E:122A: where a restarted prince appears; 2 = the standing sequence, -1 = no checkpoint */
@@ -154,22 +172,24 @@ void level_begin(void)
 	init_kid(); close_entrance();
 }
 
-static void kind_level_init(void); extern int last_scene;
+static void kind_level_init(void); extern int last_scene; int load_level_ex(int n, int full);
 /* 1286:01F2 / 02EE: load level n (resource 0x7CF + n, +0x14 with the GAMEPLAY switch), then the checkpoint copy.
  * A different level than the current one drops the checkpoint. */
-int load_level(int n)
+int load_level(int n) { return load_level_ex(n, n != (int8_t)word_32d8 || last_scene); }
+/* the level loop (169B:0070) chooses the full load 1286:01F2 (after a scene, a new level or a restored game) or 1286:0332 */
+int load_level_ex(int n, int full)
 {
 	int changed = n != (int8_t)word_32d8;
-	if (changed) checkpoint_free();   /* (unless DS:5CB6) */
+	if (changed && !word_5cb6) checkpoint_free();   /* 1286:0213 */
 	word_32d8 = n; counter_5cec = n;
 	uint16_t size; const uint8_t *p = level_resource(0x7CF + n, &size);
 	if (!p) return 0;
 	memcpy(&level, p, size < sizeof level ? size : sizeof level);
 	level_kind = level.hdr_pad2[4]; level_number = level.number;
 	level_postprocess(); checkpoint_restore();
-	/* 1286:0D06: the guards' sword reach (a far override at DS:5AB2 is never set here) */
-	byte_5cba = level_number == 6 ? 0xFF : (level_number == 7 || level_number == 8) ? 2 : 1;
-	if (changed || last_scene) {   /* the full load (1286:01F2); a plain restart reloads through 1286:0332 */
+	/* 1286:0D06: the sword type: the checkpoint's (DS:5AB2 is the checkpoint block's far pointer, +0xC), else by level */
+	byte_5cba = cp.used ? cp.sword : level_number == 6 ? 0xFF : (level_number == 7 || level_number == 8) ? 2 : 1;
+	if (full) {   /* the full load (1286:01F2); a plain restart reloads through 1286:0332 */
 		guard_sprites_loaded(level.type);   /* 1286:027E -> 087E */
 		kind_level_init();
 		if (level_kind == 1) byte_14a0 = 0xFF;   /* 33FD:0324 (1286:02D9) */

@@ -44,7 +44,7 @@ static int kid_input_and_control(void)
 	if ((int8_t)word_32d8 != (int16_t)counter_5cec || Char.room == 0 || Char.f19 == 0x3B) control_x = control_y = 0;   /* level over, outside, or seq 0x3B */
 	read_user_control();
 	kid_control();
-	int si = -2;   /* 15DB:000C: -1 when a recorded demo runs out */
+	int si = demo_timing_check();   /* 15DB:000C: -1 when a recorded demo runs out */
 	kid_ctrl1_saved[0] = ctrl1_forward; kid_ctrl1_saved[1] = ctrl1_backward; kid_ctrl1_saved[2] = ctrl1_up; kid_ctrl1_saved[3] = ctrl1_down; kid_ctrl1_saved[4] = ctrl1_shift;
 	return si;
 }
@@ -61,7 +61,7 @@ int play_kid_control(void)
 	if (Char.alive == 6) { seq_music_1611(byte_5cb8); Char.alive++; return si; }
 	if (Char.alive != 7 || death_sound_playing(1)) return si;   /* DS:0882 or DS:0884 still playing */
 	if (minutes_left == 0) { restart_prompt(); si = -1; }   /* out of time */
-	else if (word_5cdc != 0x258) word_5cdc = word_5cda = 0x258;   /* 0FB3:20A4 shows the "press a key" message */
+	else if (word_5cdc != 0x258) { word_5cdc = word_5cda = 0x258; shell_status(3); }   /* 0FB3:20A4 shows the "press a key" message */
 	Char.alive++;
 	return si;
 }

@@ -40,13 +40,16 @@ void snap_load(const uint8_t *ds)
 }
 void snap_store(uint8_t *ds) { for (int i = 0; i < NF; i++) if (in_snap(i)) memcpy(ds + fields[i].ds - SNAP_BASE, fields[i].p, fields[i].size); }
 static int in_snap(int i) { return fields[i].ds >= SNAP_BASE && fields[i].ds + fields[i].size <= SNAP_BASE + SNAP_SIZE; }
+/* character bytes written only by the draw pass (0993:1130 -> 1375:0F5A/1020: +0x36 = redraw because another sprite
+ * overlaps; the game draws inside the captured window) */
+static int draw_only(int i, int o) { int k = strcmp(fields[i].name, "chars") ? (!strcmp(fields[i].name, "Char") || !strcmp(fields[i].name, "Opp") || !strcmp(fields[i].name, "Kid") ? o : -1) : o % 64; return k == 0x36 || k == 0x37; }
 int snap_diff(const uint8_t *got, const uint8_t *exp, const char *const *regions, int verbose)
 {
 	int bad = 0;
 	for (const char *const *r = regions; *r; r++)
 		for (int i = 0; i < NF; i++) if (!strcmp(fields[i].name, *r) && in_snap(i)) {
 			const uint8_t *g = got + fields[i].ds - SNAP_BASE, *e = exp + fields[i].ds - SNAP_BASE; int d = 0;
-			for (int o = 0; o < fields[i].size; o++) if (g[o] != e[o]) { if (verbose && d < 24) { if (!d) printf("  %s:", fields[i].name); printf(" +%X:%02X!=%02X", o, g[o], e[o]); } d++; }
+			for (int o = 0; o < fields[i].size; o++) if (g[o] != e[o] && !draw_only(i, o)) { if (verbose && d < 24) { if (!d) printf("  %s:", fields[i].name); printf(" +%X:%02X!=%02X", o, g[o], e[o]); } d++; }
 			if (d && verbose) printf("%s\n", d > 24 ? " ..." : "");
 			bad += d != 0;
 		}

@@ -21,6 +21,17 @@ int8_t y_to_row(int16_t y) { int8_t r = (int8_t)((y - 3) / 63); if (y - 3 < 1) r
 /* 1286:0568: image id of a sword frame (FRAM resource, 4-byte entries) */
 static int16_t sword_image(uint16_t sword) { return sword ? (int16_t)(sword_table[sword * 4] | (sword_table[sword * 4 + 1] << 8)) : -1; }
 
+/* 366C:150A (OVL10, charid 10): the sprite sits at the sword table's offset (FRAM 1000, bytes +2/+3); images 4, 0x13
+ * and 0x14 shake while Char+0x3A counts (image 0x12 - count, stopping at -4) */
+static void riser_offset(void)
+{
+	const uint8_t *e = sword_table + cur_frame.sword * 4;
+	int8_t dx = (int8_t)e[2]; obj_x += Char.direction ? -dx : dx;   /* 0AFF:0390 */
+	obj_y += (int8_t)e[3];
+	if (obj_id != 4 && obj_id != 0x13 && obj_id != 0x14) return;
+	if (Char.f3a != 0) obj_id = 0x12 - (int8_t)Char.f3a;
+	if ((int8_t)Char.f3a <= -4) Char.f3a = 0; else Char.f3a--;
+}
 /* 0993:09B6 */
 void load_frame_to_obj(void)
 {
@@ -39,7 +50,7 @@ placed:
 		if (Char.charid == 4 && Char.frame > 0xCD && Char.frame < 0xD2) { obj_chtab = 4; obj_id += 0x68; }
 		return;
 	}
-	ovl_37bca();
+	riser_offset();
 }
 
 /* OVL01 032C36: extra width when the sword is drawn (FRAM entry byte +2 of the sword frame, minus 2) */

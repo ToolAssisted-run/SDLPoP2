@@ -13,9 +13,9 @@ void load_frame(void)                 /* 0AFF:02AC */
 	int f = Char.frame; const uint8_t *e;
 	switch (Char.charid) {
 	case 0: case 1: case 6: e = frame_table_kid + f * 7; break;
-	case 2: case 4: case 10: case 12: if (f >= 0x66 && f < 0x6B) f += 0x46; e = frame_table_guard + f * 7 - 0x413; break;
-	case 7: case 11: e = frame_table_guard + f * 7 - 0x413; break;
-	case 8: if (f < 0xB7) f += 0x2B; e = frame_table_guard + f * 7 - 0x413; break;
+	case 2: case 4: case 10: case 12: if (f >= 0x66 && f < 0x6B) f += 0x46; e = guard_frame_table(Char.charid) + f * 7 - 0x413; break;
+	case 7: case 11: e = guard_frame_table(Char.charid) + f * 7 - 0x413; break;
+	case 8: if (f < 0xB7) f += 0x2B; e = guard_frame_table(Char.charid) + f * 7 - 0x413; break;
 	default: return;                  /* 3, 5, 9: unchanged */
 	}
 	cur_frame.image = e[0] | (e[1] << 8); cur_frame.sword = e[2] | (e[3] << 8);

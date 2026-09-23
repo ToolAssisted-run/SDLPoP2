@@ -168,3 +168,4 @@ void keyboard_controls(const uint8_t *keys, uint8_t flags, int8_t *x, int8_t *y,
 /* beast.c */ void beast_ai(void); level_char_init *beast_room_entry(level_char_init *r); int8_t scan_to_wall_pub(int8_t dir, int8_t row, int8_t col, uint8_t room); void save_char_restore_kid_pub(void);
 /* heads.c */ void heads_ai(void); int head_knock_back(void); int head_hit(void); int head_biting(int i, uint8_t room); int head_wall(int near); int nearest_foe_2d3e_a26(void);
 void heads_set_tables(const uint8_t *ds); uint8_t ds_byte(uint16_t a); uint16_t ds_word(uint16_t a); int16_t wall_distance_pub(int8_t col, uint8_t room, uint8_t t);
+const uint8_t *guard_frame_table(uint8_t charid);   /* platform: FRAM 750 of the chtab-3 file (the character's type: charid 10/12 by DS:00A2, others the level's) */

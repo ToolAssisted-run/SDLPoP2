@@ -81,6 +81,21 @@ const uint16_t *refract_timer; static uint16_t refract_tbl[16];
 static dat_file kiddat, guardshp, envdat; static int kiddat_ok, guardshp_ok, envdat_kind = -1;
 static int16_t env_bank2[8];   /* DS:05AC: per level kind, images at or above it come from the second bank (+200) */
 /* 0993:0FE2 + 26BC:06B6: the SHAP resource header of the sprite (chtab 2 = KID.DAT, base id 25001: image+1, or image-399 above 221) */
+/* DS:0672: the guard file of each level type (type 4 has none); opened on demand */
+static const char *guard_names[10] = {"GUARD.DAT", "FLAME.DAT", "SKELETON.DAT", "GUARD.DAT", NULL, "HEAD.DAT", "HEAD.DAT", "BIRD.DAT", "HEAD.DAT", "JINNEE.DAT"};
+static const dat_file *guard_file_of_type(uint8_t t)
+{
+	static dat_file f[10]; static int8_t ok[10];
+	if (t > 9 || !guard_names[t]) return NULL;
+	if (!ok[t]) { char path[512]; const char *dir = getenv("PRINCE2_DIR"); snprintf(path, sizeof path, "%s/%s", dir ? dir : ".", guard_names[t]); ok[t] = dat_open(&f[t], path) ? 1 : -1; }
+	return ok[t] > 0 ? &f[t] : NULL;
+}
+const uint8_t *guard_frame_table(uint8_t charid)
+{
+	uint8_t t = (charid == 10 || charid == 12) ? charid_to_type[charid] : level.type;
+	const dat_file *gf = guard_file_of_type(t); uint16_t n; const uint8_t *f = gf ? dat_find(gf, "MARF", 750, &n) : NULL;
+	return f ? f : frame_table_guard;
+}
 int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1)
 {
 	if (getenv("IMGDBG")) printf("IMG chtab %u image %d frame %u charid %u x %d\n", chtab, image, Char.frame, Char.charid, Char.x);
@@ -88,7 +103,8 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 		/* 0993:0F36: images at or above the guard type's threshold (DS:06BC[type] -> first word) come from the second bank (+100) */
 		uint8_t t = (Char.charid == 10 || Char.charid == 12) ? charid_to_type[Char.charid] : level.type;
 		int id = 751 + image; if (t != 5 && t != 6 && t < 8 && guard_bank2[t] && image >= guard_bank2[t]) id += 100;
-		uint16_t n; const uint8_t *r = guardshp_ok > 0 ? dat_find(&guardshp, "PAHS", id, &n) : NULL;
+		const dat_file *gf = guard_file_of_type(t);
+		uint16_t n; const uint8_t *r = gf ? dat_find(gf, "PAHS", id, &n) : NULL;
 		if (!r) { note(" NOGSHAP"); return 0; }
 		*height = r[0] | (r[1] << 8); *width_m1 = r[2] | (r[3] << 8); return 1;
 	}

@@ -38,8 +38,9 @@ The authors of this program may be contacted at https://forum.princed.org
  *  - Sounds: SDLPoP plays PoP1 sounds on navigation (play_menu_sound). SDLPoP2 freezes the game's sound while the menu
  *    shows (the frontend pauses the audio device), so play_menu_sound makes no sound.
  *  - Pause menu: RESTART LEVEL / RESTART GAME type PoP2's Alt+A / Alt+R (SDLPoP: Ctrl+A / Ctrl+R); QUICKSAVE / QUICKLOAD
- *    are the frontend's F6 / F9 (shell_quicksave / shell_quickload), offered with enable_quicksave (SDLPoP's `required`:
- *    hidden otherwise), not while a replay plays back (nor the restarts); QUIT GAME's confirmation ends the program.
+ *    are the frontend's F6 / F9 (shell_quicksave / shell_quickload), available with enable_quicksave and not while a
+ *    replay plays back (nor the restarts): SDLPoP's `required`, but an unavailable item is greyed out in its place
+ *    where SDLPoP leaves it out; QUIT GAME's confirmation ends the program.
  *    Keys with Alt or Ctrl (PoP2's commands) close the menu and go to the game, as SDLPoP's Ctrl+ keys.
  *  - Settings: SDLPoP2.ini's sections mapped onto SDLPoP's pages: GENERAL (the menu, the info screen, sound, music, volume,
  *    the sound device, the controller), GAMEPLAY (quicksave, its penalty, replays, the intro, the story scenes), VISUALS
@@ -1018,15 +1019,18 @@ static void pause_menu_clicked(pause_menu_item_type* item) {
 }
 
 static void draw_pause_menu_item(pause_menu_item_type* item, rect_type* parent, int* y_offset, int inactive_text_color) {
-	if (item->required != NULL) {
-		if (*item->required == 0) {
-			return; // skip this item (disabled)
-		}
-	}
-
 	rect_type text_rect = *parent;
 	text_rect.top += *y_offset;
 	int text_color = inactive_text_color;
+
+	// SDLPoP2: an unavailable item (quicksave off, a replay playing) stays in its place, greyed out and inert
+	// (SDLPoP leaves it out); navigation skips it as in SDLPoP
+	if (item->required != NULL && *item->required == 0) {
+		if (hovering_pause_menu_item == item->id) hovering_pause_menu_item = PAUSE_MENU_RESUME;
+		show_text_with_color(&text_rect, halign_center, valign_top, item->text, color_7_lightgray);   /* (as SDLPoP's disabled settings) */
+		*y_offset += 13;
+		return;
+	}
 
 	rect_type selection_box = text_rect;
 	selection_box.bottom = selection_box.top + 8;

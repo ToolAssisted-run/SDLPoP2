@@ -487,7 +487,7 @@ int main(int argc, char **argv)
 	CHECK(page == 2 && !strcmp(subsection, "CHEATS") && at_setting("Skip to the next level"), "CHEATS: the page, at its first entry (%d, %s, %s)", page, subsection, setting);
 	screenshot("cheats");
 	press(SDL_SCANCODE_END);
-	CHECK(at_setting("Demo player on / off"), "End: the last entry (%s)", setting);
+	CHECK(at_setting("Fly (hold, with the arrows)"), "End: the last entry (%s)", setting);
 	screenshot("cheats_end");
 	press(SDL_SCANCODE_ESCAPE); state();
 	CHECK(page == 2 && at_item("CHEATS") && !strcmp(subsection, ""), "Esc: the page's left part (%s)", item);
@@ -510,10 +510,31 @@ int main(int argc, char **argv)
 	/* the key labels */
 	static const struct { int code; const char *label; } labels[] = {
 		{'k', "K"}, {'K', "Shift+K"}, {'g', "G"}, {'T', "Shift+T"}, {'+', "+"}, {'-', "-"}, {0x3D00, "F3"}, {0x3100, "Alt+N"}, {0x1E00, "Alt+A"},
+		{'G', "Shift+G"}, {0x9B00, "Alt+Left"}, {0x9D00, "Alt+Right"}, {0x9800, "Alt+Up"}, {0xA000, "Alt+Down"},
 	};
 	for (int i = 0; i < (int)(sizeof labels / sizeof labels[0]); i++) {
 		char l[32]; overlay_menu_key_label(labels[i].code, l, sizeof l);
 		CHECK(!strcmp(l, labels[i].label), "key label of 0x%X: %s (%s)", labels[i].code, labels[i].label, l);
+	}
+	/* SDLPoP2's own cheats from the keyboard: Shift+G god mode, Alt+arrows look, T teleports, A held with the arrows flies */
+	{
+		shell_input_type(&in, 'G'); frames(20);
+		CHECK(cheat_god, "Shift+G: god mode on");
+		uint8_t r0 = Kid.room, left = level_links(r0)[0], right = level_links(r0)[1];
+		SDL_Scancode dir = left ? SDL_SCANCODE_LEFT : SDL_SCANCODE_RIGHT; uint8_t want = left ? left : right;
+		key(SDL_SCANCODE_LALT, 1, KMOD_LALT); key(dir, 1, KMOD_LALT); key(dir, 0, KMOD_LALT); key(SDL_SCANCODE_LALT, 0, 0); frames(40);
+		CHECK(want && drawn_room == want && Kid.room != want && cheat_looking, "Alt+%s: room %d shown, the prince not in it (%d, %d)", left ? "Left" : "Right", want, drawn_room, Kid.room);
+		screenshot("cheat_look");
+		shell_input_type(&in, 't'); frames(20);
+		CHECK(Kid.room == want && drawn_room == want && !cheat_looking, "T: the prince teleported into room %d (%d)", want, Kid.room);
+		int16_t y0 = Kid.y;
+		key(SDL_SCANCODE_A, 1, 0); key(SDL_SCANCODE_UP, 1, 0); frames(40);
+		CHECK(cheat_flying && Kid.y < y0, "A held with Up: flying up (y %d -> %d)", y0, Kid.y);
+		screenshot("cheat_fly");
+		key(SDL_SCANCODE_UP, 0, 0); key(SDL_SCANCODE_A, 0, 0); frames(120);
+		CHECK(!cheat_flying && (int8_t)Kid.alive < 0, "A let go: down again, alive (god mode)");
+		shell_input_type(&in, 'G'); frames(20);
+		CHECK(!cheat_god, "Shift+G again: god mode off");
 	}
 	/* off again */
 	set_cheats_in_menu(0, NULL);

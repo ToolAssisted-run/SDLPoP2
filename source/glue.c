@@ -76,7 +76,7 @@ void glue_load_exe_tables(const char *exe)
 /* collision / kid stubs */
 uint8_t room_L, room_R, room_B, room_AL, room_AR, room_BL, room_BR;
 const uint8_t *sword_tables[2];   /* PRINCE.DAT FRAM 1000, 1200 (sword type 2): DS:6110, 1286:0454/0544 */
-void ovl_366c2(void) { head_attach(); }   /* 366C:0002 (heads.c) */ void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return wall_find(Char.room, Char.curr_row) != NULL; }   /* 347C:0526 */
+void ovl_366c2(void) { head_attach(); }   /* 366C:0002 (heads.c) */ void ovl_37bca(void) { note(" 37bca"); } int ovl_34ce6(void) { return !GOD_KID && wall_find(Char.room, Char.curr_row) != NULL; }   /* 347C:0526 */
 void ovl_34bd2(uint8_t *f, uint8_t *r, int8_t row) { wall_collision(row, r, f); }   /* 347C:0412 */ int ovl_343c2(void) { if (level_kind == 2 || level_kind == 4) { int m = (uint8_t)curr_modifier & 0x1F; return m >= 3 && m <= 0xF; } note(" 343c2?"); return 0; }   /* 33FD:03F2 (OVL05): tile 0xC blocks while its modifier is 3..15 */
 int16_t ovl_34b28(int8_t row, uint8_t room, int8_t dir) { return wall_edge(dir, room, row); }   /* 347C:0368 */
 int16_t ovl_352ca(void) { return wall_limit(Char.room, Char.curr_row); }   /* 1375:14FC -> 347C:0B0A */ void ovl_3211a(void) { seqtbl_offset_char(0x76); take_hp(100); }   /* 2FDF:232A: crushed by a caverns gate */

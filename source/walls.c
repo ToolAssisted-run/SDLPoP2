@@ -92,6 +92,7 @@ done:
 /* 347C:027A (a type-6 entry, after 07D4): the wall's front touches the prince */
 void wall_push_kid(void)
 {
+	if (cheat_god) return;   /* (god mode: he walks through the wall) */
 	loadkid();
 	int16_t si = Char.direction == 0 ? Char.x : Char.x + 0xD;
 	if (cur_mob.room == Char.room && cur_mob.row == (uint8_t)Char.curr_row) {
@@ -165,7 +166,7 @@ int16_t wall_edge(int8_t dir, uint8_t room, int8_t row)
 void wall_collision(int8_t row, uint8_t *rooms, uint8_t *flags)
 {
 	mob_type *m = wall_find(Char.room, row);
-	if (!m) return;
+	if (!m || GOD_KID) return;   /* (god mode) */
 	int16_t di = m->x + 0x89;
 	if (di < char_x_right) {
 		int8_t c = x_to_col(di);
@@ -210,6 +211,7 @@ int wall_near_blade(void)
 /* 347C:0B0A (1375:14FC with the prince's room and row): how far he may go */
 int16_t wall_limit(uint8_t room, int8_t row)
 {
+	if (GOD_KID) return 0;   /* (god mode: no wall) */
 	int16_t x = wall_edge(0, room, row);
 	if (x && Char.x < x) x = wall_edge(-1, room, row);
 	return x;

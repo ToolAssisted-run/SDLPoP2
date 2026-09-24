@@ -74,7 +74,7 @@ void drink(void)
 	case 3: toggle_upside_down_pub(); break;   /* 0823:139C */
 	case 4:   /* poison, or back upright */
 		if (word_5d38) { toggle_upside_down_pub(); break; }
-		if (take_hp(1)) seqtbl_offset_char(0x47);
+		if (!GOD_KID && take_hp(1)) seqtbl_offset_char(0x47);   /* (god mode: harmless) */
 		play_sound(0xE); break;
 	case 5: play_sound(0xE); seqtbl_offset_char(0x6F); break;
 	}

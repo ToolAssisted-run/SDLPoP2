@@ -454,6 +454,15 @@ static void cheat_keys(int di)   /* 0823:0528 (the gameplay ones; the debug disp
 	case 0x57: word_5d36 = 0xE4; sound_1611_01a8(0x69); sound_stop_all(); word_087e = -1; break;   /* 'W' (0823:13C4) */
 	case 0x72: if ((int8_t)Kid.alive > 0) { word_5ce8 = 0x14; Kid.alive = -1; status_clear(1); } break;   /* 'r' */
 	case 0x3D00: message(demo_toggle() ? "PLAYER ON" : "PLAYER OFF"); break;   /* F3 */
+	/* SDLPoP2's own (cheats.c) */
+	case 'G': message(cheat_god_toggle()); break;
+	case 'h': case 'b': { const char *m = cheat_leave_body(di == 'b'); if (m) message(m); break; }
+	case 'z': message(cheat_sword()); break;
+	case 0x9B00: case 0x9D00: case 0x9800: case 0xA000: {   /* Alt+arrows (the game's controls ignore Alt) */
+		int r = cheat_look(di == 0x9B00 ? 0 : di == 0x9D00 ? 1 : di == 0x9800 ? 2 : 3);
+		if (r) snprintf(t, sizeof t, "Room %d", r); else snprintf(t, sizeof t, "NO ROOM THERE");
+		message(t); break; }
+	case 't': { const char *m = cheat_teleport(); if (m) message(m); break; }
 	}
 }
 static void pause_game(void)   /* 0823:10C4 */
@@ -688,7 +697,7 @@ int shell_init(const char *dir, int argc, const char **argv)
 	if (!pop2_init(dir)) return 0;
 	nargs = 0; for (int i = 0; i < argc && nargs < 16; i++) snprintf(args[nargs++], sizeof args[0], "%s", argv[i]);
 	pop2_reset_state();           /* the data segment as the program starts */
-	byte_6b6c = 0; cheat_mode = 0; cheat_word = 0; level_switch = 0; word_32d8 = 0xFF;
+	byte_6b6c = 0; cheat_mode = 0; cheat_word = 0; cheat_god = 0; cheat_fly_key = 0; level_switch = 0; word_32d8 = 0xFF;
 	frame_on_time_hook = frame_on_time_shell;
 	coro_destroy(shell_coro); shell_coro = coro_create(entry, 1 << 20);
 	hooks_on = 1; render_track_tiles = 1;   /* (the tick-time redraw requests the core leaves out: from the tile changes) */
@@ -699,6 +708,7 @@ int shell_step(const shell_input *in)
 {
 	if (shell_done) return SHELL_EXIT;
 	cur_in = in; if (in) take_input(in);
+	cheat_fly_key = in && cheat_mode && in->down[0x1E] && !(in->shift_flags & 8);   /* (SDLPoP2's fly cheat: A held, not Alt+A) */
 	advance_frame();
 	coro_resume(shell_coro);
 	return shell_done ? SHELL_EXIT : SHELL_RUNNING;
@@ -710,7 +720,7 @@ void shell_input_type(shell_input *in, int code)
 }
 /* the cheats (DS:10C2), on or off from the frontend between two steps (the overlay menu's "Enable cheats") */
 int shell_cheats(void) { return cheat_mode != 0; }
-void shell_set_cheats(int on) { cheat_mode = on ? 1 : 0; }
+void shell_set_cheats(int on) { cheat_mode = on ? 1 : 0; if (!on) { cheat_god = 0; cheat_fly_key = 0; } }   /* (SDLPoP2's go with them) */
 /* for frontends: a key goes down or up; the BIOS shift flags follow the modifier keys, and a key going down types the
  * code DOS would give: Alt+key the scan code << 8, Ctrl+letter 1..26, a character its ASCII code, others scan << 8 */
 void shell_input_key(shell_input *in, int scan, int down, int ascii)
@@ -719,7 +729,9 @@ void shell_input_key(shell_input *in, int scan, int down, int ascii)
 	in->down[scan] = (uint8_t)(down != 0);
 	in->shift_flags = (uint8_t)((in->down[0x36] ? 1 : 0) | (in->down[0x2A] ? 2 : 0) | (in->down[0x1D] ? 4 : 0) | (in->down[0x38] ? 8 : 0));
 	if (!down || scan == 0x2A || scan == 0x36 || scan == 0x1D || scan == 0x38 || in->ntyped >= 8) return;
-	int code = in->down[0x38] ? scan << 8 : in->down[0x1D] && ascii >= 'a' && ascii <= 'z' ? ascii & 0x1F : ascii ? ascii : scan << 8;
+	static const uint16_t alt_arrow[4] = {0x9800, 0x9B00, 0x9D00, 0xA000};   /* (BIOS: Alt+up / left / right / down) */
+	int code = in->down[0x38] && (scan == 0x48 || scan == 0x4B || scan == 0x4D || scan == 0x50) ? alt_arrow[scan == 0x48 ? 0 : scan == 0x4B ? 1 : scan == 0x4D ? 2 : 3] :
+	           in->down[0x38] ? scan << 8 : in->down[0x1D] && ascii >= 'a' && ascii <= 'z' ? ascii & 0x1F : ascii ? ascii : scan << 8;
 	in->typed[in->ntyped++] = (uint16_t)code;
 }
 /* the PC scan code (set 1) of a USB HID keyboard usage (= SDL_Scancode); 0 when the DOS game has no such key */

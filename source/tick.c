@@ -18,17 +18,19 @@ int tick_main(void)
 	animate_tiles();                               /* 1375:0006 */
 	if (level.type == 2 || chars[0].charid == 10) skeleton_wake();   /* 366C:0F60 */
 	spawn_guards(drawn_room);                      /* 2D3E:0A4A */
-	guards_see_kid();                              /* 169B:0FF0 */
+	if (!cheat_looking) guards_see_kid();          /* 169B:0FF0 (not while the look cheat shows another room) */
 	int r = play_kid_frame();
 	if (r == 0) {
 		play_all_chars();
-		if (word_5ce8 == 0 && drawn_room != 0) { check_sword_hits(); process_hurt(); }
+		if (word_5ce8 == 0 && drawn_room != 0 && !cheat_looking) { check_sword_hits(); process_hurt(); }
 		reload_opponent();                         /* 1611:0164 */
 		checkpoints_0db4();                        /* 169B:0DB4 */
 		level_kind_tick();                         /* 169B:11E2 */
 		apply_hp_deltas();                         /* 0823:1008 */
 		check_kid_left_room();                     /* 2D3E:108A */
+		if (cheat_view) cheat_view_apply();        /* (SDLPoP2: the look cheat) */
 		switch_room();                             /* 0823:0E72 (returns -2) */
+		if (cheat_looking && drawn_room == Kid.room) cheat_looking = 0;
 		return 0;
 	}
 	if (r == -1) return -1;

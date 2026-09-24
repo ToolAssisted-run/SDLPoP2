@@ -39,7 +39,7 @@ static int16_t room_ptr_tiles, room_ptr_attrs;   /* curr_room_tiles / attrs as o
 static const state_field extra_fields[] = {
 	{"byte_016a", 0x016A, 1, &byte_016a}, {"word_0366", 0x0366, 2, &word_0366}, {"word_087e", 0x087E, 2, &word_087e}, {"word_0880", 0x0880, 2, &word_0880},
 	{"word_0996", 0x0996, 2, &word_0996}, {"word_32d8", 0x0998, 2, &word_32d8}, {"cheat_mode", 0x10C2, 2, &cheat_mode}, {"byte_14a0", 0x14A0, 1, &byte_14a0}, {"byte_0670", 0x0670, 1, &byte_0670},
-	{"byte_2b74", 0x2B74, 2, byte_2b74}, {"lever5_flag3c", 0, 2, &lever5_flag3c}, {"lever5_flag3e", 0, 2, &lever5_flag3e}, {"fireball_width", 0x0842, 2, &fireball_width},
+	{"byte_2b74", 0x2B74, 2, byte_2b74}, {"lever5_flag3c", 0, 2, &lever5_flag3c}, {"cheat_god", 0, 1, &cheat_god}, {"cheat_flying", 0, 1, &cheat_flying}, {"cheat_view", 0, 1, &cheat_view}, {"cheat_looking", 0, 1, &cheat_looking}, {"cheat_spirit", 0, 1, &cheat_spirit}, {"lever5_flag3e", 0, 2, &lever5_flag3e}, {"fireball_width", 0x0842, 2, &fireball_width},
 	{"anim_mod", 0x5CF0, 4, &anim_mod}, {"curr_modifier", 0x612F, 2, &curr_modifier}, {"curr_tilepos", 0x6131, 1, &curr_tilepos},
 	{"cur_mob", 0x6662, 13, &cur_mob}, {"cur_mob_index", 0x66C6, 2, &cur_mob_index}, {"cur_trob", 0x6672, 4, &cur_trob}, {"anim_tile", 0x6B72, 1, &anim_tile},
 	{"room_ptr_tiles", 0x613C, 2, &room_ptr_tiles}, {"room_ptr_attrs", 0x613A, 2, &room_ptr_attrs},
@@ -61,7 +61,8 @@ size_t state_size(void)
 }
 void state_save(uint8_t *buf)
 {
-	room_ptr_tiles = curr_room_tiles ? (int16_t)(curr_room_tiles - tiles0) : -1;   /* tiles0 is followed by level.tiles */
+	/* (0..29 into tiles0, the dummy room 0, 30 + n into the level: two objects, not one block) */
+	room_ptr_tiles = !curr_room_tiles ? -1 : curr_room_tiles >= tiles0 && curr_room_tiles < tiles0 + 30 ? (int16_t)(curr_room_tiles - tiles0) : (int16_t)(30 + (curr_room_tiles - (uint8_t *)&level));
 	room_ptr_attrs = curr_room_attrs ? (int16_t)((uint8_t *)curr_room_attrs - (uint8_t *)level.attrs) : -1;
 	for (int i = 0; i < snap_nfields; i++) { memcpy(buf, snap_fields[i].p, snap_fields[i].size); buf += snap_fields[i].size; }
 	for (int i = 0; i < NX; i++) { memcpy(buf, extra_fields[i].p, extra_fields[i].size); buf += extra_fields[i].size; }
@@ -74,7 +75,9 @@ void state_load(const uint8_t *buf)
 	checkpoint_state_load(buf);
 	curr_room_tiles = room_ptr_tiles < 0 ? NULL : room_ptr_tiles < 30 ? tiles0 + room_ptr_tiles : (uint8_t *)&level + (room_ptr_tiles - 30);
 	curr_room_attrs = room_ptr_attrs < 0 ? NULL : (uint32_t *)((uint8_t *)level.attrs + room_ptr_attrs);
-	glue_select_guard_dat(level.type);
+	/* (not glue_select_guard_dat: frame_table_guard, guard_frame_table's fallback for a type without a guard file, stays
+	 * what play leaves it, the kid's table; set from the level loaded here, a state played on from a load could differ
+	 * from the same state reached by playing) */
 }
 /* the variables that PRINCE.EXE initialises (DS below 0x27BF) take their values from a data-segment image */
 void state_load_ds_statics(const uint8_t *ds)

@@ -20,7 +20,7 @@ void grab_start(void)
 static void grab_check(void)
 {
 	if (byte_9276 == 0xFF) {
-		if (Char.y < 0xAC || Char.f19 == 0x44 || Char.f19 == 0xF || Char.f19 == 0x3B || Char.action == 2) return;
+		if (Char.y < 0xAC || Char.f19 == 0x44 || Char.f19 == 0xF || Char.f19 == 0x3B || Char.action == 2 || GOD_KID) return;   /* (god mode: no hand takes him) */
 		grab_start(); return;
 	}
 	if (Char.index != byte_9276) return;
@@ -30,7 +30,7 @@ static void grab_check(void)
 	}
 	if ((int8_t)byte_6937 < 8) { byte_6937++; return; }
 	byte_6937 = 0; byte_9276 = 0xFF;
-	if (Char.curr_row >= 2) { Char.frame = 0xB9; take_hp(100); seq_set_85f8(0xF); }
+	if (Char.curr_row >= 2 && !GOD_KID) { Char.frame = 0xB9; take_hp(100); seq_set_85f8(0xF); }
 }
 /* 33FD:0AE2 (2FDF, the prince's controls): at room 0x13's left part, running, jumping or on frame 0x50 */
 int ovl_34ab2(void) { return Char.room == 0x13 && Char.x < 0xD0 && (Char.action == 2 || Char.action == 6 || Char.frame == 0x50); }
@@ -77,6 +77,7 @@ void kind5_room_palette(uint8_t room)
 void ovl_34210(void)
 {
 	if (Char.x <= 0x201) return;
+	if (GOD_KID) { Char.x = 0x201; return; }   /* (god mode: the sea does not take him) */
 	if (sound_digital() && !sound_playing(0x2730) && !sound_playing(0x273F)) { play_sound(0x20); return; }
 	for (int n = (int8_t)Char.f12; n > 0; n--) { take_hp(1); Kid = Char; apply_hp_deltas(); hp_bars_reload(); loadkid(); }
 	char_y_to_floor(); seqtbl_offset_char(0x47);

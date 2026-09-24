@@ -827,6 +827,7 @@ static setting_type controls_settings[] = {
 // line on the page, the help line.
 enum cheat_action_ids {
 	CHEAT_ACTION_TYPE_KEY, // the key typed into the game (OVERLAY_MENU_CHEAT, the menu closes)
+	CHEAT_ACTION_TYPE_HOLD, // a key held while playing (the page only tells it)
 };
 typedef struct cheat_type {
 	word key;
@@ -853,6 +854,29 @@ static const cheat_type cheats[] = {
 				"Temple levels and level 14: the spirit's turn counter to its end "
 				"(it leaves with more than 4 hit points, else death)."},
 		{0x3D00, CHEAT_ACTION_TYPE_KEY, "Demo player on / off", "The game's demo player on or off (PLAYER ON / PLAYER OFF)."},
+		// SDLPoP2's own (source/cheats.c)
+		{'G', CHEAT_ACTION_TYPE_KEY, "God mode on / off",
+				"Nothing hurts or kills the prince: falls, swords, heads, snakes, traps, crushers, sinking floors, flames.\n"
+				"Out of the level he falls for ever: turned off, that kills him."},
+		{'h', CHEAT_ACTION_TYPE_KEY, "The shadow (levels 1-13)",
+				"Standing, the prince leaves his body as the shadow, as the eighth turn does on the temple levels, "
+				"without its cost. Back: crouch at the body."},
+		{'b', CHEAT_ACTION_TYPE_KEY, "The flame (level 14)",
+				"Standing, the prince leaves his body as the flame (level 14's spirit), without the cost. "
+				"Back: crouch at the body."},
+		{'z', CHEAT_ACTION_TYPE_KEY, "Sword: none / short / full",
+				"The prince's sword: none, the short one (levels 7 and 8's, 5 pixels less reach), the full one. "
+				"Not with the sword drawn."},
+		{0x9B00, CHEAT_ACTION_TYPE_KEY, "Look into the room on the left",
+				"The room on the left of the one shown (again: further). The prince goes on unseen; "
+				"leaving his room brings the view back."},
+		{0x9D00, CHEAT_ACTION_TYPE_KEY, "Look into the room on the right", "The room on the right of the one shown."},
+		{0x9800, CHEAT_ACTION_TYPE_KEY, "Look into the room above", "The room above the one shown."},
+		{0xA000, CHEAT_ACTION_TYPE_KEY, "Look into the room below", "The room below the one shown."},
+		{'t', CHEAT_ACTION_TYPE_KEY, "Teleport into the room shown", "The prince into the room the look keys show, at the same place in it."},
+		{'a', CHEAT_ACTION_TYPE_HOLD, "Fly (hold, with the arrows)",
+				"Held while playing: the prince stays where he is, no fall, no move; the arrows take him anywhere, "
+				"across rooms. Let go: he stands on a floor or falls."},
 };
 static setting_type cheats_settings[COUNT(cheats)];   // (from `cheats`: init_cheats_settings)
 
@@ -948,6 +972,10 @@ void overlay_menu_key_label(int code, char* out, size_t n) {
 		return;
 	}
 	int scan = code >> 8;
+	if (code == 0x9800 || code == 0x9B00 || code == 0x9D00 || code == 0xA000) {   // BIOS Alt+arrows
+		snprintf(out, n, "Alt+%s", code == 0x9800 ? "Up" : code == 0x9B00 ? "Left" : code == 0x9D00 ? "Right" : "Down");
+		return;
+	}
 	if (scan >= 0x3B && scan <= 0x44) snprintf(out, n, "F%d", scan - 0x3B + 1);
 	else if (scan >= 0x10 && scan < (int) sizeof(scan_letters) - 1 && scan_letters[scan]) snprintf(out, n, "Alt+%c", scan_letters[scan]);
 	else snprintf(out, n, "0x%04X", code);
@@ -1497,11 +1525,13 @@ static void draw_setting(setting_type* setting, rect_type* parent, int* y_offset
 		const cheat_type* cheat = (const cheat_type*) setting->linked;
 		char key_text[32];
 		overlay_menu_key_label(cheat->key, key_text, sizeof(key_text));
+		if (cheat->action == CHEAT_ACTION_TYPE_HOLD) { char k[24]; snprintf(k, sizeof(k), "%.20s", key_text); snprintf(key_text, sizeof(key_text), "Hold %.20s", k); }
 		show_text_with_color(&text_rect, halign_right, valign_top, key_text, disabled ? unselected_color : selected_color);
 		if (highlighted_setting_id == setting->id && !disabled) {
 			if (pressed_enter || (mouse_clicked && is_mouse_over_rect(&setting_box))) {
 				play_menu_sound(sound_22_loose_shake_3);
 				switch (cheat->action) {
+					case CHEAT_ACTION_TYPE_HOLD: break;   // (nothing to type: the help line tells it)
 					default:
 					case CHEAT_ACTION_TYPE_KEY:
 						menu_action = OVERLAY_MENU_CHEAT;

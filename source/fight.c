@@ -46,7 +46,7 @@ void check_sword_hits(void)
 	if (Kid.frame == 0 || (Kid.frame >= 0xDB && Kid.frame < 0xE5)) return;
 	int8_t n = room_nchars(drawn_room);
 	for (int8_t i = 0; i < n; i++) {
-		load_char(i); Opp = Kid; check_strike(); save_char_restore_kid();
+		load_char(i); Opp = Kid; if (!cheat_god) check_strike(); save_char_restore_kid();   /* (god mode: nothing strikes the prince) */
 		load_opp_080a(i); check_strike(); save_kid_and_opp();
 	}
 }

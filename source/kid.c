@@ -22,6 +22,7 @@ int take_hp(int n)
 /* 0AFF:0DC4 */
 void die_at_bottom(void)
 {
+	if (GOD_KID) { Char.y = 0x181; Char.fall_y = 0; return; }   /* (god mode: he falls for ever; off, this kills him) */
 	take_hp(100); Char.frame = 0xB9; seq_set_85f8(3); Char.y = 0x180; Char.fall_y = 0; Char.action = 1;
 	if (Char.charid == 1) shadow_2fba4();
 }
@@ -31,6 +32,7 @@ void char_fell_out(void)
 	fall_accel(); fall_speed();
 	if (level_kind == 5) {
 		if (Char.y < 0x181) { if (Char.charid == 2 && Char.frame != 0xB9 && !sound_playing(0x2729)) play_sound(0x19); return; }
+		if (GOD_KID) { Char.y = 0x181; Char.fall_y = 0; return; }   /* (god mode) */
 		if (drawn_room != 0x13 && drawn_room != 0x10) { play_sound(0); take_hp(100); Char.frame = 0xB9; seq_set_85f8(3); }
 		Char.y = 0x180; Char.fall_y = 0; Char.action = 1;
 		if (Char.charid != 0 && Char.index == Kid.opp_index) Kid.opp_index = find_opponent(Char.direction);
@@ -41,7 +43,7 @@ void char_fell_out(void)
 int8_t find_opponent(int8_t mode)
 {
 	int8_t best = -1;
-	if (Kid.room == 0 || drawn_room == 0) return -1;
+	if (Kid.room == 0 || drawn_room == 0 || cheat_looking) return -1;   /* (cheat_looking: the characters shown are another room's) */
 	int8_t n = ROOM_REC(Kid.room)->nchars;
 	for (int8_t i = 0; i < n; i++) {
 		const level_char_init *rec = &ROOM_REC(drawn_room)->chars[i];
@@ -205,6 +207,7 @@ static void land(void)
 	int died = 0, hard = 0; int16_t id = 0x11, snd = -1;
 	word_6142 = 0;
 	char_y_to_floor();
+	if (GOD_KID) Char.fall_y = 0;   /* (god mode: every landing a soft one, the sinking floors solid) */
 	uint8_t t = get_tile_at_char();
 	if (t != 0x17 && t != 0x18) {
 		int16_t d = distance_to_edge_weight(); uint8_t f = get_tile_infrontof(1);
@@ -212,7 +215,7 @@ static void land(void)
 		if (Char.alive >= 0) hard = 1;
 	}
 	t = get_tile_at_char();
-	if (t == 0x17 || t == 0x18) { ovl_34724(); return; }
+	if ((t == 0x17 || t == 0x18) && !GOD_KID) { ovl_34724(); return; }
 	if (Char.fall_y < 0x16 || Char.charid == 1) {
 		if ((Char.charid < 2 && Char.f10 != 1) || Char.charid == 6 || Char.charid == 1) id = 0x11;
 		else { id = Char.f19 == 0xBA ? 0xBB : 0x3F; Char.f10 = 1; }
@@ -247,7 +250,7 @@ static void check_fall_landing(void)
 	if (tile_is_empty_kind(t)) { Char.curr_row++; return; }
 	if (t != 0xB && t != 0xF && t != 0x1A) { land(); return; }
 	if (t == 0xB) loose_floor_touch(Char.fall_y); else if (t == 0xF) ovl_348e6(); else ovl_3564e();
-	if ((Char.fall_y > 32 || Char.index != 10) && Char.charid != 1) take_hp(100);
+	if ((Char.fall_y > 32 || Char.index != 10) && Char.charid != 1 && !GOD_KID) take_hp(100);
 	Char.fall_y /= 2;
 	Char.y = y_land_tbl[Char.curr_row & 7] - 7;
 	if (word_087e == 1) word_087e = -1;
@@ -327,11 +330,22 @@ void kid_post_move(void)
 	if (knock != 0) { shake_loose_row(Char.curr_row - (knock > 0), Char.room); knock = 0; }   /* 169B:0E50 */
 }
 
+/* (SDLPoP2, the fly cheat released) on a floor he stands, else he falls from where he is */
+static void fly_land(void)
+{
+	Char.curr_col = x_to_col(Char.x); Char.curr_row = y_to_row(Char.y); load_fram_det_col();
+	Char.fall_x = Char.fall_y = 0;
+	if (tile_is_floor(get_tile_at_char())) { char_y_to_floor(); seqtbl_offset_char(5); }
+	else seqtbl_offset_char(7);
+	play_seq(); Kid = Char;
+}
 /* 169B:0692: returns -1 quit, 0 moved, 1 frozen */
 int play_kid_frame(void)
 {
 	int r;
 	loadkid();
+	if (cheat_flying && !cheat_fly_key) { cheat_flying = 0; fly_land(); }
+	if (cheat_fly_key && Char.alive < 0 && Char.room != 0 && word_5cd8 == 0) { read_input(); if (cheat_fly_key) cheat_fly_step(); Kid = Char; return 0; }   /* (the fly cheat: the keys still read) */
 	if (char_out_of_level()) { r = play_kid_control(); char_fell_out(); goto done; }
 	int8_t o = (int8_t)Kid.opp_index;
 	if (o == -1) { o = find_opponent(1); if (o == -1) o = 0; }

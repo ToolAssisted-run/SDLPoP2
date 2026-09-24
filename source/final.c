@@ -39,7 +39,7 @@ static void kind6_kid(void)
 	} else if (Char.charid == 1 && Char.f19 != 0x47) {
 		load_char(body_index());
 		uint8_t r = room_of_char();
-		if ((r == 7 || r == 8) && level_kind == 6 && Kid.room == 5 && Kid.curr_col <= 4 && (frame_table_kid[Kid.frame * 7 + 6] & 0x40)) {
+		if ((r == 7 || r == 8) && level_kind == 6 && Kid.room == 5 && Kid.curr_col <= 4 && (frame_table_kid[Kid.frame * 7 + 6] & 0x40) && !cheat_god) {
 			loadkid(); take_hp(100); seqtbl_offset_char(0x47); Kid = Char;
 			apply_hp_deltas(); hp_bars_reload();
 		}
@@ -428,6 +428,7 @@ static void jaffar_move(uint8_t *st)
 static void cast_kills(void)
 {
 	seqtbl_offset_char(0xF4);
+	if (cheat_god) return;   /* (god mode: the cast misses him) */
 	int8_t idx = (int8_t)Char.index; save_char(); loadkid();
 	seqtbl_offset_char(0x47); play_sound(0xE); take_hp(100); seq_set_85f8(0x11);
 	Kid = Char; load_char_and_opp(idx);
@@ -537,7 +538,8 @@ void ovl_35f5a(void)
 int spirit_cast(void)
 {
 	if ((int8_t)Char.f12 <= 2) return -1;
-	take_hp(2); sound_1611_01a8(0x10A); return 0xF2;
+	if (!cheat_god) take_hp(2);   /* (god mode: free) */
+	sound_1611_01a8(0x10A); return 0xF2;
 }
 /* 33FD:1BE6 (1375:205C, drawing a falling object of type 0xC): the state it leaves: a fireball in the left or right
  * room that shows is moved into the drawn room's coordinates, and DS:0842 keeps the drawn image's width (the wall test

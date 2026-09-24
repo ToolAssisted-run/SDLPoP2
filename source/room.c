@@ -160,6 +160,17 @@ static void chars_on_leave(void)
 	}
 }
 
+/* (SDLPoP2 cheats) the drawn room's characters back into their records, none following the prince */
+static void chars_save_all(void)
+{
+	int8_t n = room_nchars(drawn_room);
+	for (int8_t i = 0; i < n; i++) {
+		load_char(i);
+		if ((uint8_t)Char.direction == 0x56) continue;
+		if (save_to_record()) { i--; n--; }
+	}
+}
+
 /* OVL01 02E8BE: has the prince left the drawn room? returns the exit direction and moves him */
 static int kid_exit_dir(void)
 {
@@ -198,7 +209,7 @@ static int kid_exit_dir(void)
 		    || (r == 4 && level_number == 13) || (level_number == 13 && r == 13)
 		    || (((r == 0x10 && level_number == 9) || (r == 0x1B && level_number == 6)) && (Char.f19 == 0x44 || Char.f19 == 0x19 || Char.f19 == 10))) {
 			d = -1;
-			if ((level_number == 5 && r == 10) || (r == 4 && level_number == 13) || (level_number == 13 && r == 13)) { take_hp(100); Char.room = 0; }
+			if ((level_number == 5 && r == 10) || (r == 4 && level_number == 13) || (level_number == 13 && r == 13)) { if (!GOD_KID) take_hp(100); Char.room = 0; }   /* (god mode: out of the level, alive) */
 		}
 	}
 	if (d != -1) change_room(d);
@@ -210,10 +221,11 @@ static int kid_exit_dir(void)
 void check_kid_left_room(void)
 {
 	if (word_922a) { word_922a--; return; }
+	if (cheat_flying) return;   /* (the fly cheat moved him: cheat_fly_step) */
 	loadkid(); load_frame_to_obj(); set_char_collision();
 	exit_dir = kid_exit_dir();
-	if (exit_dir != -1 && Char.room != 0) { Kid = Char; next_room = Char.room; chars_on_leave(); return; }
-	if (Char.room == 0 && Char.alive < 0) {
+	if (exit_dir != -1 && Char.room != 0) { Kid = Char; next_room = Char.room; if (cheat_looking) chars_save_all(); else chars_on_leave(); return; }
+	if (Char.room == 0 && Char.alive < 0 && !GOD_KID) {   /* (god mode: out of the level he falls on; off, this kills him) */
 		if (level_kind == 5 && exit_dir == 0) { Char.x = char_dx_forward(320); grab_start(); }   /* 33FD:0370 */
 		else {
 			fall_scream_room(drawn_room);
@@ -457,4 +469,43 @@ void hp_bars_reload(void)
 {
 	loadkid(); Kid = Char;
 	if (Kid.opp_index != 0xFF) load_char(Kid.opp_index);
+}
+
+/* ---- SDLPoP2 cheats (cheats.c) that move between rooms ---- */
+/* before switch_room at the end of the tick: the room the look keys asked for becomes the drawn room (unless the
+ * prince changed rooms himself this tick) */
+void cheat_view_apply(void)
+{
+	uint8_t r = cheat_view; cheat_view = 0;
+	if (next_room != 0 || drawn_room == 0 || r == drawn_room) return;
+	chars_save_all();
+	next_room = r; cheat_looking = r != Kid.room;
+}
+/* the prince into the room shown, at the same place in it */
+const char *cheat_teleport(void)
+{
+	if (!cheat_looking || drawn_room == 0 || drawn_room == Kid.room) return "LOOK INTO A ROOM FIRST (ALT+ARROWS)";
+	if (Char.alive >= 0) return NULL;
+	Char.room = drawn_room;
+	if (Char.curr_row < 0 || Char.curr_row > 2) { Char.curr_row = Char.curr_row < 0 ? 0 : 2; char_y_to_floor(); Char.fall_y = 0; }
+	cheat_looking = 0; Kid = Char;
+	int8_t o = find_opponent(1); Kid.opp_index = o < 0 ? 0xFF : (uint8_t)o;
+	return "TELEPORTED";
+}
+/* flying (Char = the prince, the fly key held): no control, no sequence, no physics; the arrows move him, across
+ * rooms too (into none: he stops) */
+void cheat_fly_step(void)
+{
+	cheat_flying = 1;
+	Char.fall_x = Char.fall_y = 0;
+	int16_t x = Char.x, y = Char.y;
+	Char.x += control_x * 6; Char.y += control_y * 6;
+	Char.curr_col = x_to_col(Char.x); Char.curr_row = y_to_row(Char.y);
+	int d = Char.curr_col < 0 ? 0 : Char.curr_col >= 10 ? 1 : Char.curr_row < 0 ? 2 : Char.curr_row >= 3 ? 3 : -1;
+	if (d == -1) return;
+	if (level_links(Char.room)[d] == 0) { Char.x = x; Char.y = y; Char.curr_col = x_to_col(x); Char.curr_row = y_to_row(y); return; }
+	change_room(d); exit_dir = (int16_t)d;
+	Kid = Char; next_room = Char.room;
+	if (cheat_looking) chars_save_all(); else chars_on_leave();
+	loadkid();
 }

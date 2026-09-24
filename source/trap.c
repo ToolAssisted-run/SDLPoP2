@@ -55,6 +55,7 @@ static void trap_trigger(int8_t tp, uint8_t room)
 void trap_kill_pub(void);
 static void trap_kill(void)
 {
+	if (GOD_KID) return;   /* (god mode: the blade misses him) */
 	uint16_t *a = attr_at(curr_room, curr_tilepos);
 	*a = Char.charid != 4 ? (uint16_t)(((curr_modifier >> 8) & 8) << 8 | 0xF0) : 0x8F;
 	mob_type *m = find_mob_pub(1, 4); if (m && m->room == curr_room && m->row == tile_row) m->wd = *a;

@@ -57,7 +57,7 @@ int  overlay_menu_frame(SDL_Scancode *key, uint16_t *mod);
  * cheats on the pause menu has CHEATS, a page of the cheat keys (each chosen: typed into the game) */
 int  overlay_menu_cheats(void);
 int  overlay_menu_cheat_key(void);   /* the DOS keystroke code of the CHEATS entry chosen (OVERLAY_MENU_CHEAT) */
-/* a DOS keystroke code as the CHEATS page shows it: 'k' "K", 'K' "Shift+K", '+' "+", 0x3D00 "F3", 0x3100 "Alt+N" */
+/* a DOS keystroke code as the CHEATS page shows it: 'k' "K", 'K' "Shift+K", '+' "+", 0x3D00 "F3", 0x3100 "Alt+N", 0x9B00 "Alt+Left" (the BIOS Alt+arrows) */
 void overlay_menu_key_label(int code, char *out, size_t n);
 /* (tests) the page (0 the pause menu, 1 the settings, 2 the cheats), the item under the cursor, the settings page shown ("GENERAL",
  * ..., "LEVEL", "SKILL"; "" none), the setting highlighted there ("" none), the dialog showing (0 none) */

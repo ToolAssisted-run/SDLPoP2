@@ -150,6 +150,7 @@ static void init_kid(void)
 	while (steps--) play_seq();
 	init_kid_record();
 	byte_5cbb = 0xFF; word_5cbe = 0; word_8604 = 1;
+	cheats_reset();   /* (SDLPoP2's cheats: no flight, the prince's room shown) */
 }
 /* 169B:034A: the entrance door behind the prince closes */
 static void close_entrance(void)

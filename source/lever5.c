@@ -33,12 +33,12 @@ void ovl_383fa(void)
 	if (lever5_flag3c == 0 && Char.frame == 0x127) {   /* the trap's tile (row 2, column 3) goes: 1375:17FC */
 		lever5_flag3c = 1; get_tile(2, 3, 3); remove_loose_pub(curr_tilepos, curr_room); hook_lever5_trap(); return;   /* (053B: its image's tiles redrawn) */
 	}
-	if (lever5_flag3e == 0 && Char.y < 0x37 && !mouth_open()) {
+	if (lever5_flag3e == 0 && Char.y < 0x37 && !mouth_open() && !GOD_KID) {   /* (god mode: not caught) */
 		lever5_flag3c = 1; lever5_flag3e = 1;
 		Char.y = 0x14; Char.f24 = 0xA; seqtbl_offset_char(0x81); play_sound(0x24);
 		return;
 	}
-	if (lever5_flag3e != 0 && (int16_t)lever5_flag3c >= 1) { take_hp(100); seq_set_85f8(9); }
+	if (lever5_flag3e != 0 && (int16_t)lever5_flag3c >= 1 && !GOD_KID) { take_hp(100); seq_set_85f8(9); }
 }
 /* 37F0:0676 (1375:0096, tile 0x1B): the mouth: a trob in state 0 opens it (nibble up to 3), otherwise it closes */
 void anim_tile1b(void)

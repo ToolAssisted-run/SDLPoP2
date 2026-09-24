@@ -836,3 +836,13 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - 2026-09-24: level 5's "water" is the rope bridge over room 10's chasm (oracle shots of P5_plug: the prince and a
   skeleton fight on it, planks drop out, both fall): water.c renamed bridge5.c and the names/notes corrected
   (swim -> on the bridge / sag, waves -> sway, plug -> collapse, bubbles -> falling planks). Behaviour unchanged.
+- 2026-09-24: SDLPoP2's own cheats (source/cheats.c: god mode, the shadow / flame at will, the sword type, looking into
+  rooms, teleport, fly); the god-mode hooks sit at every place the prince is hurt or killed (fight.c's strikes, head
+  bites, rocks, sinking floors, blades, wall and gate crushes, falling floors, landings, the out-of-level falls, level
+  1's sea, 5's mouth trap, 13's flames, 14's casts, the spirit's drain and costs, poison). tests/cheatstest.c: a sweep
+  putting the prince on every floor tile of every room (876 deaths without god mode, none with it) and savestate round
+  trips through random use of every cheat. Those found two savestate faults, now fixed: state_load re-selected the
+  guard frame table (guard_frame_table's fallback for a type without a guard file) from the level loaded, where play
+  leaves it alone; and curr_room_tiles was saved relative to tiles0 as if tiles0 and level were one block. The DOS
+  game's control keys include the letter grids W E R / S D F / X C V and U I O / J K L / M , . (keyboard_controls):
+  a cheat on one of those letters also moves the prince (the DOS cheats K, S, W, I, R, T do); SDLPoP2's use free keys.

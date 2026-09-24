@@ -307,7 +307,7 @@ static void char_hit_by_floor(void)
 	uint8_t act = Char.action; uint16_t f = Char.frame;
 	if ((f >= 5 && f < 0xF) || f == 0x6D) return;
 	if (act >= 2 && act != 7) return;
-	if (Char.charid == 1) return;
+	if (Char.charid == 1 || GOD_KID) return;   /* (god mode: it misses him) */
 	char_y_to_floor();
 	if (take_hp(Char.charid == 0 ? 1 : 100)) {
 		if (Char.charid == 0xB) seqtbl_offset_char(0xA9);

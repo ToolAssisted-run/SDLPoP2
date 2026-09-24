@@ -185,6 +185,7 @@ hover:
 static int head_bite_lands(uint8_t *st)
 {
 	level_char_init *r = room_char_record(Char.index, Char.room); uint8_t k = r ? r->f04 : 0;
+	if (cheat_god && Opp.index == 10) return 0;   /* (god mode: no bite reaches the prince) */
 	if (ds_byte(0x1B84 + k) > st[1]) return 1;
 	if (ds_byte(0x1B90 + k) <= st[1]) return 0;
 	return random_2751(1);

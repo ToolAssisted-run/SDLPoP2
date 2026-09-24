@@ -110,6 +110,22 @@ The copy protection is still asked from level 3 on, cheats or not.
 | Shift+`S` | temple levels and level 14: count a spirit turn |
 | F3 | the demo player on / off |
 
+SDLPoP2's own (not in the DOS game; on keys the game's controls leave free):
+
+| | |
+|---|---|
+| Shift+`G` | god mode on / off: no fall, sword, head, snake, trap, crusher, sinking floor or flame hurts the prince (falls land softly, blades and bites miss, the moving walls let him through, a closing gate pushes him aside); out of the level he falls for ever, and turning god mode off then kills him |
+| `H` | leave the body as the shadow (levels 1–13), as the temple's eighth turn does but without its cost; crouch at the body to go back |
+| `B` | leave the body as the flame (level 14, where the game draws the spirit as a flame) |
+| `Z` | the sword: none → short (levels 7–8's, 5 pixels less reach) → full; not with the sword drawn |
+| Alt+arrows | look into the room left / right / above / below of the one shown (again: further); the prince goes on unseen, and leaving his room brings the view back |
+| `T` | teleport the prince into the room shown, at the same place in it |
+| `A` held + arrows | fly: the prince stays put (no fall, no physics), the arrows move him anywhere, across rooms; let go and he stands on a floor or falls |
+
+The game knows three sword states (none, the short sword, the full sword); the level-14 spirit's fireball is its cast
+(Ctrl in rooms 7 and 8), not a sword. Like the DOS cheats, these are game state: a quicksave keeps them, a replay
+records them.
+
 ## Command line
 For expert users: SDLPoP2 can also be started from a terminal with options, for example to keep it apart from the
 game's files (`--path-to-game`) or to start at a given level.
@@ -146,7 +162,7 @@ master as the rolling `dev` prerelease, and `v*` tags as releases. The released 
 too: `meson setup build --force-fallback-for=sdl2` builds SDL2 in from the wrap, and SDL loads X11 / Wayland / ALSA /
 PulseAudio at run time, so only the C library is needed (glibc 2.35 or newer: built on Ubuntu 22.04).
 
-Tests: `meson setup build -DgameDir=path/to/prince2` registers the core and settings suites (`meson test -C build --suite core --suite settings`);
+Tests: `meson setup build -DgameDir=path/to/prince2` registers the core, settings and cheats suites (`meson test -C build --suite core --suite settings --suite cheats`);
 `-DoracleTests=true` adds the oracle comparison suites (`--suite oracle`), which need the captures in `<workspace>`.
 The `controller` suite (game controllers, SDL's virtual joystick) runs with or without the game files.
 The game data files are not part of this repository.

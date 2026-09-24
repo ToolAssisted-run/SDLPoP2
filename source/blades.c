@@ -58,7 +58,7 @@ static int blade_box(int16_t *b)
 /* 33FD:0118 (after a character moves): a closing blade in the column or beside it cuts the prince or a guard */
 void blade_hits(void)
 {
-	if ((Char.charid != 0 && Char.charid != 2) || Char.f19 == 0x2C) return;
+	if ((Char.charid != 0 && Char.charid != 2) || Char.f19 == 0x2C || GOD_KID) return;   /* (god mode: the blades miss him) */
 	for (int8_t c = Char.curr_col - 1; c <= Char.curr_col + 1; c++) {
 		uint8_t t = get_tile(Char.curr_row, c, Char.room);
 		if (t != 0xC && t != 0xD) continue;

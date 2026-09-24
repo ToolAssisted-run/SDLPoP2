@@ -49,7 +49,7 @@ static int boxes_overlap(const int16_t *a, const int16_t *b)
 /* 33FD:0422: a rock hits Char */
 static void rock_hits_char(void)
 {
-	if (Char.alive >= 0) return;
+	if (Char.alive >= 0 || GOD_KID) return;
 	if (!take_hp(1)) { Char.f24 = 8; play_sound(Char.charid == 0 ? 0x1F : 0x48); }
 	else {
 		int16_t d = distance_to_edge_weight();
@@ -201,7 +201,7 @@ void floor_touch_check(void)
 	uint8_t t = get_tile(Char.curr_row, Char.curr_col, Char.room);
 	int16_t surface = 63 * Char.curr_row + 0x29;
 	int16_t d = col_x_left[Char.curr_col] - dx_weight() + 0x1A;
-	if ((t == 0x17 || (t == 0x18 && d >= 0)) && (frame_flags & 0x40) && surface < Char.y && Char.f24 != 5) floor_collapse();
+	if ((t == 0x17 || (t == 0x18 && d >= 0)) && (frame_flags & 0x40) && surface < Char.y && Char.f24 != 5 && !GOD_KID) floor_collapse();   /* (god mode: solid) */
 }
 /* 33FD:0B0E (kind 3, a gate opening, si = its position): a gate rising under the prince in a squeeze */
 int gate_squeeze(int si)

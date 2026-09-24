@@ -365,7 +365,7 @@ void check_gate_push(void)
 	if (curr_room == 9 && level_number == 8) return;
 	if ((curr_row_coll_flags[tile_col] & prev_coll_flags[tile_col]) != 0xFF || !can_bump_into_gate()) return;
 	if (Char.frame == 0x6D || curr_modifier == 0 || Char.f10 == 1) {
-		if (level_kind == 3 && curr_modifier != 0 && Char.f10 != 1) { ovl_3211a(); return; }
+		if (level_kind == 3 && curr_modifier != 0 && Char.f10 != 1 && !GOD_KID) { ovl_3211a(); return; }   /* (god mode: pushed out, not crushed) */
 		if (Char.charid != 1) word_6140 = 1;
 		gate_push_out();
 	} else if (Char.f19 != 0x32) seqtbl_offset_char(0x32);

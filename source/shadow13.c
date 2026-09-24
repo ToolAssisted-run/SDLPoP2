@@ -67,6 +67,7 @@ void shadow13_tick(void)
 	loadkid();
 	if (Char.curr_row == 1 && Char.f19 != 0xE6) {
 		if (Char.x <= 0xDA) {
+			if (GOD_KID) { Kid = Char; return; }   /* (god mode: the flames do not burn) */
 			seqtbl_offset_char(0xE6); Char.x = 0xD2; take_hp(100); play_sound(0x39); seq_set_85f8(0x10);
 			*(uint16_t *)&ROOM_ATTRS(4)[11] = 0x85;
 		} else if (Char.x <= 0xEC && !sound_playing(0x274D)) sound_1611_01a8(0x3D);

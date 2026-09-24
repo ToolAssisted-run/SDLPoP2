@@ -47,18 +47,30 @@ void turn_count(void)
 	if (Char.charid != 0 || Char.f19 != 5) { word_5cbe = 1; return; }
 	if ((int16_t)++word_5cbe < 4) return;
 	/* the fourth: 0FB3:2B1C palette flash (2F86:04AE) and sound 0x2815 */
-	if (!take_hp(1)) Char.f13--; else seqtbl_offset_char(0x47);
+	if (cheat_god) {}   /* (god mode: turning costs nothing) */
+	else if (!take_hp(1)) Char.f13--; else seqtbl_offset_char(0x47);
 	if (word_5cbe == 8) {
 		if ((int8_t)Char.f12 > 4) {
 			leave_body();
 			Char.charid = 1; Char.pal_slot = 8;
 			seqtbl_offset_char(2); play_sound(0x105); sound_1611_01a8(0x110);
-		} else { seqtbl_offset_char(0x47); take_hp(100); }
+		} else if (!cheat_god) { seqtbl_offset_char(0x47); take_hp(100); }
 		word_5cbe = 0;
 	}
 	play_sound(0x5D);
 }
 
+/* (SDLPoP2, the shadow / flame cheat, cheats.c) the prince leaves his body now, as the eighth turn does, without its
+ * cost */
+int spirit_leave_body(void)
+{
+	load_fram_det_col();
+	leave_body();
+	Char.charid = 1; Char.pal_slot = 8;
+	seqtbl_offset_char(2); play_sound(0x105); sound_1611_01a8(0x110);
+	word_5cbe = 0; Kid = Char;
+	return 1;
+}
 /* 2F86:03CC: the drawn room's first charid-0 character (the prince's body), or the count */
 int8_t body_index(void)
 {
@@ -91,7 +103,7 @@ static void spirit_rejoin(void)
 {
 	if (Opp.charid != 0) return;
 	Kid = Char; load_char(Opp.index); clear_char(); save_char(); loadkid();
-	Char.charid = 0; Char.pal_slot = 0; Char.f0f = 1;
+	Char.charid = 0; Char.pal_slot = 0; Char.f0f = 1; cheat_spirit = 0;
 	seqtbl_offset_char(0xE7); play_seq(); Kid = Char;
 }
 /* 2F86:0344 (the spirit dies): the body becomes the prince again (index 0xA), with the spirit's hp; its character is removed */
@@ -102,18 +114,18 @@ void shadow_2fba4(void)
 	char_type body = Char;
 	Char.index = 0xA; Char.pal_slot = 0; Char.f12 = Kid.f12; Char.f13 = Kid.f13; Char.hp_delta = Kid.hp_delta;
 	Kid = Char; Char = body;
-	clear_char(); loadkid();
+	clear_char(); loadkid(); cheat_spirit = 0;
 }
 /* 2FDF:09B2 (control, dead frames and 0xB3..0xB7) */
 void control_dead_0307a2(void)
 {
 	if (is_dead_frame(Char.frame)) {
-		if (level_kind == 1 && Char.frame == 0xB9 && Char.f12 != 0) { take_hp(Char.f12); return; }
+		if (level_kind == 1 && Char.frame == 0xB9 && Char.f12 != 0) { if (!GOD_KID) take_hp(Char.f12); return; }
 		if (Char.charid == 1 && Char.f0f == 0) { int16_t d = body_distance(); if (d >= -1 && d <= 1) spirit_rejoin(); }
 		return;
 	}
 	/* the body lying (0xB4..0xB6): the spirit loses a point of hp (or of the maximum) and the body one */
-	if (Char.charid != 0 || Char.index == 0xA || Char.frame == 0xB3 || Char.frame == 0xB7) return;
+	if (Char.charid != 0 || Char.index == 0xA || Char.frame == 0xB3 || Char.frame == 0xB7 || cheat_god || cheat_spirit) return;   /* (god mode, a spirit out by the cheat: no drain) */
 	int8_t idx = (int8_t)Char.index; save_char(); loadkid();
 	if (!take_hp(1)) Char.f13--;
 	Kid = Char; load_char(idx); take_hp(1);

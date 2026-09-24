@@ -5,23 +5,20 @@ An unofficial source reconstruction of Prince of Persia 2: The Shadow and the Fl
 game, aimed first at a headless, savestate-able game-logic core for [JaffarPlus](https://github.com/ToolAssisted-run/jaffarPlus) /
 [Chimera](https://github.com/ToolAssisted-run/chimera).
 
-Method: [Ghidra](https://github.com/NationalSecurityAgency/ghidra) decompilation of the executable with every RTLink overlay captured at its runtime
-address (the game's own loader decompressed them inside a headless [DOSBox-X](https://github.com/joncampbell123/dosbox-x) oracle,
-[chimera-core-dosbox-x](https://github.com/ToolAssisted-run/chimera-core-dosbox-x)), validated
-function by function against that oracle (per-frame RAM diffs, instruction traces, call injection).
-Analysis workspace: outside this repo, written `<workspace>` in the docs (`<workspace>/sources`: the game files,
-`<workspace>/oracle`: the oracle runner and its captures, `<workspace>/work` and `<workspace>/image`: disassembly
-listings and overlay images). The scripts find it through `POP2_WORKSPACE` (default `~/pop2dec`). Game data files
-are never committed.
+## How to play
+1. Download the build for your system (`sdlpop2-windows-x86_64-….zip` or `sdlpop2-linux-x86_64-….tar.gz`, x86-64)
+   from the [**latest development build**](https://github.com/ToolAssisted-run/SDLPoP2/releases/tag/dev) (rebuilt on
+   every change that passes CI) or a [**nightly build**](https://github.com/ToolAssisted-run/SDLPoP2/releases) (dated,
+   kept forever: a replay plays back on the build that recorded it).
+2. Unpack it into the folder that has your copy of the game's files (`PRINCE.EXE`, `PRINCE.DAT`, ...; see
+   [Getting the game](#getting-the-game)).
+3. Start it: double-click `sdlpop2.exe` (Windows), or run `./sdlpop2` in that folder (Linux).
 
-## Status (2026-09-24)
-The whole program runs in C: the game logic of the 14 levels, the renderer, the story scenes (NIS), the sound drivers
-(Sound Blaster digital, OPL2 FM music, PC speaker) and the program around them (title and demos, menus, save/restore,
-copy protection, hall of fame). Everything is checked against the DOS game running in the headless DOSBox-X oracle:
-free-running end-to-end tests reproduce captured runs of every level tick for tick (including each level's
-completion), the drawing matches the game's offscreen buffer frame for frame, the sound drivers match its register
-writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has everything found; `docs/AUDIO.md`,
-`docs/NIS.md` and `docs/SHELL.md` cover those parts.
+The keys are below. Esc, Backspace, a mouse click or a controller's Start button opens the menu.
+
+Found a bug, a glitch, or have an idea? All of them are welcome on the
+[issues page](https://github.com/ToolAssisted-run/SDLPoP2/issues) (there are templates for bugs, graphics/sound
+glitches and feature requests; a replay made with `--record` shows us exactly what you saw).
 
 ## Screenshots
 <p>
@@ -37,21 +34,6 @@ writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has every
 <img src="docs/screenshots/menu-settings.png" width="32%" alt="The overlay menu: general settings">
 <img src="docs/screenshots/menu-mods.png" width="32%" alt="The overlay menu: gameplay customisation">
 </p>
-
-## How to play
-1. Download the build for your system (`sdlpop2-windows-x86_64-….zip` or `sdlpop2-linux-x86_64-….tar.gz`, x86-64)
-   from the [**latest development build**](https://github.com/ToolAssisted-run/SDLPoP2/releases/tag/dev) (rebuilt on
-   every change that passes CI) or a [**nightly build**](https://github.com/ToolAssisted-run/SDLPoP2/releases) (dated,
-   kept forever: a replay plays back on the build that recorded it).
-2. Unpack it into the folder that has your copy of the game's files (`PRINCE.EXE`, `PRINCE.DAT`, ...; see
-   [Getting the game](#getting-the-game)).
-3. Start it: double-click `sdlpop2.exe` (Windows), or run `./sdlpop2` in that folder (Linux).
-
-The keys are below. Esc, Backspace, a mouse click or a controller's Start button opens the menu.
-
-Found a bug, a glitch, or have an idea? All of them are welcome on the
-[issues page](https://github.com/ToolAssisted-run/SDLPoP2/issues) (there are templates for bugs, graphics/sound
-glitches and feature requests; a replay made with `--record` shows us exactly what you saw).
 
 ### Keyboard (the original game's)
 | | |

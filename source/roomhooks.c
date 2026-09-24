@@ -37,7 +37,7 @@ static void room_enter_hook(int16_t bg)
 	case 0x1F: if (Kid.curr_col >= 9) sound_1611_01a8(0x5C); break;   /* 347C:0FB2 (OVL07, temple) */
 	case 0: lever5_enter(); break;        /* 37F0:0000 (OVL11): the heap block DS:2B76 (graphics, flags), music 0x21 */
 	case 0x20: break;                     /* 37F0:0510 (OVL13): graphics set up (heap images at DS:2B76) */
-	case 0x21: water_room_enter(); break;   /* 37F0:0426 (OVL12, level 5 room 10) */
+	case 0x21: bridge_room_enter(); break;   /* 37F0:0426 (OVL12, level 5 room 10) */
 	default: break;   /* DS:02E2: none */
 	}
 }
@@ -63,7 +63,7 @@ void room_load(uint8_t room)
 	if (!byte_5ce7) {
 		if (room_bg != 0) {
 			room_unload();
-			if (level_number == 5 && (drawn_room == 7 || drawn_room == 12)) water_room_enter();   /* 2A31:0DC1 -> 37F0:0426 */
+			if (level_number == 5 && (drawn_room == 7 || drawn_room == 12)) bridge_room_enter();   /* 2A31:0DC1 -> 37F0:0426 */
 		}
 		return;
 	}

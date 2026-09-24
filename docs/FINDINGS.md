@@ -142,7 +142,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 | 6672 | cur_trob |
 | 68EA.. | misc guard/fight counters |
 | 6936/6937/6938/693A | level 1: char grabbing (index, stage, x, action 9) |
-| 693E, 6940..6947 | level 5 water (reset by 33FD:0C1A) |
+| 693E, 6940..6947 | level 5 rope bridge collapse (reset by 33FD:0C1A) |
 | 6948 / 6952 | previous / current collision flags |
 | 6B6C | starting level (menu 1, or LEVELn); 6B6D next room; 6B70 obj_xl; 6B71 start hp; 6B72 anim tile |
 
@@ -201,7 +201,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   (FRAM 1000, or 1200 for type 2), 1286:03B6 kind initialiser (kind 1 33FD:0380, kind 2 347C:0F24 & others via 2A31
   thunks, kind 5 33FD:005A: 6937=0, 2B68=6936=0xFF), kind 1 also 33FD:0324 (DS:14A0 = 0xFF).
 - Level begin (169B:00F5..0135): record sequences restart, collision reset, kind reset (169B:0FB4: kind 3 floors
-  freed, level 5 33FD:0C1A water reset; kind 4 DS:2BAE/2BB0/2BB2 = 0; kind 6 DS:2BB4 = 0), init kid, entrance closes.
+  freed, level 5 33FD:0C1A bridge reset; kind 4 DS:2BAE/2BB0/2BB2 = 0; kind 6 DS:2BB4 = 0), init kid, entrance closes.
 - Story scenes (0AAC:000E/0120/0274): scene 0x64 = copy protection (0D5E:1288 sets DS:0366 = 1 once, unless demo);
   after levels 1 (9), 2 (0x64), 3 (0xA), 5 (1), 8 (2), 13 (3); from level 4 on the clock stage (DS:016A) scenes
   0x14+stage. Scenes (NIS) are not reconstructed; their residue is the guard palette slots (DS:5D08).
@@ -260,24 +260,25 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 ### 5.7 Caverns (kind 3; OVL04 33FD)
 - Rocks, collapsing floors (heap objects), traps (186A blade trap, tile 2, type-4 objects).
 
-### 5.7b Level 5's water (OVL12 at 37F0, water.c)
-- Rooms 7 | 10 | 12 form one row (37F0:0164: column -10 in room 7, +10 in room 12); tile 0x2C is water. RTLink
+### 5.7b Level 5's rope bridge (OVL12 at 37F0, bridge5.c)
+- Rooms 7 | 10 | 12 form one row (37F0:0164: column -10 in room 7, +10 in room 12); tile 0x2C is the rope bridge over the
+  chasm of room 10 (named "water" in notes before 2026-09-24: oracle shots show the bridge, planks falling). RTLink
   thunks: 2A31:0DE9 -> 0000 (the tick, from OVL04 33FD:0BEA on level 5 in drawn rooms 10/7/12), 0DD5 -> 023C,
   0DDF -> 0286, 0DC1 -> 0426 (room hook 0x21 and rooms 7/12 without description), 0DCB -> 0588 (tile 0x2C anim),
   0DF3 -> 0742 (its start); direct: 37F0:03D2 (guards), 0574 (leave hook), 0782/08F6 (falling object type 0xB).
   Other 37F0 overlays: OVL11 (hook id 0: graphics), OVL13 (hook 0x20: graphics), OVL14 (level 8 room 9).
-- Tick 0000: the prince (0194) and the drawn room's first character (0206) swim when on tile 0x2C (050C: y = row
-  floor + DS:1C87[col]; on standing frames it bobs -1/+1 with the wave nibble of room 10 row 1). A prince in room 7
+- Tick 0000: the prince (0194) and the drawn room's first character (0206) sag with the bridge when on tile 0x2C (050C: y =
+  row floor + DS:1C87[col], the bridge's curve; on standing frames it bobs -1/+1 with the sway nibble of room 10 row 1). A prince in room 7
   (not f10 0xFF, col <= 5) while its gate (position 13) is closed/closing holds the gate's plate (OVL04 33FD:0000).
-  Waves (0454): DS:2B78 = all when both swim, else bits around the swimmer's column; splash sound 0x43 by
-  random(0x28 * n) while 0x2753 is silent. The plug (001E): both swimming within 3 columns count DS:693C up (else
+  Sway (0454): DS:2B78 = all when both are on the bridge, else bits around the column of the one on it; sound 0x43
+  by random(0x28 * n) while 0x2753 is silent. The collapse (001E): both on the bridge within 3 columns count DS:693C up (else
   down, by 2 when not both); at 0x3C with the prince in columns 4..6, the other in 5..6 and the prince not on
-  f19 0x55, DS:693E runs 1..3, then bubbles (094A: type-0xB objects from room 10's row-1 positions 17..13, tile
+  f19 0x55, DS:693E runs 1..3, then planks fall (094A: type-0xB objects from room 10's row-1 positions 17..13, tile
   cleared, attr 0xC000, size random(1): 5 steps small or 10 big, DS:693F+col) until none is left or the prince is
   on f19 0x55; DS:693E = -1 and he is pushed right 10 px at col <= 4.
-- 023C: (guards/prince) the water's edge ahead: facing right at column < 2, or (035E) the opponent near the left
+- 023C: (guards/prince) the bridge's end ahead: facing right at column < 2, or (035E) the opponent near the left
   edge with the gate down; facing left at column >= 8. In 366C:0CAA (advance) it means move forward (guard.c had
-  it as stop). 0286: the skeleton's water rules (clear_char when falling outside; seq 0x65 at the right; turn at the
+  it as stop). 0286: the skeleton's bridge rules (clear_char when falling outside; seq 0x65 at the right; turn at the
   edge). 03D2: room ahead (column < 3 facing right, > 3 facing left). Tile 0x2C anim (0588): frame 0/1 by
   random(3) where DS:2B78 has the column.
 
@@ -466,7 +467,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 ### 5.13b More drawing-pass state (found by the fleet runs)
 - Object drawing (1375:1FBA, table 1375:201E by type): floors 0/1/3 (2062): one in the left room reaching past its
   edge (DS:082A[type]) moves into the drawn room; traps 4 (186A:0008): kept only in the drawn room (or moved in from
-  the left room's column 10), else speed -1 (removed next tick); walls 6 / bubbles 0xB draw without lasting state.
+  the left room's column 10), else speed -1 (removed next tick); walls 6 / level 5's falling planks 0xB draw without lasting state.
 - The prince's drawing (0993:07F8 -> 0C04 body, 0C3A / 0D40 sword) leaves obj_* at his last sprite, usually the
   sword (chtab 0: PRINCE.DAT SHAP 1001 + image, 1201 with sword type 2 on levels 7/8; chtab 1: 3001 + image). A
   character drawn next whose frame has no image (0xFFFF, e.g. a collapsing skeleton at 0xB9) gets its box from it.
@@ -604,7 +605,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - Tick code makes redraw requests (1375:0DC6 / 0F5A ...), changes description objects and saved-screen flags, and
   rotates the palette; the core reports these through weak hooks (no-ops in the core, shell.c routes them to the
   renderer; the state they touch is the renderer's): kind1.c hook_desert_gate / wave / tile1e / press, hook_pal_rotate
-  (kinds 1 and 5), anim.c hook_roof_tick (kind 5), lever5.c hook_lever5_mouth / trap, water.c hook_water_wave. The
+  (kinds 1 and 5), anim.c hook_roof_tick (kind 5), lever5.c hook_lever5_mouth / trap, bridge5.c hook_bridge_sway. The
   tile tracker (render_track_tiles, 5.16) skips the tile types whose requests are reported (kind 1: 4, 0x1C, 0x1D,
   0x1E; kind 5: 0x25, 0x26, 0x27; level 5: 0x1B, 0x2C).
 - Level 2 (OVL03): 33FD:0538 (tile 4, the raft's gate) each step: description object 2's rect left - 2 (the raft
@@ -640,17 +641,17 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   caught: palette 25303 sub-palette +0x3C - 4 at 0x10 (0 <= that < 8), +0x3C + 1, and once +0x40 the slot 0x65 put
   back (0CD6:0684(1)). k = 0360: (+0x3C / 2) % 9, caught min(+0x3C + 8, 9). Tick time: 04FA's first step requests the
   tiles under image 0 (053B), the mouth's animation 0676 the tiles under DS:1C78 at the tile (0756).
-- Level 5's water (OVL12, rooms 7 / 10 / 12): 0610 (tile 0x2C, layers 5 and 2): object (modifier & 0xF) + 3 at the tile
-  lowered by the column's wave height DS:1C87[col] (0654 / 0698 move it and its rect and back). 06CE (tick time, from
+- Level 5's rope bridge (OVL12, rooms 7 / 10 / 12): 0610 (tile 0x2C, layers 5 and 2): object (modifier & 0xF) + 3 at the tile
+  lowered by the bridge's sag DS:1C87[col] (0654 / 0698 move it and its rect and back). 06CE (tick time, from
   0588 with the new frame v and from 0742 with the attribute & 0xF0): object v + 3's rect so lowered, at the tile's
   column and one row lower (17C1:016E), one pixel higher: back layers under it. 08D2 (object type 0x8B): a sprite
   of description object DS:1C90[id & 0xF] + 1 one pixel up (0993:03CC; in room 10 of level 5 chtab-4 sprites whose
-  id is below the description's count are its objects: 0CD6:0224 / 01EC). 0782 (falling object 0xB, a bubble): its
+  id is below the description's count are its objects: 0CD6:0224 / 01EC). 0782 (falling object 0xB, a plank): its
   position as the drawn room sees it and its tile key; in level 5 room 10: moved by DS:1C9A / 1CAE[step], the
   floor-depth entries of type 0xB (DS:0826 / 0840) = its object's image height / width + 1, requests, the object.
-  Verified by P5_plug (explorer EXPLORE_KEY=plug EXPLORE_STOPPLUG=1, hp 12: the prince and room 7's guard fight in
-  room 10's water until DS:693C passes 0x3C; five bubbles, the floor opens under them): 1834 ticks identical (strict,
-  warm and cold) and FRP5_plug 1854 passes exact, 350 of them with the bubbles' type-0x8B objects.
+  Verified by P5_plug (explorer EXPLORE_KEY=plug EXPLORE_STOPPLUG=1, hp 12: the prince and a skeleton fight
+  on the rope bridge until DS:693C passes 0x3C; five planks drop out and both fall): 1834 ticks identical (strict,
+  warm and cold) and FRP5_plug 1854 passes exact, 350 of them with the planks' type-0x8B objects.
 - Level 13 room 4 (OVL13, description 0x20): 0486 (the temple's tile 0x2B, layer 0xB, whole-screen clip): modifier bit
   7: object DS:1CC2[m & 0x7F] in the foreground (layer 1 for the call), else object 0xB + m. The enter hook 0510
   reloads objects 0xB..0x26 from a copy of the prince's shape list header with the description's first resource and
@@ -665,7 +666,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - Level 8 room 9 (OVL14): the chomper drawer's room-9 case (34A3:0A33 -> 2A31:0E43 -> 37F0:0000): description
   object 7 drawn in layer 1 for the call (then its layer is 0), within the clip the drawer cut.
 - Verified (tests/frametest.c full mode; new captures FRX5_3, FRX5_2, FRG8_sword, FRP2_raft, FRP13_shadow): FRX5_3
-  (the trap, the lift, caught) 1072 passes exact (408 differing before), FRX5_2 (the water rooms) 1784 exact (49
+  (the trap, the lift, caught) 1072 passes exact (408 differing before), FRX5_2 (the bridge rooms) 1784 exact (49
   before), FRP2_raft (level 2's puzzle and the raft) 472 exact (44 before: the clue's images). FRG8_sword: the
   passes after scene 6 differed (1276 px each) only because the capture read the wrong memory: the scene's allocations reallocate the game's offscreen port (DS:5CC2 0x8546 ->
   0x85AA) and its bits move from phys 0x4CF22 to 0x514B2, so 0x4CF22 no longer changed (bar a heap block over its
@@ -754,8 +755,8 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   366C:00FC; Ctrl random runs E1..E13_21 identical.
 - 2026-09-23: level 1's sea (kind5.c); X1_1 (ship rooms 16/19, hp 12) and X1_2 (a guard in room 15) identical;
   DS:2B68 compared now; frozen compares skip curr_room too.
-- 2026-09-23: level 5 water (water.c, OVL12); guard_advance's water check fixed; all room hooks done; X5_2 (explored
-  to room 7 through the water, hp 12) identical.
+- 2026-09-23: level 5 rope bridge (bridge5.c, OVL12; first misnamed "water"); guard_advance's bridge check fixed; all
+  room hooks done; X5_2 (explored to room 7 across the bridge, hp 12) identical.
 - 2026-09-23: 1286:087E at level load: type-0 guard sprites take the free palette slots (DS:5D08/09, Char.pal_slot);
   DS:0670 = loaded type. Every cold start is now byte-exact. Deep explorations (300k iterations, hp 12, Ctrl) of
   levels 1-13 reach no unreconstructed routine.
@@ -816,7 +817,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   0x25 / 0x26 / 0x27 (33FD:0680 / 08C0 / 0B12 / 05AC); saved screens keep their bitmap's bounds apart from their rect.
   Level 2's puzzle clue images (33FD:03CF), its kind tick's sounds and the gate's stop (SQ2_raft queue events equal);
   level 5 room 3's music 0x21 (37F0:0000 / 0622). The 37F0 overlays' drawing: OVL11 (the trap, the mouth, the lift and
-  the catch: images 0x62D7.. = CAVERNS.DAT 25303.. with mask 6), OVL12 (the water tile, its waves, the bubbles),
+  the catch: images 0x62D7.. = CAVERNS.DAT 25303.. with mask 6), OVL12 (the bridge tile, its sway, the falling planks),
   OVL13 (tile 0x2B, objects 0xB..0x26 with mask 0x4000, 05FC), OVL14 (the teeth). New captures P2_raft (explorer with
   the oracle's puzzle answer), SQ2_raft, P13_shadow (e2e identical); frame captures FRP2_raft, FSP2_raft, FRX5_3,
   FVX5_3, FRX5_2, FRG8_sword, FRP13_shadow, FSX1_1. tests/shelltest.c plays plans and compares VGA dumps / RGB shots;
@@ -830,5 +831,8 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   are converted at every draw with the list's mask (0FB3:2C9C / 26BC:0630 / 040A / 26BC:0000), 8-bit ones through
   194C:06E6's banks: FRP13_shadow 231 -> 1 differing pass, FR11_4's "purge" pass exact; image -1 has the empty rect
   DS:1F12 (0AFF:18AE); frametest loads DS:6B6E / 6B6F. 37F0:05FC verified (FRP13_shadow frames 0x132..0x13E).
-  P5_plug (explorer EXPLORE_KEY=plug / EXPLORE_STOPPLUG): level 5's plug and bubbles, 1834 ticks identical; FRP5_plug
+  P5_plug (explorer EXPLORE_KEY=plug / EXPLORE_STOPPLUG): level 5's bridge collapse, 1834 ticks identical; FRP5_plug
   1854 passes exact (OVL12 0782 / 08D2 drawn in 350). All frame captures exact but that one pass (9 px of stack bytes).
+- 2026-09-24: level 5's "water" is the rope bridge over room 10's chasm (oracle shots of P5_plug: the prince and a
+  skeleton fight on it, planks drop out, both fall): water.c renamed bridge5.c and the names/notes corrected
+  (swim -> on the bridge / sag, waves -> sway, plug -> collapse, bubbles -> falling planks). Behaviour unchanged.

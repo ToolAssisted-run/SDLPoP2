@@ -61,7 +61,7 @@ int render_desc_restore_obj(uint8_t image);   /* 0CD6:0684 (the slot, -1 none) *
 void desc_grab_rect(int16_t *r);   /* 33FD:030E (rooftops) */
 void desc_obj_to_tile(uint8_t *o, int8_t col, int8_t row);   /* 0CD6:0108 */
 void render_desc_objects(uint8_t layer);   /* 0FB3:0624 */
-void render_lever5_tile12(tile_args *a); void render_lever5_tile1b(tile_args *a); void render_water_tile2c(tile_args *a);   /* render_ovl37f0.c (37F0:012A / 06EE / 0610) */
+void render_lever5_tile12(tile_args *a); void render_lever5_tile1b(tile_args *a); void render_bridge_tile2c(tile_args *a);   /* render_ovl37f0.c (37F0:012A / 06EE / 0610) */
 extern uint16_t word_2ba6;
 void draw_object(int i, uint8_t layer);   /* 0FB3:0712 */
 uint8_t *desc_obj(int i);

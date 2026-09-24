@@ -1,6 +1,6 @@
 /* The drawing parts of level 5's room overlays at 37F0 (the caverns' tile drawers DS:[6188] point there for tiles
  * 0x12, 0x1B and 0x2C, and the resident drawing calls 37F0 directly): OVL11, room 3 (description 0: the pit trap and
- * the mouth in the ceiling), OVL12, rooms 7 / 10 / 12 (description 0x21: the water, the bubbles). Transcribed from
+ * the mouth in the ceiling), OVL12, rooms 7 / 10 / 12 (description 0x21: the rope bridge and its falling planks). Transcribed from
  * the relocated overlays (~/pop2dec/image/ovl11_37F0.bin, ovl12_37F0.bin). */
 #include <string.h>
 #include "types.h"
@@ -118,49 +118,49 @@ void render_lever5_trap_tick(void)
 	mark_tiles_under(mark_back, r, 0xFF);
 }
 
-/* ---- OVL12: level 5's water (rooms 7, 10, 12; description 0x21 in room 10) ---- */
-/* 37F0:0654 / 0698: description object i lowered by the wave height of column col (DS:1C87) / put back */
-static int16_t wave_lower(int i, int col)
+/* ---- OVL12: level 5's rope bridge (rooms 7, 10, 12; description 0x21 in room 10) ---- */
+/* 37F0:0654 / 0698: description object i lowered by the bridge's sag at column col (DS:1C87) / put back */
+static int16_t sag_lower(int i, int col)
 {
 	uint8_t *o = desc_obj(i); int16_t y = rd(o + 1), dy = (int8_t)ds_byte((uint16_t)(0x1C87 + col));
 	wr(o + 1, (int16_t)(y + dy)); desc_obj_offset(o, 0, dy);
 	return y;
 }
-static void wave_restore(int i, int16_t y)
+static void sag_restore(int i, int16_t y)
 {
 	uint8_t *o = desc_obj(i); int16_t dy = (int16_t)(y - rd(o + 1));
 	wr(o + 1, y); desc_obj_offset(o, 0, dy);
 }
-/* 37F0:0610 (tile 0x2C, the water, layers 5 and 2): object (modifier & 0xF) + 3 at the tile, lowered by the column's
- * wave height */
-void render_water_tile2c(tile_args *a)
+/* 37F0:0610 (tile 0x2C, the bridge, layers 5 and 2): object (modifier & 0xF) + 3 at the tile, lowered by the column's
+ * sag */
+void render_bridge_tile2c(tile_args *a)
 {
 	if (a->layer != 5 && a->layer != 2) return;
 	int i = (a->mod & 0xF) + 3;
 	if (i >= desc_count()) return;
-	int16_t y = wave_lower(i, a->col);
+	int16_t y = sag_lower(i, a->col);
 	desc_draw_obj_at(a, i);   /* 0CD6:007A */
-	wave_restore(i, y);
+	sag_restore(i, y);
 }
-/* 37F0:06CE (tick time: the water's animation 0588 and its start 0742, frame v at tile tp): object v + 3's rect (lowered
- * by the column's wave) at the tile's column and one row lower (17C1:016E), one pixel higher: the tiles under it */
-void render_water_tick(int8_t tp, uint8_t v)
+/* 37F0:06CE (tick time: the bridge's sway 0588 and its start 0742, frame v at tile tp): object v + 3's rect (lowered
+ * by the column's sag) at the tile's column and one row lower (17C1:016E), one pixel higher: the tiles under it */
+void render_bridge_tick(int8_t tp, uint8_t v)
 {
 	int i = (uint8_t)(v + 3); int col = tp % 10;
 	if (i >= desc_count()) return;
-	int16_t y = wave_lower(i, col), src[4], r[4];
+	int16_t y = sag_lower(i, col), src[4], r[4];
 	obj_rect_get(desc_obj(i), src);
 	if (render_rect_at_tile(tp / 10 + 1, col, src, r)) { r[0]--; mark_tiles_under(mark_back, r, 0xFF); }
-	wave_restore(i, y);
+	sag_restore(i, y);
 }
-/* 37F0:08D2 (0FB3:1C32, an object of type 0x8B: a bubble): the description object DS:1C90[obj_id & 0xF] + 1 as a
+/* 37F0:08D2 (0FB3:1C32, an object of type 0x8B: a falling plank): the description object DS:1C90[obj_id & 0xF] + 1 as a
  * sprite one row up */
 void obj_hook_37f0_08d2(uint8_t type)
 {
 	(void)type;
 	add_sprite(4, (uint16_t)(ds_byte((uint16_t)(0x1C90 + (obj_id & 0xF))) + 1), obj_x, 0xA, (int16_t)(obj_y - 1));
 }
-/* 37F0:0782 (1375:200C, falling object type 0xB: a bubble): its position as the drawn room sees it (the room below,
+/* 37F0:0782 (1375:200C, falling object type 0xB: a falling plank): its position as the drawn room sees it (the room below,
  * above, left or right), its tile key (0AFF:026A; one less off column 0, +10 above row 2); in room 10 of level 5 only:
  * moved by the step's offsets DS:1C9A / 1CAE (step = +B & 0xF, the object DS:1C90[step]), the floor-depth table's type
  * 0xB entries DS:0826 / 0840 set to the object's image size + 1 (0CD6:0224), the tiles under it requested

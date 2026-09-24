@@ -337,7 +337,7 @@ const kind_drawers kind_caverns = {{
 	[0x0B] = d_c10, [0x0E] = d_0e, [0x10] = d_10, [0x11] = d_11, [0x13] = d_13, [0x14] = d_wall, [0x17] = d_17,
 	[0x18] = d_18, [0x20] = d_20, [0x21] = d_21, [0x22] = d_22, [0x23] = d_23, [0x24] = d_24,
 	/* 0x0A: 0FB3:2394 (resident); 0x12 / 0x1B / 0x2C: DS:16B8 points to 37F0 (level 5's room overlays OVL11 / OVL12) */
-	[0x12] = render_lever5_tile12, [0x1B] = render_lever5_tile1b, [0x2C] = render_water_tile2c,
+	[0x12] = render_lever5_tile12, [0x1B] = render_lever5_tile1b, [0x2C] = render_bridge_tile2c,
 }, d_0686};
 /* 34C1:0774: the chomper's teeth in front of the prince in frames 0x108..0x10A (0FB3:0984), where his box (Kid +1B)
  * meets the screen below 16 above the tile's row: piece 0x37 lowered by min(modifier bits 2..7, 0x32) + 3 */

@@ -191,7 +191,7 @@ void scene_played(int si);   /* level.c */
 void turn_flash(void); void turn_count(void);   /* spirit.c */
 int8_t row_tilepos(int8_t row);   /* tiles.c 0AFF:07D4 */
 int try_pick_up(void); void drink(void); void kid_crouch_pub(void); void toggle_upside_down_pub(void);   /* items.c, control.c, game.c */
-extern uint8_t water_693e[10];   /* level.c */
+extern uint8_t bridge_693e[10];   /* level.c */
 int under_gate(void);   /* control.c 3212:08EE */
 void beast_record_fixup(level_char_init *rec);   /* beast.c */
 void slab_draw_state(void);   /* temple.c */
@@ -213,14 +213,14 @@ int spirit_cast(void); int can_bump_into_gate(void); int16_t ovl_352ca(void);
 int spawn_flag80(uint8_t room);   /* room.c 2D3E:0E54 */
 void kind5_tick(void); void grab_start(void); void kind5_room_palette(uint8_t room); extern int16_t word_6938; extern uint8_t byte_693a;   /* kind5.c */
 void hp_bars_reload(void); int sound_on(void);
-void water_tick(void); void water_room_enter(void); int rtlink_0dd5(void); int ovl_2a31_ddf(void); void anim_tile2c(void); void anim_start_2c(uint32_t *attrs, int8_t tp, uint8_t room); void bubble_update(void); extern int16_t word_693c; extern uint8_t byte_2b78; void guard_sheathe_pub(void); void sword_engage_pub(void); extern uint8_t water_693e[10];   /* water.c */
+void bridge_tick(void); void bridge_room_enter(void); int rtlink_0dd5(void); int ovl_2a31_ddf(void); void anim_tile2c(void); void anim_start_2c(uint32_t *attrs, int8_t tp, uint8_t room); void plank_update(void); extern int16_t word_693c; extern uint8_t byte_2b78; void guard_sheathe_pub(void); void sword_engage_pub(void); extern uint8_t bridge_693e[10];   /* bridge5.c */
 void guard_sprites_loaded(uint8_t type); extern uint8_t byte_0670;   /* level.c 1286:087E, DS:0670 */
 void shadow13_tick(void); int shadow13_present(void); void anim_tile2b(void); void try_grab_ledge_pub(void); void set_char_collision(void);   /* shadow13.c */
 void floor_draw_state(void); void trap_draw_state(void);   /* mobs.c */
 #define word_4406 (*(uint16_t *)((uint8_t *)&level + 0x184E))   /* DS:4406 */
 void floor_collapse_pub(void);
 int room_draws_sword_pub(uint8_t room);
-void lever5_enter(void); void lever5_leave(void); void lever5_draw_state(void); void hook_lever5_mouth(void); void hook_lever5_trap(void); void hook_water_wave(int8_t tp, uint8_t v); void anim_tile1b(void); extern uint16_t lever5_flag3c, lever5_flag3e;   /* lever5.c */
+void lever5_enter(void); void lever5_leave(void); void lever5_draw_state(void); void hook_lever5_mouth(void); void hook_lever5_trap(void); void hook_bridge_sway(int8_t tp, uint8_t v); void anim_tile1b(void); extern uint16_t lever5_flag3c, lever5_flag3e;   /* lever5.c */
 /* sound.c: the sound queue, the ambient sounds and the driver's timing model */
 extern uint16_t word_0882, word_0884; extern uint8_t amb_state[2], sound_caps; extern int sound_ambient_enabled;
 extern int (*sound_query_hook)(int what, uint16_t res, int model); extern uint32_t (*sound_clock_hook)(void);

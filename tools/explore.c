@@ -1,8 +1,8 @@
 /* Explore a level with the core (Go-Explore style): keep the first state that reached each cell (room, row, column),
  * restart from rarely tried cells and play random held inputs. Writes the per-tick inputs that lead to the chosen
  * cell (default: the last new room found; or a given room) as a plan file: one line per tick "x y shift".
- * EXPLORE_KEY=plug (level 5): the plug's progress in room 10 (a character there, DS:693C >= 10, >= 35) in the cells;
- * EXPLORE_STOPPLUG=1 ends the search when DS:693E starts (the bubbles follow).
+ * EXPLORE_KEY=plug (level 5): the rope bridge collapse's progress in room 10 (a character there, DS:693C >= 10, >= 35)
+ * in the cells; EXPLORE_STOPPLUG=1 ends the search when DS:693E starts (the planks fall).
  * EXPLORE_HP=n starts the prince with n hp; EXPLORE_PREFIX=plan plays a plan first; EXPLORE_CTRL=1 presses Ctrl too; EXPLORE_RNG=n seeds the explorer's choices; EXPLORE_KEY=trobs adds the live animation count to the cells.
  * usage: explore GAME_DIR LEVEL SEED ITERATIONS OUT.plan [TARGET_ROOM]
  * build: cc -O2 -o explore tools/explore.c source/(all).c -lm */
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 #pragma GCC diagnostic pop
 				if (key_jaffar && getenv("EXPLORE_STOPKEY") && jaffars_dead() >= atoi(getenv("EXPLORE_STOPKEY"))) { ADD_CELL(k); best = k; fprintf(stderr, "iteration %d: jaffar key %d reached: plan kept (%d ticks)\n", it, jaffars_dead(), plen); t = 60; it = iters; break; }
 				if (key_plug && word_693c > best_plug) { best_plug = word_693c; if (best_plug % 10 == 0) fprintf(stderr, "iteration %d: plug count %d after %d ticks\n", it, best_plug, plen); }
-				if (getenv("EXPLORE_STOPPLUG") && *(int16_t *)water_693e != 0) { ADD_CELL(k); best = k; fprintf(stderr, "iteration %d: the plug opens: plan kept (%d ticks)\n", it, plen); t = 60; it = iters; break; }
+				if (getenv("EXPLORE_STOPPLUG") && *(int16_t *)bridge_693e != 0) { ADD_CELL(k); best = k; fprintf(stderr, "iteration %d: the bridge collapses: plan kept (%d ticks)\n", it, plen); t = 60; it = iters; break; }
 				if (getenv("EXPLORE_STOPSEQ") && Kid.f19 == (uint16_t)strtol(getenv("EXPLORE_STOPSEQ"), NULL, 0)) { ADD_CELL(k); best = k; fprintf(stderr, "iteration %d: seq %s reached: plan kept (%d ticks)\n", it, getenv("EXPLORE_STOPSEQ"), plen); t = 60; it = iters; break; }   /* EXPLORE_STOPSEQ: stop when the prince is in that sequence */
 				if (key_jaffar && getenv("EXPLORE_STOPHIT") && (jaffars_dead(), jaffar_hit)) { ADD_CELL(k); best = k; fprintf(stderr, "iteration %d: a Jaffar hit in rooms 7/8: plan kept (%d ticks)\n", it, plen); t = 60; it = iters; break; }
 				if (!cells[k].state || cells[k].len > plen) { int fresh = !room_seen[Kid.room < 33 ? Kid.room : 0]; ADD_CELL(k); if (fresh) { room_seen[Kid.room < 33 ? Kid.room : 0] = 1; fprintf(stderr, "iteration %d: room %d after %d ticks\n", it, Kid.room, plen); } }

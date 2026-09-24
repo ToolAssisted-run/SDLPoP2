@@ -9,8 +9,9 @@
  *                              the palette set at its retrace); returns 0 once the scene has ended
  *
  * The game's clock is the 60 Hz timer tick (DS:24E4); the model runs in CPU cycles of the reference machine (the
- * oracle's DOSBox-X, 22000 cycles/ms) with the PIT's interrupts (60 Hz, or 240 Hz while MIDI music plays) and a rough
- * cost for the scene's own work (see nis.c). nis_set_tick_source(fn) instead forces the tick count at each frame.
+ * oracle's DOSBox-X, 22000 cycles/ms) with the PIT's interrupts (60 Hz, or 240 Hz while MIDI music plays, their
+ * handlers' own time included) and a cost for the scene's own work measured in the oracle (see nis.c, docs/NIS.md).
+ * nis_set_tick_source(fn) instead forces the tick count at each frame.
  * Music (MIDI cue points and ends) and digitized speech are modelled for their timing only; the sound callback reports
  * every start and stop (ids: SND resources of NISMIDI.DAT / NISDIGI.DAT / DIGISND.DAT). */
 #include <stdint.h>
@@ -36,6 +37,9 @@ typedef void (*nis_room_fn)(int level, int room, uint8_t *pixels, int rowbytes, 
 typedef struct { int facing, x, y, x6116; } nis_kid;
 void nis_set_room_hook(nis_room_fn fn, void *user);
 void nis_set_kid(const nis_kid *k);
+/* the VGA DAC (768 bytes, 6-bit) as the scene begins, i.e. the game's palette (set before nis_open; NULL: the state the
+ * NISn cheat leaves, the BIOS mode 13h colours at 0xE0..0xFF): scene 6 keeps colours 0xE0..0xFF, its item uses bank 15 */
+void nis_set_palette(const uint8_t *pal768);
 
 #define NIS_INTRO (-1)                    /* the intro: scenes 7, 4 and 8 in a row (the music runs on from one to the next) */
 int nis_open(const char *dir, int scene);
@@ -46,5 +50,6 @@ void nis_set_tick_source(nis_tick_fn fn, void *user);
 void nis_set_event_callback(nis_event_fn fn, void *user);
 void nis_abort(void);                     /* a key press: the scene fades out and ends (the game's 2797:009C) */
 uint32_t nis_frame(void);                 /* frames stepped so far */
+double nis_frame_pos(void);               /* how far into the current frame the scene's clock is (0..1: from its retrace) */
 uint32_t nis_tick(void);                  /* the game tick of the current frame */
 uint32_t nis_anim_frames(void);           /* animation frames shown so far (32D4:0852) */

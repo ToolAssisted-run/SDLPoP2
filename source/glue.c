@@ -192,7 +192,7 @@ void music_1286_07ce(uint8_t k) { (void)k; } void ovl_366c_f24(void) { if (level
 void anim_tile_other(uint8_t t) { char m[24]; snprintf(m, sizeof m, " ANIM%02X?", t); note(m); }
 void level_kind_tick(void) { if (level_kind == 5) kind5_tick();   /* 33FD:0232 (kind5.c) */
   else if (level_kind == 2) temple_tick();   /* 347C:0FC4 */
-  else if (level_kind == 3) { if (level_number == 5 && (drawn_room == 10 || drawn_room == 7 || drawn_room == 12)) water_tick(); }   /* 33FD:0BEA */
+  else if (level_kind == 3) { if (level_number == 5 && (drawn_room == 10 || drawn_room == 7 || drawn_room == 12)) bridge_tick(); }   /* 33FD:0BEA */
   else if (level_kind == 1) kind1_tick();   /* 33FD:0170 */
   else if (level_kind == 4) {}   /* DS:0654[4] is null: no kind tick */
   else if (level_kind == 6) kind6_tick();   /* 33FD:03C6 (final.c) */

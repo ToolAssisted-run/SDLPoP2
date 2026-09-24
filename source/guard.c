@@ -36,7 +36,7 @@ static void move_shift(int8_t v) { control_shift = v; ctrl1_shift = v; }
 /* 2D3E:18FE */
 static void clear_controls(void) { ctrl1_forward = ctrl1_backward = ctrl1_up = ctrl1_down = ctrl1_shift = 0; control_x = control_y = control_shift = 0; }
 
-static int lvl5_water(void) { return Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12); }
+static int lvl5_bridge(void) { return Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12); }
 static int frame_running(uint16_t f) { return (f >= 1 && f <= 0xE) || (f >= 0x31 && f <= 0x38) || (f >= 0x22 && f <= 0x2C); }
 /* the skill byte of the guard's room record (read without a count check, DS:43B0 + index*23 + room*0x74) */
 static uint8_t guard_skill(void) { return ((uint8_t *)&level)[0x17F3 + Char.room * 0x74 + 1 + Char.index * 23 + 4]; }
@@ -69,10 +69,10 @@ static void sword_range(int16_t *far_ax, int16_t *near_bx)
 /* 366C:0CAA advance, 0D4A block, 0DC4 strike (PoP1's per-skill probabilities) */
 static void guard_advance(void)
 {
-	if (lvl5_water() && rtlink_0dd5()) { move_forward(); return; }   /* (the water's edge ahead: on) */
+	if (lvl5_bridge() && rtlink_0dd5()) { move_forward(); return; }   /* (the bridge's end ahead: on) */
 	uint8_t skill = guard_skill();
 	if (skill != 0 && word_68ec != 0) return;
-	if (lvl5_water() && !ovl_383d2()) return;
+	if (lvl5_bridge() && !ovl_383d2()) return;
 	if (prob_advance[skill] > (uint16_t)random_2751(255)) move_forward();
 }
 static void guard_block(void)
@@ -97,7 +97,7 @@ void guard_sheathe_pub(void) { guard_sheathe(); }
 static void guard_in_reach(int16_t d)
 {
 	int16_t far, near; sword_range(&far, &near);
-	if (near > d || d >= far || (lvl5_water() && rtlink_0dd5())) { guard_advance(); return; }
+	if (near > d || d >= far || (lvl5_bridge() && rtlink_0dd5())) { guard_advance(); return; }
 	guard_block();
 	if (word_922e == 0) guard_strike();
 }
@@ -106,11 +106,11 @@ static void guard_idle_armed(void)
 {
 	uint8_t t1 = get_tile_infrontof(1), t2 = get_tile_infrontof(2);
 	if (tile_is_empty_kind(t1) && tile_is_empty_kind(t2)) {
-		if (lvl5_water() && rtlink_0dd5()) return;
+		if (lvl5_bridge() && rtlink_0dd5()) return;
 		move_backward(); return;
 	}
 	if (Char.direction == Opp.direction && frame_running(Opp.frame) && Opp.action != 7 && Char.f38 != 0) {
-		if (lvl5_water()) guard_advance(); else guard_sheathe();
+		if (lvl5_bridge()) guard_advance(); else guard_sheathe();
 		return;
 	}
 	guard_advance();
@@ -122,7 +122,7 @@ static void guard_close(int16_t d)
 	if (word_922e != 0) return;
 	int16_t far, near; sword_range(&far, &near);
 	if (far > d) { move_shift(-2); return; }
-	if (lvl5_water() && !ovl_383d2()) return;
+	if (lvl5_bridge() && !ovl_383d2()) return;
 	move_forward();
 }
 /* 366C:023E: the prince dropped from a ledge in front: follow or back away */
@@ -158,10 +158,10 @@ static void guard_armed(void)
 	int16_t far, near; sword_range(&far, &near);
 	if (far + 12 > d) {
 		if (near <= d) { guard_close(d); return; }
-		if (lvl5_water() && rtlink_0dd5()) { move_forward(); return; }
+		if (lvl5_bridge() && rtlink_0dd5()) { move_forward(); return; }
 		uint8_t t = get_tile_behind_char();
 		if (tile_passable_2f800(curr_modifier, t) && d > 0) { move_backward(); return; }
-		if (!lvl5_water()) { move_forward(); return; }
+		if (!lvl5_bridge()) { move_forward(); return; }
 		if (ovl_383d2()) move_forward();
 		return;
 	}

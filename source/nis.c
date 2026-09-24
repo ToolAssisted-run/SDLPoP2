@@ -37,12 +37,14 @@ static void res_open(const char *name)
 	dat_file *d = dat_load(name); if (!d || nfiles == MAXFILES) return;
 	snprintf(files[nfiles].name, 16, "%s", name); files[nfiles].f = *d; nfiles++;
 }
+static void res_forget(const char *file);
 static void res_close(const char *name)
 {
+	res_forget(name);
 	for (int i = 0; i < nfiles; i++) if (!strcmp(files[i].name, name)) { memmove(&files[i], &files[i + 1], (nfiles - i - 1) * sizeof files[0]); nfiles--; return; }
 }
 /* tag as written in the game ("SHAP", "PALT", "_SCR"...; '_' = NUL) */
-static const uint8_t *res_get(const char *tag, int id, int *size)
+static const uint8_t *res_find(const char *tag, int id, int *size)
 {
 	char t[4]; for (int i = 0; i < 4; i++) t[i] = tag[3 - i] == '_' ? 0 : tag[3 - i];
 	for (int i = nfiles - 1; i >= 0; i--) {
@@ -52,31 +54,69 @@ static const uint8_t *res_get(const char *tag, int id, int *size)
 	if (size) *size = 0;
 	return NULL;
 }
+/* 194C:6F4C: a resource for the game: read from its file the first time (~5.7 cycles a byte: the DOS read and the
+ * checksum), then found in memory (~380 cycles) until the file is closed */
+static void cpu(double n);
+static struct { char tag[4]; int id; char file[16]; } res_mem[512]; static int n_res_mem;
+static const uint8_t *res_get(const char *tag, int id, int *size)
+{
+	int sz; const uint8_t *r = res_find(tag, id, &sz);
+	if (size) *size = sz;
+	if (!r) return NULL;
+	for (int i = 0; i < n_res_mem; i++) if (res_mem[i].id == id && !memcmp(res_mem[i].tag, tag, 4)) { cpu(380); return r; }
+	if (n_res_mem < 512) { memcpy(res_mem[n_res_mem].tag, tag, 4); res_mem[n_res_mem].id = id; res_mem[n_res_mem].file[0] = 0;
+		for (int i = nfiles - 1; i >= 0; i--) { uint16_t z; char t[4]; for (int k = 0; k < 4; k++) t[k] = tag[3 - k] == '_' ? 0 : tag[3 - k];
+			if (dat_find(&files[i].f, t, (uint16_t)id, &z)) { snprintf(res_mem[n_res_mem].file, 16, "%s", files[i].name); break; } }
+		n_res_mem++; }
+	cpu(2150 + sz * 5.7);
+	return r;
+}
+static void res_forget(const char *file)       /* (closing a file frees its resources) */
+{
+	int k = 0;
+	for (int i = 0; i < n_res_mem; i++) if (strcmp(res_mem[i].file, file)) res_mem[k++] = res_mem[i];
+	n_res_mem = k;
+}
 static int rd16(const uint8_t *p) { return (int16_t)(p[0] | p[1] << 8); }
 static int ru16(const uint8_t *p) { return p[0] | p[1] << 8; }
 
 /* ------------------------------------------------------------------ time: frames, ticks, the coroutine */
-/* Time runs in CPU cycles of the reference machine (DOSBox-X at 22000 cycles/ms, the oracle's): video frames at
- * 70.086 Hz (313900 cycles), the timer tick at 60 Hz (366667 cycles; the MIDI sequencer at 4x). The scene's own
- * work costs cycles by a rough model (cpu()), so long operations (unpacking images, dissolving, drawing text) take
- * time as in the game; busy waits sleep until the next tick or frame. */
-#define FRAME_CYC 313900u
-#define TICK_CYC 366670u              /* PIT divisor 19886 */
-#define MUSIC_CYC 91657u              /* PIT divisor 4971: the MIDI sequencer's rate */
+/* Time runs in CPU cycles of the reference machine (the oracle's DOSBox-X: 22000 cycles/ms, one cycle an instruction,
+ * an 8-bit IN 22 more and an OUT 16 more): video frames at 70.086 Hz (313900 cycles), the timer tick at 60 Hz (366670
+ * cycles; the MIDI sequencer at 4x). The scene's own work costs cycles by a model of its routines (cpu()), so long
+ * operations (unpacking images, dissolving, drawing text) take time as in the game; busy waits sleep until the next
+ * interrupt or frame. The timer interrupts take their time too: the sequencer's (194C:2F10) sends the MIDI events to
+ * the FM driver, whose every OPL register write spins through two delay loops (~4700 cycles), so a chord takes most of
+ * a frame. Meanwhile the scene is frozen, a retrace can pass unseen by the polling loop, and the PIT's next interrupts
+ * wait (one stays pending, the others are lost: ticks go missing). */
+#define FRAME_CYC 313899u             /* 22000000 * 800 * 449 / 25175000 (mode 13h: 25.175 MHz, 800 x 449 dots) */
+#define TICK_DIV 19886u               /* the 60 Hz tick's PIT divisor */
+#define MUSIC_DIV 4971u               /* the MIDI sequencer's (240 Hz) */
+#define TICK_CYC 366660u              /* (its period in cycles, 19886 * 22000000 / 1193182) */
+#define MUSIC_CYC 91656u
+static uint64_t fstart(uint64_t g) { return g * 7902400000ull / 25175ull; }   /* the retrace that begins frame g */
 #define TICK_RATIO 16382u             /* 16.16 fdiv(4971, 19886): the tick chained from the sequencer's interrupt */
-#define RETRACE_CYC 100u              /* a retrace wait returns at once this soon after the retrace began */
-static uint32_t isr_miss_cyc = 0;     /* (env NIS_ISR_MISS: a sequencer interrupt this many cycles before a retrace hides it
-                                         from the polling loop; the real game loses about one retrace in 13 so, but not
-                                         predictably: off by default) */
-#define ISR_MISS_CYC isr_miss_cyc
+#define RETRACE_CYC 1398u             /* the vertical retrace bit (3DA bit 3) stays set 2 of the 449 lines of a frame */
+#define IN_CYC 23                     /* an IN instruction (with DOSBox-X's 8-bit I/O delay) */
+#define OUT_CYC 17                    /* an OUT */
+/* the interrupt handlers' costs (measured in the oracle) */
+#define ISR_TICK_CYC 60               /* 194C:7EE7 (the 60 Hz tick, its EOI) */
+#define ISR_CHAIN_CYC 45              /* ... chained from the sequencer's handler */
+#define ISR_SEQ_IDLE_CYC 61           /* 194C:2F10 when no MIDI tick is due */
+#define ISR_SEQ_CYC 96                /* ... with the tracks' counts stepped */
+#define ISR_EVENT_CYC 99              /* a MIDI event read and handed to the driver */
+#define OPL_WRITE_CYC 4713            /* MIDI.DRV+0x8AF: two OUTs and the delay loops ([0x147] 1033 + [0x149] 517 turns of 3) */
 static ucontext_t main_ctx, scene_ctx;
 static char *scene_stack;
 static int scene_done, scene_result, g_abort;
 static uint32_t g_frame, g_tick;
 static uint64_t g_time;                /* cycles */
-static uint64_t next_isr;              /* the next timer interrupt */
+static uint64_t next_isr;              /* the PIT's next interrupt request */
+static uint64_t pit_base; static uint32_t pit_k, pit_div;   /* its count restarted at pit_base: request k at pit_base + k periods */
+static void pit_next(void) { pit_k++; next_isr = pit_base + (uint64_t)pit_k * pit_div * 22000000ull / 1193182ull; }
 static int isr_music;                  /* the PIT runs at the sequencer's rate (a song plays) */
 static uint32_t isr_acc;               /* DS:1FDE: the chained tick's accumulator */
+static uint32_t isr_lost;              /* interrupt requests lost while a handler ran */
 static nis_tick_fn tick_fn; static void *tick_user;
 static nis_sound_fn sound_fn; static void *sound_user;
 static uint16_t countdown[4];          /* DS:24DC.. the four countdown timers of the timer interrupt (194C:7EE7) */
@@ -88,79 +128,137 @@ static int trace_on = -1;
 static void trace(const char *what, int a, int b)
 {
 	if (trace_on < 0) trace_on = getenv("NIS_TRACE") != NULL;
-	if (trace_on) fprintf(stderr, "[nis] frame %u tick %u (+%u): %s %d %d\n", g_frame, g_tick, (unsigned)(g_time - (uint64_t)g_frame * FRAME_CYC), what, a, b);
+	if (trace_on) fprintf(stderr, "[nis] frame %u tick %u (+%u): %s %d %d\n", g_frame, g_tick, (unsigned)(g_time - fstart(g_frame)), what, a, b);
 }
 static void do_tick(void);
-static void mus_interrupt(void);
-static uint64_t frame_end(void) { return (uint64_t)(g_frame + 1) * FRAME_CYC; }
-/* 194C:7D76 / 7E37: adding or removing the sequencer's timer reprograms the PIT, restarting its count */
+static uint32_t mus_interrupt(void);
+static uint64_t digi_wake(void);
+static uint64_t frame_end(void) { return fstart(g_frame + 1); }
+/* 194C:7D76 / 7E37: adding or removing the sequencer's timer reprograms the PIT (mode 3), restarting its count. In
+ * DOSBox-X the counter's output goes high again: when it was low (the second half of a square wave period) that is an
+ * edge, and the new handler runs at once. */
 static void pit_music(int on)
 {
 	if (on == isr_music) return;
+	uint64_t per = isr_music ? MUSIC_CYC : TICK_CYC;
+	int edge = !tick_fn && next_isr > g_time && next_isr - g_time <= per / 2;
 	isr_music = on; isr_acc = 0;
-	next_isr = g_time + (on ? MUSIC_CYC : TICK_CYC);
+	pit_base = g_time; pit_k = 0; pit_div = on ? MUSIC_DIV : TICK_DIV; pit_next();
+	if (edge) { next_isr = g_time; pit_k = 0; }
 }
-/* one timer interrupt: with a song, the sequencer (194C:2F10) which chains to the tick (194C:7EE7) every ~4th time */
+/* one timer interrupt (at its request, or as soon as the handler before it has returned): with a song, the sequencer
+ * (194C:2F10) which chains to the tick (194C:7EE7) every ~4th time */
 static void do_isr(void)
 {
-	g_time = next_isr;
+	if (next_isr > g_time) g_time = next_isr;
+	uint64_t per = isr_music ? MUSIC_CYC : TICK_CYC;
+	uint32_t cost;
+	pit_next();
 	if (isr_music) {
-		next_isr += MUSIC_CYC;
-		mus_interrupt();
+		cost = mus_interrupt();
 		isr_acc += TICK_RATIO;
-		if (isr_acc >> 16) { isr_acc &= 0xFFFF; do_tick(); }
-	} else { next_isr += TICK_CYC; do_tick(); }
+		if (isr_acc >> 16) { isr_acc &= 0xFFFF; do_tick(); cost += ISR_CHAIN_CYC; }
+	} else { do_tick(); cost = ISR_TICK_CYC; }
+	if (cost > 1000) trace("isr", (int)cost, (int)(next_isr - per - g_time));
+	g_time += cost;
+	if (!isr_music && per == MUSIC_CYC) return;      /* (the song ended in the handler: the PIT was reprogrammed) */
+	/* the requests while it ran: the first stays pending in the PIC, the others are lost */
+	if (next_isr <= g_time) for (;;) { uint64_t n = next_isr; uint32_t k = pit_k; pit_next(); if (next_isr > g_time) { next_isr = n; pit_k = k; break; } isr_lost++; }
 }
-/* the time passes to t (the interrupts on the way happen) */
+/* the scene idles (polls) until time t: the interrupts on the way happen (the scene resumes when the last returns) */
 static void advance(uint64_t t)
 {
 	if (tick_fn) { g_time = t > g_time ? t : g_time; return; }     /* (ticks come from the caller, a frame at a time) */
-	while (next_isr <= t) do_isr();
+	while (next_isr <= (t > g_time ? t : g_time)) do_isr();
 	if (t > g_time) g_time = t;
 }
 static void end_frame(void) { swapcontext(&scene_ctx, &main_ctx); }
-/* work of n cycles */
+/* work of n cycles (the interrupts on the way add theirs) */
 static void cpu(double n)
 {
-	advance(g_time + (uint64_t)(n * cpu_scale));
+	uint64_t left = (uint64_t)(n * cpu_scale);
+	if (tick_fn) g_time += left;
+	else for (;;) {
+		if (next_isr > g_time + left) { g_time += left; break; }
+		if (next_isr > g_time) { left -= next_isr - g_time; g_time = next_isr; }
+		do_isr();
+	}
 	while (g_time >= frame_end()) end_frame();
 }
 /* a busy wait polling for a change: sleep until the next interrupt or the next frame */
 static void yield(void)
 {
 	uint64_t f = frame_end(), t = tick_fn ? f : next_isr;
+	uint64_t d = digi_wake(); if (d > g_time && d < t) t = d;                /* (the DSP's interrupt ends a digitized sound) */
 	if (t < f) advance(t); else { advance(f); end_frame(); }
 }
-/* 194C:7A26: wait for the start of the vertical retrace (returns at once while still in it); the polling misses a
- * retrace that comes while the sequencer's interrupt runs */
+/* 194C:7A26: wait for the vertical retrace (returns at once while it lasts); the polling misses a retrace that passes
+ * while an interrupt handler runs */
 static void wait_retrace(void)
 {
-	uint64_t start = (uint64_t)g_frame * FRAME_CYC;
-	if (g_time - start < RETRACE_CYC) return;
 	for (;;) {
-		uint64_t T = frame_end();
-		advance(T); end_frame();
-		if (!isr_music || tick_fn) return;
-		/* the last interrupt before T */
-		uint64_t last = next_isr - MUSIC_CYC;
-		while (last > T) last -= MUSIC_CYC;
-		if (T - last >= ISR_MISS_CYC) return;
+		uint64_t start = fstart(g_frame);
+		if (g_time >= start && g_time - start < RETRACE_CYC) return;
+		advance(frame_end()); end_frame();
+		if (tick_fn) return;
 	}
 }
 /* 2797:009C: the key check */
 static int key_pressed(void) { return g_abort; }
 
 /* ------------------------------------------------------------------ sound model */
-/* 194C:2DF0 / 2F10 / 2FFA: the MIDI sequencer, run at 240 Hz (the timer chain calls the 60 Hz tick every 4th time).
- * Only its timing is modelled: cue points (meta event 7 sets DS:2087 to the text's first byte) and the end of the
- * song (end of track 0). Digitized sounds (type 1) play for (size - header) / rate seconds. */
+/* 194C:2DF0 / 2F10 / 2FFA: the MIDI sequencer, run at 240 Hz (the timer chain calls the 60 Hz tick every 4th time), and
+ * the FM driver under it (MIDI.DRV, docs/AUDIO.md 4; played for real by source/audio.c). Only their timing is modelled:
+ * cue points (meta event 7 sets DS:2087 to the text's first byte), the end of the song (end of track 0; a looping one
+ * starts over) and the time the interrupt handler spends, which is the driver's OPL register writes. Digitized sounds
+ * (type 1) play for their length at the Sound Blaster's rate. */
 typedef struct { const uint8_t *p, *end; int32_t delta; uint8_t running; int done; } mtrack;
 static struct {
-	int playing, id; mtrack tr[16]; int ntr; int division; uint32_t inc, acc;
+	int playing, id, loop; const uint8_t *res; int size;
+	mtrack tr[16]; int ntr; int division; uint32_t inc, acc;
+	uint8_t map[16]; int skip15;        /* DS:2073 (bit 7: note-ons muted), DS:2071 */
 } mus;
-static struct { int playing, id; uint32_t end_tick; } digi;
+/* MIDI.DRV's state as far as it decides how many registers a call writes */
+static struct { uint8_t note[9], chan[9], prog[16], rr; int count; } fm;
+static uint32_t opl_writes;
+static int fm_bank_count = 1;
+static struct { int playing, id; uint64_t end; } digi;
 static uint8_t cue;                     /* DS:2087 */
 
+/* MIDI.DRV functions 2 / 4 (+0x40E): silence the nine voices (A0..A8, B0..B8), channel n plays instrument n */
+static void fm_reset(void)
+{
+	opl_writes += 18;
+	memset(fm.note, 0, sizeof fm.note); memset(fm.chan, 0, sizeof fm.chan);
+	for (int c = 0; c < 16; c++) fm.prog[c] = (uint8_t)(c < fm.count ? c : 0);
+}
+/* +0x5AE: the first voice with this note and channel keys off (B0) */
+static void fm_note_off(int c, int n)
+{
+	for (int v = 0; v < 9; v++) if (fm.note[v] == n && fm.chan[v] == c) { fm.note[v] = 0; opl_writes++; return; }
+}
+/* +0x54A: a free voice (round robin from +0x14D, which moves on either way) takes the channel's instrument (C0 and the
+ * two operators' five registers) and the note's frequency (A0, B0); none free: the note is dropped */
+static void fm_note_on(int c, int n, int vel)
+{
+	if (!vel) { fm_note_off(c, n); return; }
+	if (fm.prog[c] >= fm.count) return;
+	int v = fm.rr, found = -1;
+	for (int k = 0; k < 9; k++) { if (!fm.note[v]) { found = v; break; } if (++v >= 9) v = 0; }
+	if (++fm.rr >= 9) fm.rr = 0;
+	if (found < 0) return;
+	fm.chan[found] = (uint8_t)c; fm.note[found] = (uint8_t)n;
+	opl_writes += 13;
+}
+static void fm_event(int ty, int c, int d1)
+{
+	switch (ty) {
+	case 0x80: fm_note_off(c, d1); break;
+	case 0xC0: if (d1 < fm.count) fm.prog[c] = (uint8_t)d1; break;
+	case 0xE0: for (int v = 0; v < 9; v++) if (fm.note[v] && fm.chan[v] == c) opl_writes += 2; break;   /* +0x637: retuned */
+	}
+}
+static uint32_t mus_events_sent;
 static uint32_t fdiv16(uint32_t a, uint32_t b) { return b ? (uint32_t)(((uint64_t)a << 16) / b) : 0; }   /* 194C:7C68 */
 static void mus_tempo(uint32_t tempo) { mus.inc = fdiv16(fdiv16(0x0F424000u, 240u << 16), fdiv16(tempo << 8, (uint32_t)mus.division << 16)); }   /* 194C:2FB4 */
 static uint32_t varlen(const uint8_t **pp, const uint8_t *end)
@@ -183,11 +281,32 @@ static int mus_events(int t)
 			/* (194C:316B reads the tempo's low two bytes as a little-endian word: the middle and low bytes swap) */
 			if (type == 0x51 && t == 0 && len >= 3) mus_tempo((uint32_t)q[0] << 16 | q[2] << 8 | q[1]);
 			k->p = q + len;
-		} else if (b == 0xF0 || b == 0xF7) { const uint8_t *q = k->p; uint32_t len = varlen(&q, k->end); k->p = q + len; }
-		else {
+		} else if (b == 0xF0 || b == 0xF7) {        /* 194C:306E: 00 00 34 dev cmd x: the sequencer's commands */
+			const uint8_t *q = k->p; uint32_t len = varlen(&q, k->end);
+			if (len >= 6 && q + 6 <= k->end && !q[0] && !q[1] && q[2] == 0x34 && (q[3] == 0 || q[3] == 0x21)) {
+				int x = q[5];
+				switch (q[4]) {
+				case 0: mus_events_sent++; break;
+				case 1: if (x < 16) mus.map[x] |= 0x80; break;
+				case 2: if (x < 16) mus.map[x] &= 0x7F; break;
+				case 3: if (x < 16 && len >= 7) mus.map[x] = (uint8_t)((mus.map[x] & 0x80) | q[6]); break;
+				case 4: for (int i = 0; i < 15; i++) mus.map[i] = (uint8_t)((mus.map[i] & 0x80) | i); break;
+				case 5: for (uint32_t i = 0; i < len && i < 16; i++) { if (x) mus.map[i] &= 0x7F; else mus.map[i] |= 0x80; } break;
+				case 6: mus.skip15 = 1; break;
+				case 7: mus.skip15 = 0; break;
+				}
+			} else mus_events_sent++;
+			k->p = q + len;
+		} else {
 			if (b < 0x80) { k->p--; b = k->running; }
 			k->running = b;
-			int hi = b & 0xF0; k->p += (hi == 0xC0 || hi == 0xD0) ? 1 : 2;
+			int ty = b & 0xF0, d1 = k->p < k->end ? k->p[0] : 0, d2 = k->p + 1 < k->end ? k->p[1] : 0;
+			k->p += (ty == 0xC0 || ty == 0xD0) ? 1 : 2;
+			uint8_t m = mus.map[b & 0x0F];
+			if (!(ty == 0x90 && (m & 0x80)) && !((m & 0x0F) == 0x0F && mus.skip15)) {
+				mus_events_sent++;
+				if (ty == 0x90) fm_note_on(m & 0x0F, d1, d2); else fm_event(ty, m & 0x0F, d1);
+			}
 		}
 		k->delta += (int32_t)varlen(&k->p, k->end);
 	} while (k->delta <= 0);
@@ -195,60 +314,116 @@ static int mus_events(int t)
 }
 static void snd_event(int kind, int id) { if (sound_fn) sound_fn(kind, id, sound_user); }
 static void pit_music(int on);
-static void mus_stop(void) { if (mus.playing) snd_event(NIS_SND_STOP, mus.id); mus.playing = 0; pit_music(0); }
-static void mus_start(int id, const uint8_t *r, int size)
+/* the cycles the driver calls and events so far cost (and the counts restart) */
+static uint32_t mus_cost(void)
 {
-	mus_stop();
-	const uint8_t *p = r + 1, *end = r + size;             /* (byte 0: the sound type, 2 = MIDI; bit 7 = loop) */
-	if (size < 15 || memcmp(p, "MThd", 4)) return;
+	uint32_t c = opl_writes * OPL_WRITE_CYC + mus_events_sent * ISR_EVENT_CYC;
+	opl_writes = 0; mus_events_sent = 0;
+	return c;
+}
+/* 194C:3579 / 2EFD: stop the song: its timer goes (the PIT back to 60 Hz), the driver is reset */
+static void mus_halt(void) { if (mus.playing) snd_event(NIS_SND_STOP, mus.id); mus.playing = 0; pit_music(0); fm_reset(); }
+static void mus_stop(void) { if (mus.playing) { cue = 0; mus_halt(); cpu(mus_cost()); } }   /* (cpu: then any interrupt pending) */
+/* 194C:2DF0: the driver reset, the tracks, their first events (delta 0) */
+static int mus_begin(void)
+{
+	fm_reset();
+	for (int i = 0; i < 16; i++) mus.map[i] &= 0x0F;
+	mus.skip15 = 0;
+	const uint8_t *p = mus.res + 1, *end = mus.res + mus.size;   /* (byte 0: the sound type, 2 = MIDI; bit 7 = loop) */
+	if (mus.size < 15 || memcmp(p, "MThd", 4)) return 0;
 	int ntr = p[10] << 8 | p[11]; mus.division = p[12] << 8 | p[13];
-	if (mus.division & 0x8000) return;
+	if (mus.division & 0x8000) return 0;
 	p += 8 + (p[4] << 24 | p[5] << 16 | p[6] << 8 | p[7]);
-	mus.ntr = 0; mus_tempo(500000); mus.acc = 0; cue = 0;
+	mus.ntr = 0; mus_tempo(500000); mus.acc = 0;
 	for (int t = 0; t < ntr && t < 16 && p + 8 <= end; t++) {
 		uint32_t len = (uint32_t)p[4] << 24 | p[5] << 16 | p[6] << 8 | p[7];
 		mtrack *k = &mus.tr[mus.ntr++]; k->p = p + 8; k->end = p + 8 + len > end ? end : p + 8 + len; k->running = 0;
 		k->delta = (int32_t)varlen(&k->p, k->end); k->done = 0;
 		p += 8 + len;
 	}
-	mus.playing = 1; mus.id = id;
-	pit_music(1);
-	snd_event(NIS_SND_MUSIC, id);
-	for (int t = 0; t < mus.ntr; t++) if (mus.tr[t].delta == 0 && mus_events(t)) { mus_stop(); return; }
+	for (int t = 0; t < mus.ntr; t++) if (mus.tr[t].delta == 0 && mus_events(t)) return 0;
+	return 1;
 }
-static void mus_interrupt(void)        /* 194C:2F10 */
+/* 194C:3668: start a song (the one playing is stopped first) */
+static void mus_start(int id, const uint8_t *r, int size)
 {
-	if (!mus.playing) return;
+	cue = 0;
+	if (mus.playing) { mus_halt(); }
+	mus.res = r; mus.size = size; mus.id = id; mus.loop = r[0] & 0x80;
+	int ok = mus_begin();
+	cpu(mus_cost());
+	if (!ok) return;
+	mus.playing = 1;
+	snd_event(NIS_SND_MUSIC, id);
+	pit_music(1);                        /* (the timer is installed last) */
+	cpu(0);                              /* (an interrupt the reprogramming raised runs at once) */
+}
+/* 194C:2F10: the sequencer's interrupt; returns the cycles it took */
+static uint32_t mus_interrupt(void)
+{
+	if (!mus.playing) return ISR_SEQ_IDLE_CYC;
 	uint32_t a = (mus.acc & 0xFFFF) + (mus.inc & 0xFFFF);
 	uint32_t n = (mus.inc >> 16) + (a >> 16); mus.acc = a & 0xFFFF;
-	if (!n) return;
+	if (!n) return ISR_SEQ_IDLE_CYC;
 	for (int t = 0; t < mus.ntr; t++) {
 		mtrack *k = &mus.tr[t];
 		if (k->delta == 0x7FFFFFFF) continue;
 		k->delta -= (int32_t)n;
-		if (k->delta <= 0 && mus_events(t)) { mus_stop(); return; }
+		if (k->delta <= 0 && mus_events(t)) {
+			/* 194C:34BA: the end; a looping song starts over (its timer anew) */
+			int id = mus.id;
+			mus_halt();
+			if (mus.loop) {
+				if (mus_begin()) { mus.playing = 1; mus.id = id; snd_event(NIS_SND_MUSIC, id); pit_music(1); }
+			}
+			break;
+		}
 	}
+	return ISR_SEQ_CYC + mus_cost();
 }
+/* 194C:35E5 -> DIGI.DRV function 7: the Sound Blaster plays the samples at 1000000 / trunc(1000000 / rate) Hz (its time
+ * constant); the end (the DSP's interrupt, 194C:3422) frees the channel at once */
 static void digi_start(int id, const uint8_t *r, int size)
 {
-	/* header: type, rate word, (FF), length word (0 here), 4 more; at +10 the packed samples, their unpacked length first
-	 * (194C:35E5 hands them to the driver) */
+	/* header: type, rate word, (FF), length word (0 here), 4 more; at +10 the packed samples, their unpacked length first */
 	int rate = ru16(r + 1); if (rate <= 0) rate = 11000;
 	int n = ru16(r + 4); if (!n && size >= 12) n = ru16(r + 10);
-	digi.playing = 1; digi.id = id; digi.end_tick = g_tick + (uint32_t)((int64_t)n * 60 / rate) + 1;
+	digi.playing = 1; digi.id = id; digi.end = g_time + (uint64_t)n * (1000000 / rate) * 22;
 	snd_event(NIS_SND_DIGI, id);
 }
+static uint64_t digi_wake(void) { return digi.playing ? digi.end : 0; }
+static void digi_poll(void) { if (digi.playing && g_time >= digi.end) { digi.playing = 0; snd_event(NIS_SND_STOP, digi.id); } }
 static const uint8_t *snd_res(int id, int *size) { return res_get("_SND", id, size); }
-/* 194C:6F4C + 8118: load a sound (once). A digitized one is unpacked (and resampled) for the driver, which costs
- * about 110 cycles a byte of the resource (the oracle: ~21 frames for the 55 KB of _PSL 25002, ~6 for 30001's 18 KB);
- * loading a MIDI one costs next to nothing. */
+/* 194C:8466: the packed samples' decoder, for its cost: per round 7 instructions (8 in mode 0), 8 a bit read (9 for
+ * a 1), then 4 more and 5 (a delta), 6 (the escape back to mode 0), 3 (+0x80) or 5 (a new delta width) */
+static double unpack_cost(const uint8_t *s, int sn)
+{
+	if (sn < 3) return 0;
+	int n = s[0] | s[1] << 8, si = 3, di = 1; uint8_t mask = 0x80, bl = 0, dl = 0; double c = 0;
+	for (;;) {
+		c += 2;
+		if (di >= n) break;
+		c += bl ? 3 : 4;
+		int ch = bl ? bl : 3; uint8_t cl = 0;
+		while (ch--) { cl = (uint8_t)(cl << 1); c += 8; if (si < sn && (s[si] & mask)) { cl++; c++; } mask = (uint8_t)(mask >> 1 | mask << 7); if (mask == 0x80) si++; }
+		c += 4;
+		if (bl) { if (cl == dl) { bl = 0; c += 2; continue; } c += cl > dl ? 5 : 4; di++; }
+		else if (cl == 7) { c += 3; di++; }
+		else { c += 5; bl = (uint8_t)(cl + 2); dl = (uint8_t)(0xFC02u << cl); }
+		if (si > sn + 1) break;
+	}
+	return c;
+}
+/* 194C:805C: load a sound (once): the resource read (194C:6F4C, ~5.6 cycles a byte), a digitized one unpacked for the
+ * driver (194C:8118: the decoder, then ~2.35 cycles a sample) */
 static int snd_loaded[64], n_snd_loaded;
 static void sound_load(int id)
 {
-	for (int i = 0; i < n_snd_loaded; i++) if (snd_loaded[i] == id) return;
+	for (int i = 0; i < n_snd_loaded; i++) if (snd_loaded[i] == id) { res_get("_SND", id, NULL); return; }
 	if (n_snd_loaded < 64) snd_loaded[n_snd_loaded++] = id;
 	int size; const uint8_t *r = snd_res(id, &size);
-	if (r && (r[0] & 0x7F) == 1) cpu(size * 110.0);
+	if (r && (r[0] & 0x7F) == 1 && size > 12 && r[3] == 0xFF) cpu(unpack_cost(r + 10, size - 10) + ru16(r + 10) * 2.35);
 }
 static void sound_preload(int id) { sound_load(id); }          /* 194C:805C */
 /* 194C:840E: play a sound by id (type 1 digitized, 2 MIDI; type 0 PC speaker is not used by the scenes) */
@@ -256,7 +431,7 @@ static void sound_play(int id)
 {
 	trace("sound", id, 0); event(NIS_EV_SOUND);
 	sound_preload(id);
-	int size; const uint8_t *r = snd_res(id, &size);
+	int size; const uint8_t *r = res_find("_SND", id, &size);
 	if (!r) return;
 	if ((r[0] & 0x7F) == 2) mus_start(id, r, size);
 	else if ((r[0] & 0x7F) == 1) digi_start(id, r, size);
@@ -264,11 +439,12 @@ static void sound_play(int id)
 /* 194C:8426: is sound id playing */
 static int sound_playing(int id)
 {
+	digi_poll();
 	if (mus.playing && mus.id == id) return 1;
 	if (digi.playing && digi.id == id) return 1;
 	return 0;
 }
-static int any_sound_playing(void) { return mus.playing || digi.playing; }   /* 194C:33CE(NULL) */
+static int any_sound_playing(void) { digi_poll(); return mus.playing || digi.playing; }   /* 194C:33CE(NULL) */
 /* 194C:83D2: stop sound id (0: all) */
 static void sound_stop(int id)
 {
@@ -279,19 +455,29 @@ static void sound_stop_all(void) { sound_stop(0); }    /* 194C:3320(0,0) */
 
 /* ------------------------------------------------------------------ the VGA palette (194C:79A3 / 7969) */
 static uint8_t dac[768];
+/* the DAC as the scene begins: the game's palette (0AAC:0274 blacks it out first but for 1, 6 and 100; transition 6
+ * sets colours 0..0xDF only, so its item (image set 0, bank 15) shows in the game's colours). nis_set_palette gives it;
+ * by default the colours the NISn cheat leaves untouched at 0xE0..0xFF: the BIOS's mode 13h palette (the rest black) */
+static uint8_t init_dac[768]; static int init_dac_set;
+static const uint8_t bios_e0[24][3] = {   /* INT 10h mode 13h default DAC, colours 0xE0..0xF7 (0xF8..0xFF black) */
+	{0x0b,0x0b,0x10},{0x0c,0x0b,0x10},{0x0d,0x0b,0x10},{0x0f,0x0b,0x10},{0x10,0x0b,0x10},{0x10,0x0b,0x0f},{0x10,0x0b,0x0d},{0x10,0x0b,0x0c},
+	{0x10,0x0b,0x0b},{0x10,0x0c,0x0b},{0x10,0x0d,0x0b},{0x10,0x0f,0x0b},{0x10,0x10,0x0b},{0x0f,0x10,0x0b},{0x0d,0x10,0x0b},{0x0c,0x10,0x0b},
+	{0x0b,0x10,0x0b},{0x0b,0x10,0x0c},{0x0b,0x10,0x0d},{0x0b,0x10,0x0f},{0x0b,0x10,0x10},{0x0b,0x0f,0x10},{0x0b,0x0d,0x10},{0x0b,0x0c,0x10},
+};
 /* 194C:79A3: set count colours from first (src NULL: black), after a retrace wait if asked */
 static void setpal(int first, int count, const uint8_t *src, int wait)
 {
 	event(NIS_EV_SETPAL);
 	if (wait) wait_retrace();
 	for (int i = 0; i < count * 3 && first * 3 + i < 768; i++) dac[first * 3 + i] = src ? src[i] & 0x3F : 0;
-	cpu(count * 3 * 7.0);
+	cpu(40 + count * (src ? 19 + 3 * OUT_CYC : 16 + 3 * OUT_CYC));        /* (3 OUTs a colour, with nops between) */
 }
 static void getpal(uint8_t *dst, int count, int first)    /* 194C:7969 (waits for the retrace too) */
 {
 	wait_retrace();
 	memcpy(dst, dac + first * 3, count * 3);
-	cpu(count * 3 * 7.0);
+	g_time += 40 + count * (19 + 3 * IN_CYC);                /* (the reading runs with the interrupts off: they wait) */
+	cpu(0);
 }
 
 /* ------------------------------------------------------------------ ports and rectangles (the QuickDraw-like 194C) */
@@ -302,6 +488,16 @@ typedef struct port {
 	int bg, penv, penh, fg, font;                 /* +0x20, +0x22/24, +0x28, +0x2A */
 } port;
 static uint8_t screen_bits[W * H];
+/* The monitor: after the retrace that begins a frame (its start here) come 37 more blank lines (to line 449 of 449),
+ * then the 200 rows, each scanned twice (lines 0..399). A row shows what video memory holds when the beam passes it,
+ * so a change the scene makes during the frame shows below the beam at once and above it from the next frame. */
+static uint8_t scan_bits[W * H];        /* the frame being shown */
+static int scan_row;                    /* rows of it scanned so far */
+static uint64_t row_time(int y) { return fstart(g_frame) + (uint64_t)(37 + 2 * y) * FRAME_CYC / 449; }
+static void beam(uint64_t t)            /* the beam has come this far at time t: those rows show the screen as it is */
+{
+	while (scan_row < H && row_time(scan_row) <= t) { memcpy(scan_bits + scan_row * W, screen_bits + scan_row * W, W); scan_row++; }
+}
 static port screen_port = { screen_bits, {0, 0, H, W}, W, {0, 0, H, W}, {0, 0, H, W}, 0, 0, 0, 15, 0 };
 static port *the_port = &screen_port;             /* DS:2450 */
 static const rect R_SCREEN = {0, 0, 200, 320};    /* DS:1F2A */
@@ -368,8 +564,9 @@ static void fill_rect(const rect *r, int color)
 	if (t < p->clip.t) t = p->clip.t;
 	if (b > p->clip.b) b = p->clip.b;
 	if (rr <= l || b <= t) return;
-	for (int y = t; y < b; y++) memset(p->bits + y * p->rowbytes + l, color, rr - l);
-	cpu((b - t) * (20 + (rr - l) / 2.0));
+	double row = 20 + (rr - l) / 2.0;
+	for (int y = t; y < b; y++) { if (p->bits == screen_bits) beam(g_time + (uint64_t)((y - t) * row)); memset(p->bits + y * p->rowbytes + l, color, rr - l); }
+	cpu((b - t) * row);
 }
 /* 194C:4CB0 -> 6698 CopyBits (mode 0) */
 static void copy_bits(port *dst, port *src, const rect *dr, const rect *sr)
@@ -390,8 +587,9 @@ static void copy_bits(port *dst, port *src, const rect *dr, const rect *sr)
 	}
 	int h = db - dt, w = drr - dl;
 	if (h <= 0 || w <= 0) return;
-	for (int y = 0; y < h; y++) memmove(dst->bits + (dt + y) * dst->rowbytes + dl, src->bits + (st + y) * src->rowbytes + sl, w);
-	cpu(h * (20 + w / 2.0));
+	double row = 20 + w / 2.0;
+	for (int y = 0; y < h; y++) { if (dst->bits == screen_bits) beam(g_time + (uint64_t)(y * row)); memmove(dst->bits + (dt + y) * dst->rowbytes + dl, src->bits + (st + y) * src->rowbytes + sl, w); }
+	cpu(h * row);
 }
 
 /* ------------------------------------------------------------------ images (SHAP) and shape lists (SHPL) */
@@ -401,6 +599,7 @@ static void copy_bits(port *dst, port *src, const rect *dr, const rect *sr)
 typedef struct { int kind, h, w, stride, flags; uint8_t *data; int size; } img;
 typedef struct { int first, count, mask, ncolors; } shplist;
 
+static uint32_t lzg_lits, lzg_matches;   /* (for the cost) */
 static const uint8_t *unpack_lzg(uint8_t *dest, int total, const uint8_t *src, const uint8_t *end)
 {
 	uint8_t win[0x400]; memset(win, 0, sizeof win);
@@ -408,11 +607,11 @@ static const uint8_t *unpack_lzg(uint8_t *dest, int total, const uint8_t *src, c
 	while (pos < total && src < end) {
 		mask >>= 1;
 		if (!(mask & 0xFF00)) mask = *src++ | 0xFF00u;
-		if (mask & 1) { if (src >= end) break; uint8_t b = *src++; win[wpos] = b; wpos = (wpos + 1) & 0x3FF; dest[pos++] = b; }
+		if (mask & 1) { if (src >= end) break; lzg_lits++; uint8_t b = *src++; win[wpos] = b; wpos = (wpos + 1) & 0x3FF; dest[pos++] = b; }
 		else {
 			if (src + 1 >= end) break;
 			unsigned w = src[0] << 8 | src[1]; src += 2;
-			int from = w & 0x3FF, len = (w >> 10) + 3;
+			int from = w & 0x3FF, len = (w >> 10) + 3; lzg_matches++;
 			for (int i = 0; i < len && pos < total; i++) { uint8_t b = win[from]; from = (from + 1) & 0x3FF; win[wpos] = b; wpos = (wpos + 1) & 0x3FF; dest[pos++] = b; }
 		}
 	}
@@ -434,7 +633,9 @@ static void remap_rows(img *im, int mask)
 {
 	uint8_t tab[16] = {0}; int n = 0;
 	for (int b = 0; b < 16; b++) if (mask & (1 << b)) tab[n++] = (uint8_t)(b << 4);
-	for (int k = n; k < 16; k++) tab[k] = (uint8_t)(k << 4);   /* (the game leaves these unset) */
+	/* (the table is on 194C:122C's stack, bp-0x22, set only for the mask's banks: the game leaves 0 in the rest, e.g. transition
+	 * 3's horse outline, image bank 15 with mask 0xFFFE, in colour 0x0F) */
+	for (int k = n; k < 16; k++) tab[k] = 0;
 	uint8_t *p = im->data, *end = im->data + im->size;
 	for (int y = 0; y < im->h && p + 2 <= end; y++) {
 		uint8_t *q = p + 2; int x = 0;
@@ -508,8 +709,13 @@ static img *shape_get(const shplist *l, int n)
 {
 	int size; const uint8_t *r = res_get("SHAP", l->first + n - 1, &size);
 	if (!r) { fprintf(stderr, "nis: no shape %d\n", l->first + n - 1); return NULL; }
+	lzg_lits = lzg_matches = 0;
 	img *im = img_unpack(r, size, l->mask);
-	if (im) cpu(im->kind == 1 ? im->size * 15.0 : (double)im->w * im->h * 6);
+	/* 194C:0AFE (the oracle: an LZG row-run image ~27 cycles an unpacked byte, 1.7 more a literal, 31 a match; a
+	 * packed-pixel one ~15 a pixel) */
+	double c = !im ? 0 : im->kind == 1 ? (lzg_lits || lzg_matches ? im->size * 27.0 + lzg_lits * 1.7 + lzg_matches * 30.7 : im->size * 31.7) : (double)im->w * im->h * 15;
+	trace("shape", l->first + n - 1, (int)c);
+	cpu(c);
 	return im;
 }
 /* 2583:0006: draw a row-run image at (x, y) of the current port; mode 0 copies, other modes leave the runs of colour
@@ -525,6 +731,7 @@ static void draw_rowrun(int mode, int x, int y, const img *im)
 	if (y < p->clip.t) { skipy = p->clip.t - y; y = p->clip.t; }
 	int yb = y + im->h - skipy; if (yb > p->clip.b) yb = p->clip.b;
 	int rows = yb - y; if (rows <= 0) return;
+	if (p->bits == screen_bits) beam(g_time);
 	const uint8_t *s = im->data, *end = im->data + im->size;
 	for (int k = 0; k < skipy && s + 2 <= end; k++) s += 2 + ru16(s);
 	for (int k = 0; k < rows && s + 2 <= end; k++) {
@@ -568,6 +775,7 @@ static void draw_chunky(int mode, int x, int y, const img *im)
 	if (y < p->clip.t) { skipy = p->clip.t - y; y = p->clip.t; }
 	int yb = y + im->h - skipy; if (yb > p->clip.b) yb = p->clip.b;
 	int rows = yb - y; if (rows <= 0) return;
+	if (p->bits == screen_bits) beam(g_time);
 	uint8_t inv = (mode & 7) >= 4 ? 0xFF : 0;
 	for (int k = 0; k < rows; k++) {
 		const uint8_t *s = im->data + (skipy + k) * im->stride + skipx;
@@ -637,7 +845,7 @@ static int say_text(int base, int t, int off, int n) { sound_preload(base + off)
 
 /* ------------------------------------------------------------------ palette fades (2631) */
 typedef struct { int delay, step, mask; uint8_t target[768], out[768], start[768]; } fade_t;
-static double fade_alloc_cyc = 300000;
+static double fade_alloc_cyc = 900;     /* (194C:19DC allocates the fade's 0x916 bytes, 2812:1F36 clears them) */
 static int fade_countdown(void) { return countdown[3]; }       /* DS:24E2 */
 /* 2631:0296: set the palette banks of mask from pal (NULL: black) */
 static void setpal_banks(const uint8_t *pal, int mask)
@@ -660,7 +868,7 @@ static void getpal_banks(uint8_t *dst, int mask)
 static fade_t *fade_new(int delay, int mask, const uint8_t *target)
 {
 	fade_t *f = calloc(1, sizeof *f);
-	cpu(fade_alloc_cyc);               /* (194C:19DC allocates 0x916 bytes: the heap work takes a while) */
+	cpu(fade_alloc_cyc);
 	f->mask = mask & 0xFFFF; f->delay = delay;
 	getpal_banks(f->start, f->mask);
 	memcpy(f->out, f->start, 768);
@@ -674,6 +882,7 @@ static int fade_step(fade_t *f)
 	if (fade_countdown()) return 0;
 	countdown[3] = (uint16_t)f->delay;
 	int s = ++f->step;
+	for (int b = 0; b < 16; b++) if (f->mask & (1 << b)) cpu(1152);       /* (the oracle: 18429 cycles for 16 banks) */
 	for (int b = 0; b < 16; b++) if (f->mask & (1 << b))
 		for (int i = b * 48; i < b * 48 + 48; i++) {
 			int d = ((int)f->target[i] - (int)f->start[i]) * s;
@@ -980,7 +1189,8 @@ static int play_anim(const shplist *l, int base, int n, int with_bg, anim_cb cb0
 	}
 	anim *a = anim_new(with_bg, l->count, 1, l, script, size);
 	a->cb[0] = cb0;
-	n_snd_loaded = 0;            /* (the anim's images fill the heap: the sounds loaded before are purged, reloaded when played) */
+	n_snd_loaded = 0;            /* (the anim's images fill the heap: the sounds loaded before are purged, read and prepared again when played) */
+	{ int k = 0; for (int i = 0; i < n_res_mem; i++) if (memcmp(res_mem[i].tag, "_SND", 4)) res_mem[k++] = res_mem[i]; n_res_mem = k; }
 	{ int psz; const uint8_t *psl = res_get("_PSL", base + n, &psz);     /* (32D4:0C9D: the sounds it plays) */
 	  if (psl) for (int i = 0; i < rd16(psl) && 2 + 2 * i + 2 <= psz; i++) sound_preload(ru16(psl + 2 + 2 * i)); }
 	int r, stopped = 0;
@@ -1012,6 +1222,7 @@ static font font_load(int id)                  /* 194C:4F8C */
 	font f; memset(&f, 0, sizeof f);
 	f.r = res_get("FONT", id, &f.size);
 	if (!f.r) { fprintf(stderr, "nis: no font %d\n", id); return f; }
+	cpu(f.size * 38.5);                        /* (the oracle: ~130000 cycles for the 2914 bytes of font 10 or 11) */
 	f.first = f.r[0]; f.last = f.r[1]; f.ascent = rd16(f.r + 2); f.descent = rd16(f.r + 4); f.leading = rd16(f.r + 6); f.spacing = rd16(f.r + 8);
 	return f;
 }
@@ -1035,6 +1246,7 @@ static void draw_glyph(const uint8_t *g, int x, int y, int color)
 	y -= p->bounds.t; int skipy = 0;
 	if (y < p->clip.t) { skipy = p->clip.t - y; y = p->clip.t; }
 	int yb = y + h - skipy; if (yb > p->clip.b) yb = p->clip.b;
+	if (p->bits == screen_bits) beam(g_time);
 	for (int k = 0; k < yb - y; k++) {
 		const uint8_t *row = g + 6 + (skipy + k) * stride;
 		uint8_t *d = p->bits + (y + k) * p->rowbytes + x;
@@ -1225,6 +1437,7 @@ static void dissolve_copy(int level, port *dst, port *src, const rect *dr, const
 	if (h <= 0 || w <= 0) return;
 	uint16_t x = dis_seed; int phase = 0;
 	for (int y = 0; y < h; y++) {
+		if (dst->bits == screen_bits) beam(g_time + (uint64_t)(y * (20 + w * 14.0)));
 		uint8_t *d = dst->bits + (dt + y) * dst->rowbytes + dl;
 		const uint8_t *s = src->bits + (st + y) * src->rowbytes + sl;
 		for (int i = 0; i < w; i++) {
@@ -1268,17 +1481,21 @@ static int dissolve(int32_t dur, const rect *r, port *src, int mode)
 	int32_t el;
 	if (dis_cache.valid && dis_cache.mode == mode && dis_cache.area == area) el = dis_cache.elapsed;
 	else {
-		/* (two steps of ~19 cycles a pixel, timed in ticks; 0 counts as 1) */
+		/* (33B9:021A: two steps at level 0xFF into the source port itself, each a dissolve copy and a CopyBits, timed in
+		 * ticks; 0 counts as 1) */
 		uint32_t t0 = g_tick;
-		cpu(2.0 * area * 19);
+		int w = r->r - r->l, h = r->b - r->t;
+		for (int k = 0; k < 2; k++) cpu(h * (20 + w * 14.0) + h * (20 + w / 2.0) + 500);
 		el = (int32_t)(g_tick - t0); if (!el) el = 1;
 		dis_cache.valid = 1; dis_cache.mode = mode; dis_cache.area = area; dis_cache.elapsed = el;
+		trace("dis_cal", area, el);
 	}
 	int32_t n = 2 * dur / el;
 	if (n <= 5) n = 0; else if (n > 255) n = 0xFE;
 	d.lvl0 = 0xFF / (n + 1);
 	d.half = dur / (0xFF / d.lvl0);
 	int key = 0, done;
+	trace("dissolve", r->r - r->l, r->b - r->t);
 	do {                               /* (as fast as the machine goes) */
 		key = key_pressed();
 		done = dissolve_step(&d);
@@ -1381,11 +1598,13 @@ static int scene_story1(void)
 	if (!r) { show_text(27000, 2); r = wait_or_time(27001); }
 	if (!r) {
 		countdown[0] = 0x2D;
+		sound_preload(27002);                        /* (2D7D:28C6) */
 		r = wait_countdown(0);
 		if (!r) r = say_text(27000, 3, 2, 0xB8);
 	}
 	if (!r) {
 		countdown[0] = 0x55;
+		sound_preload(27003);                        /* (2D7D:2904) */
 		wait_countdown(0);
 		play_or_time(27003, 0xFE);
 		countdown[0] = 0xAA;
@@ -1404,7 +1623,7 @@ static int scene_story1(void)
 			}
 		}
 	}
-	if (!r) { r = wait_cue(0x65); if (!r) r = say_text(27000, 6, 4, 0xDF); if (!r) r = timer_wait(0, 0x14); }
+	if (!r) { sound_preload(27004); r = wait_cue(0x65); if (!r) r = say_text(27000, 6, 4, 0xDF); if (!r) r = timer_wait(0, 0x14); }   /* (2D7D:29EE) */
 	if (!r) r = say_text(27000, 7, 5, 0x87);
 	if (!r) {
 		r = wait_cue(0x66);
@@ -1454,8 +1673,8 @@ static int scene_story1(void)
 		r = wait_cue(0x61);
 		if (!r) r = pic_fade_in(P, 0);
 	}
-	if (!r) { r = wait_cue(0x62); if (!r) r = say_text(27000, 15, 13, 0xD0); if (!r) r = timer_wait(0, 0x14); }
-	if (!r) { r = wait_cue(0x63); if (!r) r = say_text(27000, 16, 14, 0x91); if (!r) r = timer_wait(0, 0x5A); }
+	if (!r) { sound_preload(27013); r = wait_cue(0x62); if (!r) r = say_text(27000, 15, 13, 0xD0); if (!r) r = timer_wait(0, 0x14); }   /* (2D7D:2D6D) */
+	if (!r) { sound_preload(27014); r = wait_cue(0x63); if (!r) r = say_text(27000, 16, 14, 0x91); if (!r) r = timer_wait(0, 0x5A); }   /* (2D7D:2DB2) */
 	fade_out_clear();
 	if (r) sound_stop_all();
 	port_free(P);
@@ -1922,18 +2141,21 @@ static void img_mirror(img *im)
 {
 	if (!im || im->kind != 1) return;
 	uint8_t *p = im->data, *end = im->data + im->size, *tmp = malloc(im->size + 2);
+	double c = 400;                                            /* (0823:1447: its cost, from the code) */
 	for (int y = 0; y < im->h && p + 2 <= end; y++) {
 		int len = ru16(p); uint8_t *q = p + 2, *e = q + len, *d = tmp + len;
 		if (e > end) break;
+		c += 25 + len;
 		while (q < e && d > tmp) {
-			uint8_t c = *q++;
-			if (c & 0x80) { d -= 2; d[0] = c; d[1] = *q++; }
-			else { int n = c + 1; d -= n + 1; d[0] = c; for (int i = 0; i < n; i++) d[n - i] = *q++; }
+			uint8_t c8 = *q++;
+			if (c8 & 0x80) { d -= 2; d[0] = c8; d[1] = *q++; c += 11; }
+			else { int n = c8 + 1; d -= n + 1; d[0] = c8; for (int i = 0; i < n; i++) d[n - i] = *q++; c += 10 + 4 * n; }
 		}
 		memcpy(p + 2, tmp, len);
 		p = e;
 	}
 	free(tmp);
+	cpu(c);
 }
 /* 2D7D:03A2: mirror the images 0x191..0x1B4 of an anim (none in the 400-image list of FINAL.DAT) */
 static void anim_mirror(anim *a) { for (int n = 0x191; n <= 0x1B4; n++) img_mirror(anim_img(a, n)); }
@@ -1945,6 +2167,7 @@ static void mirror_chunky(img *im)
 		uint8_t *p = im->data + y * im->stride, *q = p + im->w - 1;
 		while (p < q) { uint8_t t = *p; *p++ = *q; *q-- = t; }
 	}
+	cpu(100 + im->h * (8 + 3.0 * (im->w + 1)));                /* (0823:1414: 6 instructions a pair of pixels) */
 }
 /* 26BC:08B2: draw image n of a list (mirrored first by 0823:1414 when flip) with 194C:511C (-> 6D42, DS:247C) */
 static void draw_shape_flip(const shplist *l, int n, int x, int y, int mode, int flip)
@@ -2161,8 +2384,14 @@ static nis_kid kid_state = { 0, 0, 0, 0 };
 static void engine_room(int level, int room)
 {
 	trace("engine_room", level, room);
+	if (the_port->bits == screen_bits) beam(g_time);
 	if (room_fn) room_fn(level, room, the_port->bits, the_port->rowbytes, room_user);
 	else fprintf(stderr, "nis: engine hook: level %d room %d not drawn (0AAC:0376)\n", level, room);
+	/* the time it takes (the oracle, cycles of the scene's own work, the interrupts' apart): loading the level and its
+	 * images, drawing the room (0AAC:0376 to 03F6 and on to 042C: level 10 room 22 15.06 M, level 14 room 1 8.83 M),
+	 * then 2A31:0D03 reloading the scenes' overlay the engine's code displaced (3.82 M) */
+	cpu(level == 10 ? 15060000 : level == 14 ? 8830000 : 10000000);
+	cpu(3820000);
 }
 /* 2D7D:03F1 / 0440: mirror the anim's images 0xFA..0x107 / 0x10 (packed pixels, 0823:1414); 2D7D:03A2 is anim_mirror */
 static void anim_mirror_chunky(anim *a) { for (int n = 0xFA; n <= 0x107; n++) mirror_chunky(anim_img(a, n)); }
@@ -2281,7 +2510,7 @@ static int cb_1B46(anim *a, int arg)           /* transition 5, anim 1: 0 mirror
 	if (arg == 0) { anim_mirror_chunky(a); t5_stamp(a); }
 	else {
 		if (arg == 1) sound_play(31031);
-		const uint8_t *p = palt_raw(25000 + arg);
+		const uint8_t *p = res_find("PALT", 25000 + arg, NULL);
 		if (p) { uint8_t pal[768]; palt_get(25000 + arg, pal); setpal(0, 256, pal, 1); }
 	}
 	return 0;
@@ -2579,6 +2808,7 @@ static int play_scene(int n)
 	return r;
 }
 static int scene_list[16], scene_count;
+static const double nis_start_ofs = 114000, nis_intro_ofs = 92000, nis_c1_ofs = 120000;
 static void scene_main(void)
 {
 	int r = 0;
@@ -2586,11 +2816,15 @@ static void scene_main(void)
 	if (cur_scene == 11) res_open("FINAL.DAT");     /* (the file of the last levels, DS:0531: open when the ending comes) */
 	/* the NISn cheat (0AAC:01E0..026B) before each play: NIS1 opens CAVERNS.DAT and starts the music 10034, NIS5 (re)opens
 	 * FINAL.DAT, the others RUINS.DAT */
+	/* where the frame and the 60 Hz timer are when play_scene comes (the oracle's frames of its ticks: the NISn cheat
+	 * calls it ~114000 cycles after a retrace, 6000 after a tick; the intro ~92000 after, 229000 before the next tick) */
+	if (!tick_fn) { pit_base = g_time + (cur_scene == NIS_INTRO ? 320600 : 108000) - TICK_CYC; pit_k = 0; pit_div = TICK_DIV; pit_next(); }
 	if (cur_scene >= 1 && cur_scene <= 6) {
-		if (cur_scene == 1) { res_open("CAVERNS.DAT"); nis_event_fn e = event_fn; event_fn = NULL; sound_play(10034); event_fn = e; }
+		if (cur_scene == 1) { res_open("CAVERNS.DAT"); cpu(nis_c1_ofs); nis_event_fn e = event_fn; event_fn = NULL; sound_play(10034); event_fn = e; }
 		else if (cur_scene == 5) { res_close("FINAL.DAT"); res_open("FINAL.DAT"); }
 		else res_open("RUINS.DAT");
 	}
+	if (cur_scene != 1) cpu(cur_scene == NIS_INTRO ? nis_intro_ofs : nis_start_ofs);
 	/* 0823:01CA: the intro plays 7, 4, 8 while no key stops it */
 	for (int i = 0; i < scene_count && r != 2; i++) { r = play_scene(scene_list[i]); if (r) r = 2; }
 	scene_result = r;
@@ -2600,19 +2834,22 @@ static void scene_main(void)
 static void reset_state(void)
 {
 	nfiles = 0; g_frame = 0; g_tick = 0; g_time = 0; g_abort = 0; scene_done = 0; scene_result = 0;
-	isr_music = 0; isr_acc = 0; next_isr = TICK_CYC / 2;
-	if (getenv("NIS_ISR_MISS")) isr_miss_cyc = (uint32_t)atoi(getenv("NIS_ISR_MISS"));
+	isr_music = 0; isr_acc = 0; pit_base = 0; pit_k = 0; pit_div = TICK_DIV; pit_next();
 	if (getenv("NIS_FADE_CYC")) fade_alloc_cyc = atof(getenv("NIS_FADE_CYC"));
 	if (getenv("NIS_CPU")) cpu_scale = atof(getenv("NIS_CPU"));
 	memset(countdown, 0, sizeof countdown); memset(&mus, 0, sizeof mus); memset(&digi, 0, sizeof digi); cue = 0;
-	memset(dac, 0, sizeof dac); memset(screen_bits, 0, sizeof screen_bits);
+	for (int i = 0; i < 16; i++) mus.map[i] = (uint8_t)i;
+	memset(&fm, 0, sizeof fm); fm.count = fm_bank_count; fm_reset(); opl_writes = 0; mus_events_sent = 0; isr_lost = 0;
+	memset(screen_bits, 0, sizeof screen_bits);
+	if (init_dac_set) memcpy(dac, init_dac, sizeof dac); else { memset(dac, 0, sizeof dac); memcpy(dac + 0xE0 * 3, bios_e0, sizeof bios_e0); }
 	screen_port.clip = (rect){0, 0, H, W}; the_port = &screen_port;
 	draw_limit = 0; anim_cb_arg = 0; timer_target = 0; n_anim_frames = 0; n_snd_loaded = 0;
-	r_13b8 = (rect){126, 140, 175, 180}; scr_patch_id = 0; text_top = 0;
+	r_13b8 = (rect){126, 140, 175, 180}; scr_patch_id = 0; text_top = 0; n_res_mem = 0;
 }
 int nis_open(const char *dir, int scene)
 {
 	snprintf(g_dir, sizeof g_dir, "%s", dir);
+	{ char p[640]; snprintf(p, sizeof p, "%s/PRESETS.DEF", dir); FILE *f = fopen(p, "rb"); int c = f ? fgetc(f) : EOF; if (f) fclose(f); fm_bank_count = c > 0 ? c : 1; }   /* (MIDI.DRV function 6: the bank) */
 	if (!dat_load("PRINCE.DAT") || !dat_load("NIS.DAT")) { fprintf(stderr, "nis: no game files in %s\n", dir); return 0; }
 	reset_state();
 	memset(&dis_cache, 0, sizeof dis_cache);
@@ -2629,20 +2866,21 @@ static void do_tick(void)              /* the 60 Hz tick (194C:7EE7) */
 {
 	g_tick++;
 	for (int k = 0; k < 4; k++) if (countdown[k]) countdown[k]--;
-	if (digi.playing && g_tick >= digi.end_tick) { digi.playing = 0; snd_event(NIS_SND_STOP, digi.id); }
 }
 int nis_step(uint8_t *screen, uint8_t *pal)
 {
 	if (scene_done) { if (screen) memcpy(screen, screen_bits, sizeof screen_bits); if (pal) memcpy(pal, dac, 768); return 0; }
+	scan_row = 0;
 	g_frame++;
-	uint64_t start = (uint64_t)g_frame * FRAME_CYC;
+	uint64_t start = fstart(g_frame);
 	if (tick_fn) { uint32_t t = tick_fn(g_frame, tick_user); while (g_tick < t) do_tick(); if (g_time < start) g_time = start; }
 	else advance(start);
 	/* what the monitor shows during this frame: the pixels as the frame begins (a change the scene makes during the
 	 * frame shows from the next one), the palette as set at the retrace that begins it (the scenes set the palette
 	 * right after a retrace wait) */
-	if (screen) memcpy(screen, screen_bits, sizeof screen_bits);
 	swapcontext(&main_ctx, &scene_ctx);
+	beam(fstart(g_frame + 1));
+	if (screen) memcpy(screen, scan_bits, sizeof scan_bits);
 	if (pal) memcpy(pal, dac, 768);
 	return !scene_done;
 }
@@ -2652,7 +2890,9 @@ void nis_set_tick_source(nis_tick_fn fn, void *user) { tick_fn = fn; tick_user =
 void nis_abort(void) { g_abort = 1; }
 void nis_set_room_hook(nis_room_fn fn, void *user) { room_fn = fn; room_user = user; }
 void nis_set_kid(const nis_kid *k) { if (k) kid_state = *k; }
+void nis_set_palette(const uint8_t *pal) { init_dac_set = pal != NULL; if (pal) for (int i = 0; i < 768; i++) init_dac[i] = pal[i] & 0x3F; }
 void nis_set_event_callback(nis_event_fn fn, void *user) { event_fn = fn; event_user = user; }
 uint32_t nis_frame(void) { return g_frame; }
+double nis_frame_pos(void) { double x = (double)((int64_t)(g_time - fstart(g_frame))) / FRAME_CYC; return x < 0 ? 0 : x; }
 uint32_t nis_tick(void) { return g_tick; }
 uint32_t nis_anim_frames(void) { return n_anim_frames; }

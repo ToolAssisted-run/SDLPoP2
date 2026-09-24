@@ -248,7 +248,7 @@ void hook_desert_tile1e(void) { if (hooks_on) render_desert_tile1e_tick(); }    
 void hook_desert_press(int col) { if (hooks_on) render_desert_press(col); }       /* 33FD:0904 */
 void hook_lever5_mouth(void) { if (hooks_on) render_lever5_mouth_tick(); }           /* 37F0:0756 */
 void hook_lever5_trap(void) { if (hooks_on) render_lever5_trap_tick(); }             /* 37F0:053B */
-void hook_water_wave(int8_t tp, uint8_t v) { if (hooks_on) render_water_tick(tp, v); }   /* 37F0:06CE */
+void hook_bridge_sway(int8_t tp, uint8_t v) { if (hooks_on) render_bridge_tick(tp, v); }   /* 37F0:06CE */
 void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m)   /* 33FD:0680 / 08C0 / 05AC (level 1) */
 {
 	if (!hooks_on) return;
@@ -325,6 +325,7 @@ int sh_scene(int n)
 		/* (nis.c derives its 60 Hz ticks from its frames, at the same nominal rate as the shell's clock) */
 		nis_set_sound_callback(nis_sound, NULL); nis_set_room_hook(nis_room, NULL);
 		if (n == 6) { nis_kid k = { (int8_t)Kid.direction, Kid.x, Kid.y, char_x_left }; nis_set_kid(&k); }   /* 0AAC:0442 (DS:5B37 / 5B38 / 5B3A, DS:6116) */
+		nis_set_palette(render_palette);   /* (the DAC as the scene finds it: transition 6 keeps colours 0xE0..0xFF, its item bank 15) */
 		cur_scene = n;
 		if (nis_open(game_dir, n)) {
 			int aborted = 0, save_poll = poll_menu; poll_menu = 2;   /* 2D7D:4A6A: DS:1F32 = 2D7D:49F6 while it plays */

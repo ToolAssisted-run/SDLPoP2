@@ -4,12 +4,14 @@
  *   nistest DATADIR SCENE EVENTS SHOTDIR [window [nth]]       (SCENE "intro": 7, 4, 8 in a row)
  *
  * EVENTS: the capture's -snap.txt (tools/nisoracle.py probes); nth: which play_scene of the capture (the NISn cheat
- * replays the scene forever; default 0). The game spends CPU and disk time the model does not have (unpacking images,
- * loading resources), so the frames are matched through checkpoints both sides log: the animation frames (32D4:0852),
- * fades (2631:037E), sounds started (194C:840E), texts (2D7D:01AF), dissolves (33B9:0000), animations started
- * (32D4:0BE4), the music's cue points (194C:314B), scenes (0AAC:0274). A shot taken d frames after the oracle's k-th checkpoint is compared with our frame d frames after our
- * k-th checkpoint ("synced"), and also with our frames up to +-window around it ("best"): a mismatch that vanishes
- * nearby is timing, one that stays is drawing. Summary: shots, exact synced, exact within the window. */
+ * replays the scene forever; default 0). The model's time is only as good as its cycle counts, so the frames are matched
+ * through checkpoints both sides log: the animation frames (32D4:0852), fades (2631:037E), sounds started (194C:840E),
+ * texts (2D7D:01AF), dissolves (33B9:0000), animations started (32D4:0BE4), the music's cue points (194C:314B), scenes
+ * (0AAC:0274). Our checkpoint's time is put in the oracle's frame numbering (below: the oracle's frames are slices of
+ * emulated milliseconds, not retrace to retrace); a shot of oracle frame F shows the picture scanned after the retrace
+ * of frame F - 1. A shot taken d frames after the oracle's k-th checkpoint is compared with our frame d - 1 frames
+ * after our k-th checkpoint ("synced"), and also with our frames up to +-window around it ("best"): a mismatch that
+ * vanishes nearby is timing, one that stays is drawing. Summary: shots, exact synced, exact within the window. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +26,14 @@ static void room_hook(int lv, int room, uint8_t *pixels, int rowbytes, void *u) 
 
 #define MAXE 20000
 typedef struct { int ev; long frame; } cp;
+/* The oracle's frames are slices of emulated time, frame f ending when its millisecond clock reaches floor((f + 1) T)
+ * (T = 1000 / 70.0863 ms, oracle-run's dosdrv_frame); the monitor's retraces come at psi + f T (psi measured from the
+ * polling loops' retrace probes, 194C:7A3D: 2.87 ms), so the retrace of our frame g is the oracle's retrace g + J,
+ * J = the oracle frame of the scene's start - 1. */
+#include <math.h>
+static const double T_MS = 1000.0 / 70.08630289532294;
+static double psi_ms = 2.87; static long J;
+static long oracle_frame(long g, double pos) { double t = psi_ms + (g + J + pos) * T_MS; long f = (long)floor(t / T_MS); while (floor((f + 1) * T_MS + 1e-9) <= t) f++; while (f > 0 && floor(f * T_MS + 1e-9) > t) f--; return f; }
 static cp ocp[MAXE], mcp[MAXE]; static int no, nm;
 static long o_start = -1, o_end = -1;
 
@@ -63,7 +73,13 @@ static void load_events(const char *path, int scene, int nth)
 	fclose(fp);
 }
 static int intro_mode;
-static void on_event(int ev, uint32_t frame, void *u) { (void)u; if ((ev == NIS_EV_SCENE && !intro_mode) || ev == NIS_EV_SETPAL || ev == NIS_EV_DIS_STEP) return; if (nm < MAXE) { mcp[nm].ev = ev; mcp[nm].frame = frame; nm++; } }
+/* our checkpoint in the oracle's frame numbering (relative to the scene's start, as the oracle's) */
+static void on_event(int ev, uint32_t frame, void *u)
+{
+	(void)u;
+	if ((ev == NIS_EV_SCENE && !intro_mode) || ev == NIS_EV_SETPAL || ev == NIS_EV_DIS_STEP) return;
+	if (nm < MAXE) { mcp[nm].ev = ev; mcp[nm].frame = oracle_frame(frame, nis_frame_pos()) - J; nm++; }
+}
 static uint8_t *read_tga(const char *path)
 {
 	FILE *fp = fopen(path, "rb"); if (!fp) return NULL;
@@ -109,7 +125,7 @@ static long map_frame(long f, int *k_out)
 	for (int i = 0; i < no && ocp[i].frame <= f; i++) k = i;
 	for (; k >= 0; k--) {
 		int nth = 0; for (int i = 0; i < k; i++) if (ocp[i].ev == ocp[k].ev) nth++;
-		for (int j = 0; j < nm; j++) if (mcp[j].ev == ocp[k].ev && nth-- == 0) { *k_out = k; return mcp[j].frame + (f - ocp[k].frame); }
+		for (int j = 0; j < nm; j++) if (mcp[j].ev == ocp[k].ev && nth-- == 0) { *k_out = k; return mcp[j].frame + (f - ocp[k].frame) - 1; }
 	}
 	*k_out = -1;
 	return f;
@@ -119,6 +135,8 @@ int main(int argc, char **argv)
 	if (argc < 5) { fprintf(stderr, "usage: nistest DATADIR SCENE EVENTS SHOTDIR [window [nth]]\n"); return 2; }
 	int scene = !strcmp(argv[2], "intro") ? NIS_INTRO : atoi(argv[2]), window = argc > 5 ? atoi(argv[5]) : 4, nth = argc > 6 ? atoi(argv[6]) : 0;
 	load_events(argv[3], scene, nth); intro_mode = scene == NIS_INTRO;
+	if (getenv("NIS_PSI")) psi_ms = atof(getenv("NIS_PSI"));
+	J = o_start - 1;
 	if (o_start < 0) { fprintf(stderr, "no play_scene %d in %s\n", scene, argv[3]); return 1; }
 #ifdef NIS_ENGINE
 	if (!pop2_init(argv[1])) { fprintf(stderr, "pop2_init failed\n"); return 2; }

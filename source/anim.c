@@ -115,7 +115,7 @@ static void animate_tile(void)
 	else if (t == 0xD && (level_kind == 2 || level_kind == 4)) anim_blade();   /* 33FD:0000 (OVL05) */
 	else if (t == 0x2C) anim_tile2c();   /* */
 	else if (t == 0x2B) anim_tile2b();
-	else if (t == 0x1B) anim_tile1b();   /* 2A31:0DB7 -> 37F0:0676 (lever5.c) */   /* 2A31:0E07 -> 37F0:040A (shadow13.c) */   /* 2A31:0DCB -> 37F0:0588 (water.c) */
+	else if (t == 0x1B) anim_tile1b();   /* 2A31:0DB7 -> 37F0:0676 (lever5.c) */   /* 2A31:0E07 -> 37F0:040A (shadow13.c) */   /* 2A31:0DCB -> 37F0:0588 (bridge5.c) */
 	else if (level_kind == 6 && t == 0x1F) anim_tile1f();   /* 33FD:15A2 (OVL08, final.c) */
 	else if (level_kind == 6 && t == 0x28) anim_tile28();   /* 33FD:162A */
 	else if (level_kind == 6 && t == 0x29) anim_tile29();   /* 33FD:17AC */

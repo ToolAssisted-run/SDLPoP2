@@ -8,7 +8,7 @@ sdlpop2Sources = files(
   'render_kind3.c', 'render_kind4.c', 'render_kind_common.c', 'render_kind_desc.c', 'render_ovl37f0.c',
   'render_palette.c', 'render_screen.c', 'render_sprites.c', 'render_tiles.c', 'room.c', 'roomhooks.c', 'ruins.c',
   'seq.c', 'shadow13.c', 'shell.c', 'skeleton.c', 'sound.c', 'spirit.c', 'state.c', 'temple.c', 'text.c', 'tick.c',
-  'tiles.c', 'trap.c', 'walls.c', 'water.c',
+  'tiles.c', 'trap.c', 'walls.c', 'bridge5.c',
 )
 
 mathDependency = meson.get_compiler('c').find_library('m', required : false)

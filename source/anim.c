@@ -48,6 +48,7 @@ static void anim_27(void)         /* 33FD:058A */
 /* 1375:04CE: animations off screen stop */
 static int anim_visible(void) { int v = tile_visible(cur_trob.tilepos, cur_trob.room); if (!v) cur_trob.state = 0xFF; return v; }
 /* 1375:08D0 / 0D0A: torches pick a new random frame (kind 3: 33FD:0BC2) */
+static int anim_index;   /* the entry animate_tiles is at (1375:0006 passes it on: 1375:08D0's argument) */
 static void anim_torch(void)
 {
 	if (!anim_visible()) return;
@@ -55,6 +56,7 @@ static void anim_torch(void)
 	if (level_kind == 3) { v = random_2751(8); if (v == cur) { v++; if (v >= 9) v = 0; } }
 	else v = ovl_torch_347c(cur);
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFF00) + v);
+	if (word_2ba4 == 0 || ((uint8_t)(tick + anim_index) & 1)) hook_trob_request(0x1F4, 0);   /* (late: every other tick, torch by torch) */
 }
 /* 1375:088C: tile 0x0A cycles 0..0x1B while visible */
 static void anim_0a(void)
@@ -63,6 +65,7 @@ static void anim_0a(void)
 	if ((int8_t)cur_trob.state < 0 || !anim_visible()) return;
 	int v = (uint8_t)anim_mod & 0x1F; v = v >= 0x1B ? 0 : v + 1;
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFFE0) | v);
+	hook_trob_request(0x2D0, 0);
 }
 /* 1375:0C66: the level door opens (states 0..3, +1 up to 0x2A) or closes (4.., DS:0764 speeds) */
 static void anim_exit_door(void)
@@ -77,6 +80,7 @@ static void anim_exit_door(void)
 		else if (!(drawn_room == 4 && level_number == 13)) play_sound(7);
 	}
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFF00) + si);
+	hook_trob_request(0x274, 0);
 }
 /* 1375:13C0: a torch starts at a random frame */
 static void start_torch(int8_t tp, uint8_t room)
@@ -131,7 +135,7 @@ void animate_tiles(void)
 	if (trob_count == 0) return;
 	int removed = 0;
 	for (int i = 0; i < (int16_t)trob_count; i++) {
-		cur_trob = trobs[i]; animate_tile(); trobs[i].state = cur_trob.state;
+		cur_trob = trobs[i]; anim_index = i; animate_tile(); trobs[i].state = cur_trob.state;
 		if ((int8_t)cur_trob.state < 0) removed = 1;
 	}
 	if (removed) { int n = 0; for (int i = 0; i < (int16_t)trob_count; i++) if ((int8_t)trobs[i].state >= 0) trobs[n++] = trobs[i]; trob_count = n; }

@@ -8,7 +8,8 @@
  * Prints the shell's mode changes, level starts and exits as "frame=N event ...". Keys typed while held repeat as
  * DOSBox's keyboard does (500 ms, then every 33 ms).
  * SHELL_CMP=SNAPFILE compares the game state at every tick start with the oracle's ds_tick probes (DS:2900..6C00) of
- * that capture, in order (SHELL_CMP_SKIP=n skips the first n samples), and prints the differing fields.
+ * that capture, in order (SHELL_CMP_SKIP=n skips the first n samples), and prints the differing fields; with SHELL_LOAD=1
+ * the game then goes on from the capture's state (the screens then test the drawing alone).
  * Also `probepoke ds_tick N PHYS HEX` (tools/plan2script.py): at the N-th tick's start, the key table (DS:1D00, phys
  * 3CF50; kept held for the frames after), the BIOS shift flags (phys 417) or a DS variable, as the oracle writes them.
  * SHELL_VRAM=FRAMES (a tools/framecap.py capture with VRAM_STEP, run with SHELL_CMP on its own ds_tick probes and
@@ -110,6 +111,7 @@ static void tick_cmp(void)
 	ticks_seen++;
 	if (d && getenv("SHELL_CMP_LIST")) { printf("sample %d differs:", cur_sample); for (int i = 0; regions[i]; i++) { const char *one[2] = {regions[i], NULL}; if (snap_diff(got, samples[cur_sample], one, 0)) printf(" %s", regions[i]); } printf("\n"); }
 	if (d) { bad_ticks++; if (bad_ticks <= 5) { printf("frame=%d tick sample %d (tick %u): %d fields differ\n", cmp_frame, cur_sample, (unsigned)tick, d); snap_diff(got, samples[cur_sample], regions, 1); } }
+	if (getenv("SHELL_LOAD")) snap_load(samples[cur_sample]);   /* (the capture's state from here: only the drawing is compared) */
 	cur_sample++;
 }
 /* ---- probepoke ds_tick N (plans): applied at the N-th tick start ---- */

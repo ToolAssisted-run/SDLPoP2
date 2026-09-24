@@ -253,6 +253,7 @@ void hook_room_leave(int bg) { if (hooks_on) render_room_leave_palette(bg); }
 void hook_desert_gate(int8_t tp) { if (hooks_on) render_desert_gate_tick(tp); }   /* 33FD:0576 */
 void hook_desert_wave(int8_t tp) { if (hooks_on) render_desert_wave_tick(tp); }   /* 33FD:067C / 0708 */
 void hook_desert_tile1e(void) { if (hooks_on) render_desert_tile1e_tick(); }      /* 33FD:08BE */
+void hook_trob_request(int which, uint16_t arg) { if (hooks_on) render_trob_request(which, arg); }   /* 1375:01F4..0416 */
 void hook_desert_press(int col) { if (hooks_on) render_desert_press(col); }       /* 33FD:0904 */
 void hook_lever5_mouth(void) { if (hooks_on) render_lever5_mouth_tick(); }           /* 37F0:0756 */
 void hook_lever5_trap(void) { if (hooks_on) render_lever5_trap_tick(); }             /* 37F0:053B */

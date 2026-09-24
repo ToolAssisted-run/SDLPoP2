@@ -97,6 +97,7 @@ void press_button(int link, uint8_t tile)
 		if ((int8_t)timer < 2) {
 			add_trob(tile, 1, curr_tilepos, curr_room);
 			if (Char.frame != 0xB9 && !(curr_room == 4 && level_number == 13)) play_sound(3);
+			hook_trob_request(0x2F8, 0);
 			trigger_links(link, tile); word_6140 = 1;
 			*attr_lo(room, tp) = mod; return;
 		}
@@ -113,7 +114,7 @@ void anim_button(void)
 	uint8_t link = (uint8_t)anim_mod, timer = link_timer(link);
 	if ((int8_t)timer >= 0x1F) { cur_trob.state = 0xFF; return; }
 	set_link_timer(link, timer - 1);
-	if ((int8_t)timer < 2) { cur_trob.state = 0xFF; anim_mod &= ~0x800u; }
+	if ((int8_t)timer < 2) { cur_trob.state = 0xFF; hook_trob_request(0x2F8, 0); anim_mod &= ~0x800u; }
 }
 
 /* 1375:0910: gate animation. Position (modifier low byte) 0 closed .. 200 open, 0xFF stuck open.
@@ -151,11 +152,12 @@ void anim_gate(void)
 		goto write;
 	}
 	if (si >= 0xC8) {
-		if (st < 3) { si = 0xFA; cur_trob.state = 0; }
+		if (st < 3) { hook_trob_request(0x388, 0); si = 0xFA; cur_trob.state = 0; }
 		else { si = 0xFF; gate_done(0xFF); }
 	}
 write:
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFF00) + si);
+	if (si <= 0xC8) hook_trob_request(0x388, 0);
 }
 
 /* 1375:184E: something heavy lands on / steps on a loose floor (arg = fall speed, 0 = just stepped on) */
@@ -212,6 +214,7 @@ void anim_loose(void)
 	cur_mob.speed = (int8_t)cur_trob.state; cur_mob.w7 = 0; cur_mob.type = si; cur_mob.row = cur_trob.tilepos / 10; cur_mob.wd = 0;   /* DL holds the row from the division at 1375:17BD */
 	add_mob();
 	cur_trob.state = 0xFF;
+	hook_trob_request(0x334, 0);
 }
 
 static int8_t mob_col(void) { int16_t x = cur_mob.x; return (int8_t)(x < 0 ? -((-x) >> 5) : x >> 5); }
@@ -249,7 +252,7 @@ static void mob_land(void)
 		t = curr_tile;
 		/* fall through */
 	case 1: case 2: case 0xA: case 0x24:
-		if (t == 0xA) { trob_type *tr = get_trob(tp, r); if (tr) cur_trob = *tr; }
+		if (t == 0xA) { trob_type *tr = get_trob(tp, r); if (tr) { cur_trob = *tr; hook_trob_request(0x2D0, 0); } }
 		/* fall through */
 	case 0x13: case 0x20: {
 		uint8_t t2 = get_tile(rw, c, r);

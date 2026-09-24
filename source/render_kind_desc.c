@@ -103,6 +103,79 @@ static int8_t trob_below(void)
 	if (room == room_A) return t >= 0x14 ? (int8_t)(t % 10) : 0x1E;
 	return 0x1E;
 }
+/* 1375:048E / 05BC / 060A: the animated tile itself / the one above it / the one above and right of it as the drawn
+ * room's request index (0x1E none; -1..-10 the row above) */
+static int8_t trob_self(void)
+{
+	int8_t t = (int8_t)cur_trob.tilepos; uint8_t room = cur_trob.room;
+	if (room == room_A) return t >= 0x14 && t < 0x1E ? (int8_t)(0x13 - t) : 0x1E;
+	return room == drawn_room ? t : 0x1E;
+}
+static int8_t trob_above(void)
+{
+	int8_t t = (int8_t)cur_trob.tilepos; uint8_t room = cur_trob.room;
+	if (room == drawn_room) return t < 10 ? (int8_t)(-1 - t) : (int8_t)(t - 10);
+	if (room == room_B) return t < 10 ? (int8_t)(t + 0x14) : 0x1E;
+	return 0x1E;
+}
+static int8_t trob_above_right(void)
+{
+	int8_t t = (int8_t)cur_trob.tilepos; uint8_t room = cur_trob.room;
+	if (room == drawn_room) return t % 10 == 9 ? 0x1E : t < 10 ? (int8_t)(-2 - t) : (int8_t)(t - 9);
+	if (room == room_L) return t == 9 ? -1 : t % 10 == 9 ? (int8_t)(t - 0x13) : 0x1E;
+	if (room == room_B) return t < 9 ? (int8_t)(t + 0x15) : 0x1E;
+	if (room == room_BL) return t == 9 ? 0x14 : 0x1E;
+	return 0x1E;
+}
+/* 1375:0454 with the template's words given (01F4 and 0388 copy theirs to the stack first) */
+static int trob_rect_of(const int16_t *t, int16_t *r)
+{
+	return render_rect_at_tile(grid_row((int8_t)cur_trob.tilepos, cur_trob.room), grid_col((int8_t)cur_trob.tilepos, cur_trob.room), t, r);
+}
+static void tmpl_words(uint16_t a, int16_t *t) { for (int k = 0; k < 4; k++) t[k] = (int16_t)ds_word((uint16_t)(a + 2 * k)); }
+/* the tile animations' redraw requests (1375:01F4..0416, from the tick through shell.c's hook): the rect of a template
+ * at the animated tile (DS:6672), its back layers asked again at that tile and its neighbours (1375:0DC6) */
+void render_trob_request(int which, uint16_t arg)
+{
+	int16_t t[4], r[4];
+	switch (which) {
+	case 0x1F4: {   /* 08D0: a torch (its flame reaches into the tile on the right; on the temple levels above too) */
+		int k2 = level_kind == 2;
+		tmpl_words(k2 ? 0x07CA : 0x07C2, t);
+		if (!trob_rect_of(t, r)) return;
+		if (k2) { mark_back((int8_t)cur_trob.tilepos, r); mark_back(trob_above(), r); mark_back(trob_above_right(), r); }
+		mark_back(trob_right(), r);
+		break; }
+	case 0x274:     /* 0C66: the level door */
+		if (!render_trob_rect(ds_word((uint16_t)(0x07FC + 2 * level_kind)), r)) return;
+		mark_back((int8_t)cur_trob.tilepos, r); mark_back(trob_right(), r); mark_back(trob_above(), r); mark_back(trob_above_right(), r);
+		break;
+	case 0x2D0:     /* 088C / 1C7E: tile 0x0A's bubbles */
+		if (!render_trob_rect(0x07A2, r)) return;
+		mark_back(trob_self(), r);
+		break;
+	case 0x2F8:     /* 15D4 / 16BC: a button goes down or up: the back layers of every tile under the rect */
+		if (!render_trob_rect(level_kind == 3 ? 0x07D2 : 0x07BA, r)) return;
+		mark_tiles_under(mark_back, r, 0xFF);
+		break;
+	case 0x334:     /* 170A: a loose floor falls away */
+		if (!render_trob_rect(ds_word((uint16_t)(0x07F2 + 2 * level_kind)), r)) return;
+		mark_back(trob_self(), r); mark_back(trob_right(), r);
+		if (level_kind == 3) mark_back(trob_below(), r);
+		break;
+	case 0x388: {   /* 0910: a gate (from its top when the tile above and right of it is not empty) */
+		tmpl_words(level_kind == 3 ? 0x077A : 0x0782, t);
+		int8_t ar = trob_above_right();
+		if (ar != 0x1E && ar >= 0 && !tile_is_empty_kind(ROOM_TILES(drawn_room)[ar])) t[0] = 0;
+		if (!trob_rect_of(t, r)) return;
+		mark_back((int8_t)cur_trob.tilepos, r); mark_back(trob_right(), r); mark_back(trob_above_right(), r);
+		break; }
+	case 0x416:     /* (arg: the template) 33FD:04B6, a caverns rock */
+		if (!arg || !render_trob_rect(arg, r)) return;
+		mark_back(trob_self(), r); mark_back(trob_right(), r);
+		break;
+	}
+}
 /* 33FD:08BE (tile 0x1E's animation, still moving): the back layers under DS:1498 at the tile (the animated tile's
  * own position as the index), the one right of it and the one below */
 void render_desert_tile1e_tick(void)

@@ -401,7 +401,9 @@ static int tick_requests_modelled(uint8_t t)
 {
 	return (level_kind == 1 && (t == 4 || t == 0x1C || t == 0x1D || t == 0x1E))   /* 33FD:0538 / 0658 / 06E4 / 07CE */
 	    || (level_number == 5 && (t == 0x1B || t == 0x2C))                           /* 37F0:0756 / 06CE */
-	    || (level_kind == 5 && (t == 0x25 || t == 0x26 || t == 0x27));               /* 33FD:0680 / 08C0 / 05AC */
+	    || (level_kind == 5 && (t == 0x25 || t == 0x26 || t == 0x27))                /* 33FD:0680 / 08C0 / 05AC */
+	    || t == 0x13 || t == 0x20 || t == 0xA || t == 0x11 || t == 4 || t == 5 || t == 6 || t == 0x22   /* 1375:01F4 / 02D0 / 0274 / 0388 / 02F8 */
+	    || (level_kind == 3 && t == 0x24);                                            /* 1375:0416 (33FD:04B6) */
 }
 static void mark_changed_tiles(void)
 {

@@ -76,6 +76,7 @@ void render_desert_wave_tick(int8_t tp);   /* 33FD:067C / 0708 (tiles 0x1C / 0x1
 void render_desert_tile1e_tick(void);     /* 33FD:08BE (tile 0x1E moving) */
 void render_desert_press(int col);        /* 33FD:0904 (a puzzle tile pressed) */
 int render_trob_rect(uint16_t tmpl, int16_t *r);   /* 1375:0454: the rect DS:tmpl at the animated tile (DS:6672) */
+void render_trob_request(int which, uint16_t arg);   /* 1375:01F4..0416 (which: the routine's offset): a tile animation's redraw request */
 void render_lever5_images(void); void render_lever5_entry(void); void render_lever5_mouth_tick(void); void render_lever5_trap_tick(void);   /* render_ovl37f0.c */
 void render_bridge_tick(int8_t tp, uint8_t v); void render_roof25_tick(int8_t tp); void render_roof26_tick(uint16_t m); void render_roof27_tick(uint16_t m); void render_lever5_set_saved(int v);
 void render_pal_guards(void);     /* 2D3E:0F50 */

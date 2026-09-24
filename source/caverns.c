@@ -28,7 +28,7 @@ void rock_drop(uint8_t room, int8_t tp)
 }
 
 /* 33FD:04B6 */
-static void rock_redraw(void) { if (anim_visible_pub()) return; /* 1375:0416(0x151E) queues the tile redraw */ cur_trob.state = 1; }
+static void rock_redraw(void) { if (anim_visible_pub()) { hook_trob_request(0x416, 0x151E); return; } cur_trob.state = 1; }   /* 1375:0416(0x151E) */
 /* 33FD:017C: the rock tile's release animation (attribute low nibble 0..6) */
 void anim_rock(void)
 {

@@ -4,8 +4,9 @@ name: Build
 # WrapDB wrap). The game's data files are not public, so CI runs only the tests that need none; the core, settings
 # and oracle suites run where the game files are (meson setup -DgameDir=... -DoracleTests=true).
 #
-# Every push to master publishes the rolling "dev" prerelease (assets named with the short commit); a tag v*
-# publishes a release of its own.
+# Every push to master publishes the rolling "dev" prerelease; a tag v* publishes a release of its own. The assets
+# keep the same names (sdlpop2-linux-x86_64.tar.gz, sdlpop2-windows-x86_64.zip) so the README can link to the newest
+# ones, and hold their files at the top level so they unpack straight into the game's folder.
 
 on:
   push:
@@ -53,11 +54,11 @@ jobs:
       run: meson test -C build --suite controller --print-errorlogs
     - name: Packaging
       run: |
-        name=sdlpop2-linux-x86_64-$(git rev-parse --short=8 HEAD)
-        mkdir -p dist/$name
+        name=sdlpop2-linux-x86_64
+        mkdir -p dist/$name/LICENSES
         cp build/sdl/sdlpop2 SDLPoP2.ini LICENSE NOTICE README.md dist/$name/
-        mkdir -p dist/$name/LICENSES && cp LICENSES/* dist/$name/LICENSES/
-        tar -C dist -czf dist/$name.tar.gz $name
+        cp LICENSES/* dist/$name/LICENSES/
+        tar -C dist/$name -czf dist/$name.tar.gz .
         echo "ASSET=dist/$name.tar.gz" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@v4
       with:
@@ -78,12 +79,12 @@ jobs:
         meson compile -C build-windows
     - name: Packaging
       run: |
-        name=sdlpop2-windows-x86_64-$(git rev-parse --short=8 HEAD)
+        name=sdlpop2-windows-x86_64
         mkdir -p dist/$name/LICENSES
         cp build-windows/sdl/sdlpop2.exe SDLPoP2.ini LICENSE NOTICE README.md dist/$name/
         cp LICENSES/* dist/$name/LICENSES/
         x86_64-w64-mingw32-strip dist/$name/sdlpop2.exe
-        (cd dist && zip -qr $name.zip $name)
+        (cd dist/$name && zip -qr ../$name.zip .)
         echo "ASSET=dist/$name.zip" >> "$GITHUB_ENV"
     - uses: actions/upload-artifact@v4
       with:

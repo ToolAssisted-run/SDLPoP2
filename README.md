@@ -38,22 +38,15 @@ writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has every
 <img src="docs/screenshots/menu-mods.png" width="32%" alt="The overlay menu: gameplay customisation">
 </p>
 
-## Playing
-    sdlpop2 [--path-to-game DIR] [--enable-cheats] [--level N] [--ini PATH] [--record NAME | --replay NAME]
+## How to play
+1. Download the newest build for your system: [Windows](https://github.com/ToolAssisted-run/SDLPoP2/releases/download/dev/sdlpop2-windows-x86_64.zip) or
+   [Linux](https://github.com/ToolAssisted-run/SDLPoP2/releases/download/dev/sdlpop2-linux-x86_64.tar.gz) (x86-64; built from the newest commit, on the
+   [dev release](https://github.com/ToolAssisted-run/SDLPoP2/releases/tag/dev)).
+2. Unpack it into the folder that has your copy of the game's files (`PRINCE.EXE`, `PRINCE.DAT`, ...; see
+   [Getting the game](#getting-the-game)).
+3. Start it: double-click `sdlpop2.exe` (Windows), or run `./sdlpop2` in that folder (Linux).
 
-Every option is optional:
-
-| Option | Default | |
-|---|---|---|
-| `--path-to-game DIR` | `.` (the current folder) | the folder with your copy of the game's files (see "Getting the game" below) |
-| `--enable-cheats` | off | cheats on from the start (see Cheats) |
-| `--level N` | `0` (the intro) | start at level N (1-14) with N hit points (3 to 12), the DOS game's `LEVELn`; cheats stay off unless `--enable-cheats` |
-| `--ini PATH` | `SDLPoP2.ini` | the settings file (see Settings) |
-| `--record NAME` / `--replay NAME` | none | record a replay / play one back |
-
-Options may also be written `--level=3`. A mistake in the options, a missing or incomplete game folder (it names the
-missing files) or a different version of the game is reported and the program stops; on Windows the message shows
-in a window. The copy protection is asked from level 3 on, whatever the options.
+The keys are below. Esc, Backspace, a mouse click or a controller's Start button opens the menu.
 
 ### Keyboard (the original game's)
 | | |
@@ -116,6 +109,26 @@ The copy protection is still asked from level 3 on, cheats or not.
 | Shift+`R` | show the room number |
 | Shift+`S` | temple levels and level 14: count a spirit turn |
 | F3 | the demo player on / off |
+
+## Command line
+For expert users: SDLPoP2 can also be started from a terminal with options, for example to keep it apart from the
+game's files (`--path-to-game`) or to start at a given level.
+
+    sdlpop2 [--path-to-game DIR] [--enable-cheats] [--level N] [--ini PATH] [--record NAME | --replay NAME]
+
+Every option is optional:
+
+| Option | Default | |
+|---|---|---|
+| `--path-to-game DIR` | `.` (the current folder) | the folder with your copy of the game's files (see [Getting the game](#getting-the-game)) |
+| `--enable-cheats` | off | cheats on from the start (see Cheats) |
+| `--level N` | `0` (the intro) | start at level N (1-14) with N hit points (3 to 12), the DOS game's `LEVELn`; cheats stay off unless `--enable-cheats` |
+| `--ini PATH` | `SDLPoP2.ini` | the settings file (see Settings) |
+| `--record NAME` / `--replay NAME` | none | record a replay / play one back |
+
+Options may also be written `--level=3`. A mistake in the options, a missing or incomplete game folder (it names the
+missing files) or a different version of the game is reported and the program stops; on Windows the message shows
+in a window. The copy protection is asked from level 3 on, whatever the options.
 
 ## Building ([meson](https://mesonbuild.com))
     meson setup build                          # options: meson_options.txt (buildFrontend, buildTools, buildTests, ...)
@@ -230,7 +243,7 @@ cheat or environment variable to skip, answer or move it.
   (LGPL-2.1-or-later).
 - The original game: *Prince of Persia 2: The Shadow and the Flame* (Brøderbund, 1993), designed by Jordan Mechner.
 
-**Getting the game:** SDLPoP2 needs the original game's data files, which are not included. The game is not
+<a id="getting-the-game"></a>**Getting the game:** SDLPoP2 needs the original game's data files, which are not included. The game is not
 currently sold digitally; the legal way to obtain them is an original copy of *Prince of Persia 2: The Shadow and
 the Flame* for MS-DOS (1993, Brøderbund) or the *Prince of Persia Collection Limited Edition* CD (the version this
 project targets). You can ask for an official re-release by voting on its

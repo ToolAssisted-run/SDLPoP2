@@ -35,8 +35,9 @@ wrap, built in; `sdlpop2.exe` needs only system DLLs):
     meson compile -C build-windows                 # build-windows/sdl/sdlpop2.exe
 With `cross/wine.ini`, `meson test` runs the Windows test programs under [Wine](https://www.winehq.org). The CI
 (`.github/workflows/build.yml`) builds both, runs the tests that need no game data, and publishes them: every push to
-master as the rolling `dev` prerelease, and `v*` tags as releases. The Linux executable needs SDL2 installed
-(e.g. `libsdl2-2.0-0`).
+master as the rolling `dev` prerelease, and `v*` tags as releases. The released Linux executable is self-contained
+too: `meson setup build --force-fallback-for=sdl2` builds SDL2 in from the wrap, and SDL loads X11 / Wayland / ALSA /
+PulseAudio at run time, so only the C library is needed (glibc 2.35 or newer: built on Ubuntu 22.04).
 
 Tests: `meson setup build -DgameDir=path/to/prince2` registers the core and settings suites (`meson test -C build --suite core --suite settings`);
 `-DoracleTests=true` adds the oracle comparison suites (`--suite oracle`), which need the captures in `<workspace>`.

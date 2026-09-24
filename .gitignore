@@ -11,3 +11,4 @@ build-windows/
 dist/
 extern/*/
 extern/packagecache/
+build-linux/

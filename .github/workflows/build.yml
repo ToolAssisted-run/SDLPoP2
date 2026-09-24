@@ -25,17 +25,30 @@ permissions:
 jobs:
 
   linux:
-    runs-on: ubuntu-latest
+    # Ubuntu 22.04 (glibc 2.35): the executable runs on that and newer distributions. SDL2 is built in from the wrap
+    # (--force-fallback-for=sdl2, static); it loads X11 / Wayland / ALSA / PulseAudio at run time, so the executable
+    # needs nothing but the C library.
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
-    - name: Installing apt packages
+    - name: Installing packages
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends meson ninja-build build-essential pkg-config libsdl2-dev
+        sudo apt-get install -y --no-install-recommends build-essential pkg-config python3-pip \
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libxkbcommon-dev \
+          libwayland-dev wayland-protocols libdecor-0-dev libegl-dev libgl-dev libgles-dev \
+          libasound2-dev libpulse-dev libdbus-1-dev libudev-dev
+        # (22.04's meson is too old for this project)
+        python3 -m pip install --user meson ninja
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
     - name: Building
       run: |
-        meson setup build
+        meson setup build --force-fallback-for=sdl2
         meson compile -C build
+    - name: The executable needs only the C library
+      run: |
+        ldd build/sdl/sdlpop2
+        if ldd build/sdl/sdlpop2 | grep -vE "linux-vdso|libc\.so|libm\.so|ld-linux"; then echo "unexpected shared library dependency" >&2; exit 1; fi
     - name: Testing (no game data needed)
       run: meson test -C build --suite controller --print-errorlogs
     - name: Packaging

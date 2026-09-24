@@ -11,7 +11,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 ## 1. Method and tools
 
 ### Oracle
-- Chimera + DOSBox-X headless (`~/chimera-oracle/chimera-core-dosbox-x`, branch `pop2-tracer`), driver
+- Chimera + DOSBox-X headless (`chimera-core-dosbox-x`, branch `pop2-tracer`), driver
   `build/meson-native/oracle-run --workdir W --rom pop.hdd --autoexec c: --autoexec 'cd prince2' --autoexec CMD
   --script S --events E`.
 - Script commands: `key FRAME name 0|1`, `probe SEG OFF label [PHYS LEN]` (register file + stack + a memory sample
@@ -19,8 +19,8 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   `ram FRAME file` (full 640 KiB dump), `inject` (call injection), `trace`, `end FRAME`, and (added 2026-09-23)
   `probepoke LABEL HIT PHYS HEX`: write memory at the HIT-th hit of a probe, used for tick-exact input (tracer commit
   e8f6906, `tracer_probe_poke`).
-- Local runner: `~/pop2dec/oracle/cap.sh NAME "prince yippeeyahoo LEVELn"` (30-60 s per run; 4 in parallel on the
-  4-core box). Level 1 without cheat: `prince` + ESC at frame 1300.
+- Local runner: `<workspace>/oracle/cap.sh NAME "prince yippeeyahoo LEVELn"` (30-60 s per run; 4 in parallel on a
+  4-core machine). Level 1 without cheat: `prince` + ESC at frame 1300.
 - The boot is deterministic: every `LEVELn` start has the same RNG seed at level start, 0x3528860F.
 - Copy protection (manual symbol) appears when starting past level 2 via the cheat: answered by TAB x2 + ENTER at
   frames 300..344.
@@ -51,10 +51,10 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 ### Reading code
 - Ghidra decompilation is unreliable in the overlays (lost branches, bad jump tables): transcription is done from r2
   disassembly (`r2 -a x86 -b 16 -m 0 -q -c 'e asm.lines=false; e asm.comments=false; e asm.flags=false; pD N'` over a
-  RAM slice; `~/pop2dec/work/asm.py FILE START END`).
+  RAM slice; `<workspace>/work/asm.py FILE START END`).
 - Overlays in a RAM dump are the ones loaded at that moment; RTLink loads on first call (a later dump may be needed,
   e.g. OVL14 at 37F0 only after level 8 room 9 is entered). Identify an overlay by comparing its bytes with
-  `~/pop2dec/image/ovlNN.bin`.
+  `<workspace>/image/ovlNN.bin`.
 - RTLink thunks live in 2A31 (`call 0x558; ljmp SEG:OFF`); resident code calls overlay routines through them or via
   far pointers in DS tables.
 - Many byte compares are signed (jge/jl on 0xFF timers): always check the jcc.
@@ -760,7 +760,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - 2026-09-23: 1286:087E at level load: type-0 guard sprites take the free palette slots (DS:5D08/09, Char.pal_slot);
   DS:0670 = loaded type. Every cold start is now byte-exact. Deep explorations (300k iterations, hp 12, Ctrl) of
   levels 1-13 reach no unreconstructed routine.
-- 2026-09-23: fleet (jaffanator2, 256 cores): 252 explorations (all levels, hp 12, Ctrl) in ~10 min, captured and
+- 2026-09-23: fleet (a 256-core machine): 252 explorations (all levels, hp 12, Ctrl) in ~10 min, captured and
   compared in ~20 min: 232 identical; fixes: level 13 shadow (OVL13), trap/floor draw state, 3212:0582 uses the
   below-left/right neighbours (not above), crouch + forward (seq 0x4F) and DS:4406 (a stray variable before), sword
   sprites and their image bases, the placeholder image. Now 252/252 and all 137 local captures identical.

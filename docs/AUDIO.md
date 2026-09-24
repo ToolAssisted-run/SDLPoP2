@@ -170,7 +170,7 @@ NISDIGI.DAT and NISMIDI.DAT. Not yet driven by the core: the blink beep 65534 (1
 
 ## 7. Verification (tests/audiotest.c)
 
-Captures (`tools/audioscript.py` adds these probes to a script; `~/pop2dec/oracle/AU*.script`):
+Captures (`tools/audioscript.py` adds these probes to a script; `<workspace>/oracle/AU*.script`):
 
     probe 1611 053C a_req SS0000 10     probe 194C 840E a_reqid SS0000 10   probe 194C 83D2 a_stop SS0000 10
     probe 194C 8396 a_rel SS0000 10     probe 194C 3380 a_vol SS0000 8      probe 194C 3668/35E5/370A a_midistart/...
@@ -192,7 +192,7 @@ interrupts have run, so it is moved to its channel start. Results (2026-09-24), 
 | AU2 | 54 | 0 | 0 | 162 | |
 | AU4..AU14 (E<L>_1 keys) | 3995..14457 each | 1978..12577 | 379..2335 | 130..247 | 62 MIDI ends (loops restarted), digital loops (AU12/13) |
 | AUV8 (Alt+S twice) | 5946 | 2354 | 582 | 74 | volume 0 / 15 |
-| SPK8 (`~/pop2dec/oracle/popspk.hdd`: pop.hdd with CONFIG.DAT's types 0; run oracle-run with `--rom` on it) | 1316 | - | - | - | 1362 speaker gate/divisor writes incl. vibrato |
+| SPK8 (`<workspace>/oracle/popspk.hdd`: pop.hdd with CONFIG.DAT's types 0; run oracle-run with `--rom` on it) | 1316 | - | - | - | 1362 speaker gate/divisor writes incl. vibrato |
 
 `audiotest DIR --pcm CAPTURE-snap.txt AUDIO.raw [PREFIX]` renders the capture's requests in real time (placed by
 instruction count inside the frame) and compares 10 ms RMS envelopes with the oracle's mixer output (oracle-run

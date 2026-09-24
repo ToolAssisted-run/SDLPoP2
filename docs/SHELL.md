@@ -230,8 +230,8 @@ and driver error messages), memory and video checks.
 `SHELL_CMP=capture` compares the whole game state (every `snap_fields` field but the drawing scratch obj_*,
 curr_tile/room, tile_col/row, as e2e's frozen ticks) at every tick start with the capture's ds_tick probes,
 `SHELL_SYNC=1` maps each key to the same distance after the same tick as in the capture, `SHELL_SEED=cbe2d` (the
-oracle's clock), `SHELL_FILES` (scratch directory). Scripts in ~/pop2dec/oracle/shell (the local oracle for screen
-shots; oracle/shell/rcap.sh runs probe-only captures on jaffanator2, whose oracle-run predates `shot` and DS-relative
+oracle's clock), `SHELL_FILES` (scratch directory). Scripts in `<workspace>/oracle/shell` (the local oracle for screen
+shots; oracle/shell/rcap.sh runs probe-only captures on the fleet machine, whose oracle-run predates `shot` and DS-relative
 probes).
 
 | capture | what | result |
@@ -258,7 +258,7 @@ VGA dumps (VRAM_STEP) or RGB shots (SHOT_STEP, the palette included) at the same
 SHELL_VRAM_OUT=dir writes the differing screens). P2_raft (level 2 with the puzzle solved and the raft, FINDINGS
 5.17): 1300 of 1350 VGA dumps exact, 44 within two frames, 6 differ (the room switch's timing).
 
-`tests/run_shell.sh` reruns all of these (the captures under ~/pop2dec/oracle and ~/pop2dec/oracle/shell).
+`tests/run_shell.sh` reruns all of these (the captures under `<workspace>/oracle` and `<workspace>/oracle/shell`).
 
 The core's e2e captures stay identical with the core changes of 10 (tests/run_all.sh's e2e set).
 

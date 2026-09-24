@@ -7,7 +7,9 @@ aimed first at a headless, savestate-able game-logic core for JaffarPlus / Chime
 Method: Ghidra decompilation of the executable with every RTLink overlay captured at its runtime
 address (the game's own loader decompressed them inside a headless DOSBox-X oracle), validated
 function by function against that oracle (per-frame RAM diffs, instruction traces, call injection).
-Analysis workspace: ~/pop2dec (not part of this repo). Game data files are never committed.
+Analysis workspace: outside this repo, written `<workspace>` in the docs (`<workspace>/sources`: the game files,
+`<workspace>/oracle`: the oracle runner and its captures, `<workspace>/work` and `<workspace>/image`: disassembly
+listings and overlay images). Game data files are never committed.
 
 ## Status (2026-09-24)
 The whole program runs in C: the game logic of the 14 levels, the renderer, the story scenes (NIS), the sound drivers
@@ -23,7 +25,7 @@ writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has every
     meson compile -C build
     build/sdl/sdlpop2 path/to/prince2          # the game; add DOS command-line words, e.g. `yippeeyahoo LEVEL3`
 Tests: `meson setup build -DgameDir=path/to/prince2` registers the core suite (`meson test -C build --suite core`);
-`-DoracleTests=true` adds the oracle comparison suites (`--suite oracle`), which need the captures in ~/pop2dec.
+`-DoracleTests=true` adds the oracle comparison suites (`--suite oracle`), which need the captures in `<workspace>`.
 The game data files are not part of this repository.
 
 ## Core API (`source/core.h`)

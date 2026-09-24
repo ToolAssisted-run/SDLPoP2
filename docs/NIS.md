@@ -3,8 +3,8 @@
 Reconstruction: `source/nis.c` (API in `source/nis.h`), test `tests/nistest.c`, tools `tools/nis*.py`.
 The DOS game plays its story scenes ("NIS", non-interactive sequences) from overlay **OVL00**, loaded at segments
 2D3E (start-up), **2D7D** (the scenes), **32D4** (the animation player) and **33B9** (dissolves). Addresses are runtime
-`SEG:OFF` (as in the oracle probes and `~/pop2dec/work/ovl00_2D3E.asm`, the listing made from the relocated overlay
-image `~/pop2dec/image/ovl00_*.bin`). The resident library they call is segment 194C (graphics, resources, sound,
+`SEG:OFF` (as in the oracle probes and `<workspace>/work/ovl00_2D3E.asm`, the listing made from the relocated overlay
+image `<workspace>/image/ovl00_*.bin`). The resident library they call is segment 194C (graphics, resources, sound,
 timer), with 25A1 / 2583 / 26BC (images), 2631 (palette fades), 2797 (waits, resource files), 2751 (rect helper).
 
 ## Who plays what
@@ -340,5 +340,5 @@ entries (0, not the bank itself).
 - source/dat.c: `dat_find` reports the size one byte short (the body is the whole size field after the checksum byte);
   nis.c adds it back. Palettes (PALT, 768 bytes) and MIDI files need the last byte.
 - 0AAC:0080 (black-out before a scene) reads an uninitialised local for n = 4; the model always blacks out.
-- Workspace: `~/pop2dec/work/ovl00_2D3E.asm` (the OVL00 listing, synced on functions and jump tables),
+- Workspace: `<workspace>/work/ovl00_2D3E.asm` (the OVL00 listing, synced on functions and jump tables),
   `tools/nispseudo.py` (call-level pseudo-code of a range), `nisscr.py`, `nismidi.py`, `nisdat.py`.

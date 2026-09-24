@@ -18,7 +18,7 @@ for job in ${@:-linux windows}; do
 	python3 "$root/tools/ci_runjob.py" "$tmp/repo/.github/workflows/build.yml" "$job" > "$tmp/$job.sh"
 	echo "=== $job ($image)"
 	docker run --rm -v "$tmp/repo:/src:ro" -v "$tmp:/ci" -v "$out:/out" "$image" \
-		bash -c "bash /ci/prelude.sh && cp -r /src /work && DEBIAN_FRONTEND=noninteractive bash /ci/$job.sh && cp /work/dist/*.* /out/" \
+		bash -c "bash /ci/prelude.sh && cp -r /src /work && DEBIAN_FRONTEND=noninteractive bash /ci/$job.sh && cp /work/dist/*.* /out/ && chown -R '$(id -u):$(id -g)' /out" \
 		> "$out/$job.log" 2>&1 && echo "=== $job: passed (log: $out/$job.log)" || { echo "=== $job: FAILED (log: $out/$job.log)"; exit 1; }
 done
 ls -la "$out"

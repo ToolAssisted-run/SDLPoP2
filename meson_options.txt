@@ -1,0 +1,32 @@
+option('buildFrontend',
+  type : 'boolean',
+  value : true,
+  description : 'Build the SDL2 frontend (sdlpop2)',
+  yield: true
+)
+
+option('buildTools',
+  type : 'boolean',
+  value : true,
+  description : 'Build the analysis tools (explore)',
+  yield: true
+)
+
+option('buildTests',
+  type : 'boolean',
+  value : true,
+  description : 'Build test programs and create the test suite',
+  yield: true
+)
+
+option('gameDir',
+  type : 'string',
+  value : '',
+  description : 'Directory with the DOS game files (PRINCE.EXE, *.DAT). Empty = the core test suite is not registered.',
+)
+
+option('oracleTests',
+  type : 'boolean',
+  value : false,
+  description : 'Register the oracle comparison suites (need the captures in ~/pop2dec/oracle and ~/pop2dec/work)',
+)

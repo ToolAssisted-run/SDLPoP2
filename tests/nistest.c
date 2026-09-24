@@ -15,7 +15,7 @@
 #include <string.h>
 #include <dirent.h>
 #include "../src/nis.h"
-#ifdef NIS_ENGINE   /* (built with every src/*.c: transitions 2 and 3 draw their game room through the shell's 0AAC:0376) */
+#ifdef NIS_ENGINE   /* (built with all of src: transitions 2 and 3 draw their game room through the shell's 0AAC:0376) */
 #include "../src/core.h"
 #include "../src/shell.h"
 void shell_nis_room(int lv, int room, uint8_t *pixels, int rowbytes);

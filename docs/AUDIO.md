@@ -200,7 +200,7 @@ instruction count inside the frame) and compares 10 ms RMS envelopes with the or
 / 2347 (C); AUV8 0.933; SPK8 (speaker) 0.985, 2358 / 2359. FM windows alone matched the DOSBox level only with the 1.5
 FM scale; DBOPL and Nuked differ in detail, not in level. `audiotest DIR --wav OUT.wav SECONDS ID...` renders sounds.
 
-Speaker captures need `AUDIO_CAPS=0` for audiotest. Build: `gcc -O2 -o audiotest tests/audiotest.c src/audio.c src/audio_opl3.c src/dat.c -lm`.
+Speaker captures need `AUDIO_CAPS=0` for audiotest. Build: `meson compile -C build` (build/tests/audiotest).
 
 The pieces (MIDISND + NISMIDI, 204 files) contain notes, program changes, pitch bends, controllers 1 and 11 (which the
 driver ignores), tempo, cue, text/time/key-signature metas, and sysex commands for device 0x21 (mute/unmute channels,

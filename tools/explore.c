@@ -45,7 +45,7 @@ static int puzzle_key(void)
 	return n >= 5 ? 3 : n >= 4 ? 2 : n >= 3 ? 1 : 0;
 }
 static int cell_index(uint8_t room, int8_t row, int8_t col) { if (room == 0 || room > 32 || row < -1 || row > 2 || col < -1 || col > 10) return -1; return (((key_trobs ? (int)(trob_count & 3) : key_puzzle ? puzzle_key() : key_jaffar ? (jaffars_dead() > 5 ? 5 : jaffars_dead()) : 0) * 2 + (Kid.charid == 1)) * 33 * 4 + room * 4 + row + 1) * 12 + col + 1; }   /* the spirit (charid 1) apart */
-static uint32_t rng = 1; static char miss[64][80]; static int nmiss;   /* unreconstructed routines reached */
+static uint32_t rng = 1;
 static uint32_t rnd(void) { rng = rng * 1103515245u + 12345u; return rng >> 16; }
 
 int main(int argc, char **argv)
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 	uint32_t seed = (uint32_t)strtoul(argv[3], NULL, 0);
 	size_t n = pop2_state_size();
 	pop2_new_game(level, seed);
-	key_trobs = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "trobs"); key_jaffar = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "jaffar"); key_puzzle = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "puzzle"); int best_dead = 0, won = 0;
+	key_trobs = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "trobs"); key_jaffar = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "jaffar"); key_puzzle = getenv("EXPLORE_KEY") && !strcmp(getenv("EXPLORE_KEY"), "puzzle"); int best_dead = 0;
 	if (getenv("EXPLORE_RNG")) rng = (uint32_t)strtoul(getenv("EXPLORE_RNG"), NULL, 0);   /* the explorer's own choices */
 	if (getenv("EXPLORE_HP") && *getenv("EXPLORE_HP")) { Kid.f12 = Kid.f13 = (uint8_t)atoi(getenv("EXPLORE_HP")); }   /* (the oracle script pokes the same at tick 1) */
 	static pop2_input path[4096]; int plen = 0, order = 0, best = -1; int room_seen[33] = {0};
@@ -85,14 +85,17 @@ int main(int argc, char **argv)
 			int hold = 1 + rnd() % 8;
 			for (int h = 0; h < hold && t < 60 && plen < 4000; h++, t++) {
 				path[plen++] = in; int res = pop2_frame(&in); ticks++;
-				if ((key_jaffar || key_puzzle) && ((res > 0 && res != lv) || (res == POP2_QUIT && lv == 14)))   /* (level 14 won: the game ends) */ { int k2 = cell_index(Kid.room ? Kid.room : 1, 0, 0); if (k2 >= 0) { ADD_CELL(k2); best = k2; } won = 1; fprintf(stderr, "iteration %d: level won after %d ticks\n", it, plen); t = 60; it = iters; break; }
+				if ((key_jaffar || key_puzzle) && ((res > 0 && res != lv) || (res == POP2_QUIT && lv == 14)))   /* (level 14 won: the game ends) */ { int k2 = cell_index(Kid.room ? Kid.room : 1, 0, 0); if (k2 >= 0) { ADD_CELL(k2); best = k2; } fprintf(stderr, "iteration %d: level won after %d ticks\n", it, plen); t = 60; it = iters; break; }
 				if (res == POP2_QUIT || (res > 0 && res != lv)) { t = 60; break; }   /* left the level: stop there */
 				if (Kid.alive >= 0) { deaths++; t = 60; break; }                                /* dead: not a useful state */
 				int k = cell_index(Kid.room, Kid.curr_row, Kid.curr_col);
 				if (k < 0) continue;
 				if (key_jaffar && jaffars_dead() > best_dead) { best_dead = jaffars_dead(); fprintf(stderr, "iteration %d: jaffar key %d after %d ticks (drawn %d, kid room %d)\n", it, best_dead, plen, drawn_room, Kid.room);
 					if (getenv("EXPLORE_DIAG")) { for (int i = 0; i < room_nchars(drawn_room); i++) fprintf(stderr, "  char %d charid %d alive %d hp %d room %d seq %x frame %x\n", i, chars[i].charid, chars[i].alive, chars[i].f12, chars[i].room, chars[i].f19, chars[i].frame);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"   /* (ROOM_REC from &level: GCC -O3 misreads the object size) */
 						for (int r = 1; r <= 28; r++) for (int i = 0; i < ROOM_REC(r)->nchars; i++) fprintf(stderr, "  room %d rec %d type %d hp %d\n", r, i, ROOM_REC(r)->chars[i].type, ROOM_REC(r)->chars[i].hp); } }
+#pragma GCC diagnostic pop
 				if (key_jaffar && getenv("EXPLORE_STOPKEY") && jaffars_dead() >= atoi(getenv("EXPLORE_STOPKEY"))) { ADD_CELL(k); best = k; fprintf(stderr, "iteration %d: jaffar key %d reached: plan kept (%d ticks)\n", it, jaffars_dead(), plen); t = 60; it = iters; break; }
 				if (getenv("EXPLORE_STOPSEQ") && Kid.f19 == (uint16_t)strtol(getenv("EXPLORE_STOPSEQ"), NULL, 0)) { ADD_CELL(k); best = k; fprintf(stderr, "iteration %d: seq %s reached: plan kept (%d ticks)\n", it, getenv("EXPLORE_STOPSEQ"), plen); t = 60; it = iters; break; }   /* EXPLORE_STOPSEQ: stop when the prince is in that sequence */
 				if (key_jaffar && getenv("EXPLORE_STOPHIT") && (jaffars_dead(), jaffar_hit)) { ADD_CELL(k); best = k; fprintf(stderr, "iteration %d: a Jaffar hit in rooms 7/8: plan kept (%d ticks)\n", it, plen); t = 60; it = iters; break; }

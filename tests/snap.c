@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <string.h>
-#include "../src/types.h"
-#include "../src/globals.h"
+#include "../source/types.h"
+#include "../source/globals.h"
 #include "snap.h"
 int SNAP_BASE = 0x2B00, SNAP_SIZE = 0x4100;
 static int in_snap(int i);
 extern int16_t image_height, image_width;
-#include "../src/state.h"
+#include "../source/state.h"
 #define fields snap_fields
 #define NF snap_nfields
 void snap_load(const uint8_t *ds)

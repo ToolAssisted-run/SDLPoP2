@@ -377,7 +377,7 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 
 ### 5.11 Sound: queue, ambient pieces and the driver's timing (sound.c)
 The game never waits for sound, but it asks the driver whether a sound still plays, and those answers steer the death
-waits, the level end, several room effects and the ambient pieces' random draws (the seed). src/sound.c models it.
+waits, the level end, several room effects and the ambient pieces' random draws (the seed). source/sound.c models it.
 - Queue. play_sound (1611:01C6) sets DS:087E = n unless the queued sound has higher priority (DS:0D5C table, 3 bytes
   per sound: [0] flag, [1] priority, lower wins; skipped when prio[new] > prio[queued]), feather fall (DS:5D36) runs,
   or Char.charid == 1 (the shadow). Music: 1611:01A8 sets DS:0880 only when empty (first queued wins); 1611:0002(m)
@@ -664,10 +664,10 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   before); the rotations are in phase in every shot; the rest is a tick of timing in the ship scene and, after tick
   550, the sound model's death wait (the state differs there: e2e takes the capture's answers, the shell does not).
 
-## 6. The C core (`src/core.h`)
+## 6. The C core (`source/core.h`)
 - `pop2_init(dir)`, `pop2_new_game(level, seed)`, `pop2_frame(&input)` (one tick), `pop2_save/load/hash`,
   `pop2_missing()` (routines not reconstructed that the tick reached).
-- State = the field table in `src/state.c` (DS-mapped fields + C-only state + the checkpoint copy).
+- State = the field table in `source/state.c` (DS-mapped fields + C-only state + the checkpoint copy).
 - Platform hooks (weak): bios_key, frame_on_time, platform_wait_frame, room_background_id; sound: the model in
   sound.c answers, `sound_clock_hook` / `sound_query_hook` let a platform replace its clock or its answers.
 - Speed: ~17k ticks/s with two hashes per tick; explorer ~500k ticks/s.
@@ -688,7 +688,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   the KID.DAT first-load colors in P13_shadow; 37F0:05FC and the bubbles (0782 / 08D2) not seen in a capture;
 - Story scenes;
   sound: packed digital sample lengths (0x20 0x26 0x2F 0x258), draw-time jitter; the prince's drawing-pass hooks; hotkeys besides restart; the stubs still logged by
-  note()/note_missing() (see `grep -n 'note(' src/*.c`).
+  note()/note_missing() (see `grep -n 'note(' source/*.c`).
 
 ---------------------------------------------------------------------------------------------------------------------
 
@@ -757,7 +757,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - 2026-09-24: video: VGA mode 13h (320x200, 256 colours; DOSBox VRAM chain-4: pixel A at (A & ~3) * 4 + (A & 3)); the
   game draws into an offscreen buffer in conventional memory at phys 0x4CF22 (64000 bytes, 320 per row), so RAM
   dumps hold the screen. Images: the PoP1 format (height, width, flags: bits 12..14 depth - 1, 8..11 packing 0 raw,
-  1 RLE, 2 RLE by columns, 3 LZG, 4 LZG by columns; src/image.c). Resource types: SHAP images, SHPL shape-set header
+  1 RLE, 2 RLE by columns, 3 LZG, 4 LZG by columns; source/image.c). Resource types: SHAP images, SHPL shape-set header
   (first id, count, 16 colours of 6-bit RGB), PALS/PALC palettes, PIEC tile pieces, CUST room descriptions, FRAM,
   FONT, TXT4 texts, _SCR/_PSL/PALT/STRL story scenes (NIS.DAT, TRANS.DAT, FINAL.DAT), _SND sounds. oracle-run has
   `shot F PATH` (TGA, top-down rows, BGR) and `mem F DOMAIN PATH` (4 = video RAM) script commands now.

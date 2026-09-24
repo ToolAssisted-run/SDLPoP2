@@ -9,7 +9,7 @@ project('sdlpop2','c',
 commonCompileArgs = [ '-Wfatal-errors', '-Wall' ]
 
 # The reconstructed game: core logic, renderer, scenes, audio drivers and the program shell
-subdir('src')
+subdir('source')
 
 # Do not build any targets if this is a subproject
 if meson.is_subproject() == false

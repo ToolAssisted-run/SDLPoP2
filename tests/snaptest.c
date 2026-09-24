@@ -6,10 +6,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "../src/types.h"
-#include "../src/globals.h"
-#include "../src/dat.h"
-#include "../src/glue.h"
+#include "../source/types.h"
+#include "../source/globals.h"
+#include "../source/dat.h"
+#include "../source/glue.h"
 #include "snap.h"
 static uint8_t kctl[8], kc1[16]; static int tick_mode;
 /* 0823:10A0 read_input replaced by the captured controls (taken inside control(), after the facing flips of 0AFF:12CA) */

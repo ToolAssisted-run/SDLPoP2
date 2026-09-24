@@ -6,13 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../src/types.h"
-#include "../src/globals.h"
-#include "../src/glue.h"
-#include "../src/dat.h"
-#include "../src/render.h"
-#include "../src/render_tiles.h"
-#include "../src/render_frame.h"
+#include "../source/types.h"
+#include "../source/globals.h"
+#include "../source/glue.h"
+#include "../source/dat.h"
+#include "../source/render.h"
+#include "../source/render_tiles.h"
+#include "../source/render_frame.h"
 #include "snap.h"
 
 typedef struct rec { char label[9]; uint32_t frame, len; uint8_t *data; } rec;

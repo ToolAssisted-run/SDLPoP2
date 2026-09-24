@@ -1,4 +1,4 @@
-/* shelltest: runs the shell (src/shell.c) frame by frame on an oracle-style script, as DOSBox runs the game:
+/* shelltest: runs the shell (source/shell.c) frame by frame on an oracle-style script, as DOSBox runs the game:
  *   shelltest GAME_DIR SCRIPT [COMMAND LINE WORDS...]
  * Script lines (the oracle's syntax; other commands are ignored):
  *   key FRAME NAME 1|0      a key goes down / up (DOSBox key names: esc tab enter space a..z 0..9 left up f1 ...)
@@ -20,13 +20,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../src/shell.h"
-#include "../src/render.h"
-#include "../src/types.h"
-#include "../src/globals.h"
-#include "../src/state.h"
+#include "../source/shell.h"
+#include "../source/render.h"
+#include "../source/types.h"
+#include "../source/globals.h"
+#include "../source/state.h"
 #include "snap.h"
-#include "../src/loader.h"
+#include "../source/loader.h"
 
 typedef struct { const char *name; uint8_t scan, ascii, shifted; } keydef;
 static const keydef keys[] = {

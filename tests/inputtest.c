@@ -3,8 +3,8 @@
  * control() sees control_x negated when the prince faces right (0AFF:1336). usage: inputtest pairs.bin (from tests/inputtest.py) */
 #include <stdio.h>
 #include <string.h>
-#include "../src/types.h"
-#include "../src/globals.h"
+#include "../source/types.h"
+#include "../source/globals.h"
 int main(int argc, char **argv)
 {
 	FILE *f = argc > 1 ? fopen(argv[1], "rb") : NULL; if (!f) return 2;

@@ -32,9 +32,9 @@ nistest = executable('nistest',
 
 # play_seq pairs: a standalone harness over seq.c and dat.c only (it defines its own stand-ins)
 seqtest = executable('seqtest',
-  'seqtest.c', files('../src/seq.c', '../src/dat.c'),
+  'seqtest.c', files('../source/seq.c', '../source/dat.c'),
   c_args : commonCompileArgs,
-  include_directories : include_directories('../src'),
+  include_directories : include_directories('../source'),
 )
 
 # The core round trips (needs the game files)

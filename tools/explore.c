@@ -3,14 +3,14 @@
  * cell (default: the last new room found; or a given room) as a plan file: one line per tick "x y shift".
  * EXPLORE_HP=n starts the prince with n hp; EXPLORE_PREFIX=plan plays a plan first; EXPLORE_CTRL=1 presses Ctrl too; EXPLORE_RNG=n seeds the explorer's choices; EXPLORE_KEY=trobs adds the live animation count to the cells.
  * usage: explore GAME_DIR LEVEL SEED ITERATIONS OUT.plan [TARGET_ROOM]
- * build: cc -O2 -o explore tools/explore.c src/(all).c -lm */
+ * build: cc -O2 -o explore tools/explore.c source/(all).c -lm */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "../src/types.h"
-#include "../src/globals.h"
-#include "../src/core.h"
+#include "../source/types.h"
+#include "../source/globals.h"
+#include "../source/core.h"
 
 typedef struct { uint8_t *state; pop2_input *path; int len, tries, order; uint8_t room; } cell;
 static cell cells[33 * 4 * 12 * 2 * 6]; static int ncells; static int key_trobs;   /* EXPLORE_KEY=trobs: the live animations (gates, buttons) count too */

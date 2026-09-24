@@ -1,7 +1,7 @@
 # The shell: the DOS program around the game's tick
 
-`src/shell.c` (program flow, keys, demos, clock), `src/menu.c` (the screens of segment 0D5E), `src/text.c` (fonts,
-text, the 194C graphics subset, the status line), `src/loader.c` (resource files, TXT4, CONFIG.DAT, the game's own
+`source/shell.c` (program flow, keys, demos, clock), `source/menu.c` (the screens of segment 0D5E), `source/text.c` (fonts,
+text, the 194C graphics subset, the status line), `source/loader.c` (resource files, TXT4, CONFIG.DAT, the game's own
 files). Tested by `tests/shelltest.c` against the oracle. Addresses are runtime `SEG:OFF` (DS = 3B25).
 
 ## 1. API (shell.h)

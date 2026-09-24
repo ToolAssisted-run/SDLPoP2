@@ -1,32 +1,33 @@
 /* SDLPoP2's SDL2 frontend: a window, the keyboard, the game's tick timing, the renderer's screen and palette.
- * The program itself (title, menus, scenes, levels) is src/shell.c, stepped one VGA frame (70.086 Hz) at a time.
+ * The program itself (title, menus, scenes, levels) is source/shell.c, stepped one VGA frame (70.086 Hz) at a time.
  * usage: sdlpop2 GAME_DIR [DOS command line words] */
 #include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../src/core.h"
-#include "../src/render.h"
-#include "../src/audio.h"
-#include "../src/shell.h"
+#include "../source/core.h"
+#include "../source/render.h"
+#include "../source/audio.h"
+#include "../source/shell.h"
 #include <time.h>
 
 
 
-extern void (*sound_start_hook)(int), (*sound_stop_hook)(int);   /* src/sound.c: where the game calls the driver */
+extern void (*sound_start_hook)(int), (*sound_stop_hook)(int);   /* source/sound.c: where the game calls the driver */
 static SDL_AudioDeviceID adev;
 static void audio_cb(void *u, Uint8 *out, int len) { (void)u; audio_render((int16_t *)out, len / 2, 44100); }
 static void on_start(int n) { audio_request((uint16_t)(10000 + n)); }   /* (called from pop2_frame, the audio device locked) */
 static void on_stop(int n) { audio_stop(n == -10000 ? 0 : (uint16_t)(10000 + n)); }
 static void open_audio(const char *dir)
 {
-	if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0 || !audio_init(dir, 3)) return;
+	if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) { fprintf(stderr, "sdlpop2: no audio (%s): playing without sound\n", SDL_GetError()); return; }
+	if (!audio_init(dir, 3)) { fprintf(stderr, "sdlpop2: the sound files could not be loaded: playing without sound\n"); return; }
 	char p[512];
 	snprintf(p, sizeof p, "%s/NISDIGI.DAT", dir); audio_add_file(p);
 	snprintf(p, sizeof p, "%s/NISMIDI.DAT", dir); audio_add_file(p);
 	SDL_AudioSpec want = {0}, have; want.freq = 44100; want.format = AUDIO_S16SYS; want.channels = 1; want.samples = 1024; want.callback = audio_cb;
 	adev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
-	if (!adev) return;
+	if (!adev) { fprintf(stderr, "sdlpop2: no audio device (%s): playing without sound\n", SDL_GetError()); return; }
 	sound_start_hook = on_start; sound_stop_hook = on_stop;
 	SDL_PauseAudioDevice(adev, 0);
 }
@@ -59,13 +60,24 @@ static int ascii_of(SDL_Keycode k, Uint16 mod)
 int main(int argc, char **argv)
 {
 	if (argc < 2) { fprintf(stderr, "usage: %s GAME_DIR [DOS COMMAND LINE WORDS, e.g. yippeeyahoo LEVEL3]\n", argv[0]); return 2; }
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) { fprintf(stderr, "SDL: %s\n", SDL_GetError()); return 1; }
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) { fprintf(stderr, "sdlpop2: SDL: %s\n", SDL_GetError()); return 1; }
+	/* with no display SDL falls back to its invisible "offscreen" driver: the game would run unseen */
+	const char *vd = SDL_GetCurrentVideoDriver();
+	if (vd && (!strcmp(vd, "offscreen") || !strcmp(vd, "dummy")) && !getenv("SDL_VIDEODRIVER")) {
+		fprintf(stderr, "sdlpop2: no display to open a window on (DISPLAY and WAYLAND_DISPLAY are not set).\n"
+		                "Run it from a desktop session, or over ssh with X forwarding (ssh -X / -Y), or set\n"
+		                "SDL_VIDEODRIVER=offscreen to run headless on purpose (e.g. with SDLPOP2_SHOT).\n");
+		SDL_Quit(); return 1;
+	}
 	shell_set_seed((uint32_t)time(NULL));
 	if (!shell_init(argv[1], argc - 2, (const char **)argv + 2)) { fprintf(stderr, "cannot load the game from %s\n", argv[1]); return 1; }
 	win = SDL_CreateWindow("SDLPoP2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_W * 3, SCREEN_H * 3 * 6 / 5, SDL_WINDOW_RESIZABLE);
+	if (!win) { fprintf(stderr, "sdlpop2: cannot open a window: %s\n", SDL_GetError()); SDL_Quit(); return 1; }
 	ren = SDL_CreateRenderer(win, -1, 0);
+	if (!ren) { fprintf(stderr, "sdlpop2: cannot create a renderer: %s\n", SDL_GetError()); SDL_Quit(); return 1; }
 	SDL_RenderSetLogicalSize(ren, SCREEN_W * 4, SCREEN_H * 4 * 6 / 5);   /* (the 4:3 aspect of mode 13h) */
 	tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_W, SCREEN_H);
+	if (!tex) { fprintf(stderr, "sdlpop2: cannot create the screen texture: %s\n", SDL_GetError()); SDL_Quit(); return 1; }
 	open_audio(argv[1]);
 	static shell_input in;
 	Uint64 next = SDL_GetPerformanceCounter(), hz = SDL_GetPerformanceFrequency();

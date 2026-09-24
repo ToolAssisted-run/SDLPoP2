@@ -26,17 +26,17 @@ Tests: `meson setup build -DgameDir=path/to/prince2` registers the core suite (`
 `-DoracleTests=true` adds the oracle comparison suites (`--suite oracle`), which need the captures in ~/pop2dec.
 The game data files are not part of this repository.
 
-## Core API (`src/core.h`)
+## Core API (`source/core.h`)
     pop2_init("path/to/prince2");            // PRINCE.EXE, SEQUENCE.DAT, PRINCE.DAT, KID.DAT, guard and scenery DATs
     pop2_new_game(level, seed);              // seed: the DOS game seeds its RNG from the clock
     pop2_input in = { .x = 1 };              // x/y -1..1, shift, keystroke
     int r = pop2_frame(&in);                 // one game tick: POP2_PLAYING, POP2_QUIT, or the level just entered
     pop2_save(buf); pop2_load(buf); pop2_hash();   // pop2_state_size() bytes
-In meson, `dependency` `sdlpop2Dependency` (src/meson.build; usable as a subproject). `tests/coretest.c` is a small
+In meson, `dependency` `sdlpop2Dependency` (source/meson.build; usable as a subproject). `tests/coretest.c` is a small
 example (random play + savestate round trips).
 
 ## Layout
-`src/*.c` by subsystem (`docs/ENGINE.md` maps them to the original segments and overlays), `src/glue.c` for the game
-files and the overlay entry points, `src/state.c` for the state table, `docs/` for format notes (DAT resources,
+`source/*.c` by subsystem (`docs/ENGINE.md` maps them to the original segments and overlays), `source/glue.c` for the game
+files and the overlay entry points, `source/state.c` for the state table, `docs/` for format notes (DAT resources,
 SEQUENCE.DAT, levels), `sdl/` for the SDL2 frontend, `tools/` for the explorer and capture helpers, `tests/` for the
 oracle comparisons (run by `meson test`, or directly: `tests/run_all.sh`, `tools/tiletests.sh`, `tests/run_shell.sh`).

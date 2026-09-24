@@ -1,4 +1,4 @@
-# Coverage of the reconstruction: Ghidra function list (decomp-pop2img5) vs addresses cited in src/. usage: coverage.py [SEGMENT]
+# Coverage of the reconstruction: Ghidra function list (decomp-pop2img5) vs addresses cited in source/. usage: coverage.py [SEGMENT]
 import re,glob,collections,sys
 fn=[]
 for l in open('/home/jaffar/pop2dec/decomp-pop2img5/functions.txt'):
@@ -8,7 +8,7 @@ for l in open('/home/jaffar/pop2dec/decomp-pop2img5/functions.txt'):
     if m: fn.append((int(m.group(2),16),int(m.group(4)),m.group(1),m.group(3)))
 fn.sort()
 cited=set()
-for f in glob.glob('/home/jaffar/sdlpop2/src/*.c')+glob.glob('/home/jaffar/sdlpop2/src/*.h'):
+for f in glob.glob('/home/jaffar/sdlpop2/source/*.c')+glob.glob('/home/jaffar/sdlpop2/source/*.h'):
     t=open(f).read()
     for m in re.finditer(r'\b([0-9A-Fa-f]{4}):([0-9A-Fa-f]{4})\b',t): cited.add(int(m.group(1),16)*16+int(m.group(2),16))
     for m in re.finditer(r'\b(0[23][0-9A-Fa-f]{4})\b',t): cited.add(int(m.group(1),16))

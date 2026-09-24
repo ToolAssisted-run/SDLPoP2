@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "../src/types.h"
-#include "../src/globals.h"
-#include "../src/dat.h"
-#include "../src/glue.h"
+#include "../source/types.h"
+#include "../source/globals.h"
+#include "../source/dat.h"
+#include "../source/glue.h"
 int main(int argc, char **argv)
 {
 	if (argc < 5) { fprintf(stderr, "usage: ctltest SEQUENCE.DAT level.bin PRINCE.EXE quads.bin\n"); return 2; }

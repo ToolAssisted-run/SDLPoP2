@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../src/core.h"
+#include "../source/core.h"
 
 static uint32_t rng = 12345;
 static uint32_t rnd(void) { rng = rng * 1103515245 + 12345; return rng >> 16; }

@@ -1,5 +1,5 @@
 #!/bin/sh
-# The shell (src/shell.c, menu.c, text.c, loader.c) against its oracle captures in ~/pop2dec/oracle/shell (see
+# The shell (source/shell.c, menu.c, text.c, loader.c) against its oracle captures in ~/pop2dec/oracle/shell (see
 # docs/SHELL.md 9): the game state at every tick start and the screens. usage: tests/run_shell.sh
 set -e
 here=$(cd "$(dirname "$0")" && pwd); O=$HOME/pop2dec/oracle; C=$O/shell; S=$HOME/pop2dec/sources/prince2
@@ -7,7 +7,7 @@ W=${WORK:-$(mktemp -d)}; mkdir -p $W/files
 cd "$here/.."
 # BUILD=dir (meson test): take the programs built there instead of compiling them here
 build() { n=$1; shift; if [ -n "$BUILD" ]; then cp "$BUILD/$n" "$W/$n"; else "$@"; fi; }
-build shelltest gcc -O2 -g -Wall -Wno-format-truncation -o $W/shelltest tests/shelltest.c tests/snap.c src/*.c -lm
+build shelltest gcc -O2 -g -Wall -Wno-format-truncation -o $W/shelltest tests/shelltest.c tests/snap.c source/*.c -lm
 cmp_shots() {   # cmp_shots CAPTURE_DIR PREFIX N...: the oracle's 640x400 shots against ours (every other pixel)
 	d=$1; p=$2; shift 2
 	for n in "$@"; do python3 - "$d" "$p" "$n" <<'E'

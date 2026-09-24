@@ -6,12 +6,12 @@ export KID_DAT=$S/KID.DAT PRINCE_DAT=$S/PRINCE.DAT PRINCE2_DIR=$S
 cd "$here/.."
 # BUILD=dir (meson test): take the programs built there instead of compiling them here
 build() { n=$1; shift; if [ -n "$BUILD" ]; then cp "$BUILD/$n" "$W/$n"; else "$@"; fi; }
-build snaptest gcc -O0 -g -Wall -o $W/snaptest tests/snaptest.c tests/testutil.c tests/snap.c src/*.c
+build snaptest gcc -O0 -g -Wall -o $W/snaptest tests/snaptest.c tests/testutil.c tests/snap.c source/*.c
 mode=${1:-tick}
 for s in D E F G H1 H2 H3 H4; do echo "L1 $s $($W/snaptest $mode $S/SEQUENCE.DAT $O/w/ram1436.bin $S/PRINCE.EXE $W/$mode$s.bin 2>/dev/null | tail -1)"; done
 for s in L3loose7 L3loose22 L3btn10 L3btn3 L3r1 L3r2 L3skel1 L3skel2 L3skel3 L3sk11_1 L3sk11_2 L3sk17_1 L3sk20_1 L3br1 L3br2 L3br3; do [ -f $W/$mode$s.bin ] || continue; h=; [ -f $W/heap$s.bin ] && h=$W/heap$s.bin; echo "L3 $s $($W/snaptest $mode $S/SEQUENCE.DAT $O/w/ramL3.bin $S/PRINCE.EXE $W/$mode$s.bin $h 2>/dev/null | tail -1)"; done
 # keyboard -> controls (capture ~/pop2dec/oracle/keyprobe.script: every movement key, shifts, ctrl, alt)
-if [ -f $W/input_keyprobe.bin ]; then build inputtest gcc -O0 -g -Wall -o $W/inputtest tests/inputtest.c tests/testutil.c tests/snap.c src/*.c && echo "input $($W/inputtest $W/input_keyprobe.bin | tail -1)"; fi
+if [ -f $W/input_keyprobe.bin ]; then build inputtest gcc -O0 -g -Wall -o $W/inputtest tests/inputtest.c tests/testutil.c tests/snap.c source/*.c && echo "input $($W/inputtest $W/input_keyprobe.bin | tail -1)"; fi
 # between ticks (ds_postroom -> next ds_tick: 2D3E:0FB0, the clock, 169B:0A30, 0BA6): bins built on demand
 if [ "$mode" = tick ]; then
 for s in D E F G H1 H2 H3 H4 L3loose7 L3loose22 L3btn10 L3btn3 L3r1 L3r2 L3skel1 L3skel2 L3skel3 L3sk11_1 L3sk11_2 L3sk17_1 L3sk20_1 L3br1 L3br2 L3br3; do
@@ -23,7 +23,7 @@ done
 fi
 # end to end: from the oracle's snapshot after the level load, everything in C with the script's keys (LS* captures)
 if [ "$mode" = tick ]; then
-build e2e gcc -O2 -g -Wall -o $W/e2e tests/e2e.c tests/testutil.c tests/snap.c src/*.c
+build e2e gcc -O2 -g -Wall -o $W/e2e tests/e2e.c tests/testutil.c tests/snap.c source/*.c
 # every level-start capture in the oracle directory (LS*: level 3 from its load; E<level>_<seed>: gen_e2e.py random runs;
 # T<level>_<gap>: gen_turns.py), all fields compared (E2E_STRICT; a "strict:" list names any that differ),
 # from the captured post-load state and from a cold start (the core's new game: zeroed memory + PRINCE.EXE)
@@ -35,4 +35,4 @@ for f in $O/LSL3r1-snap.txt $O/LSL3skel2-snap.txt $(ls $O/E*_*-snap.txt $O/T*_*-
 done
 fi
 # the core API alone: random play on every level and savestate round trips
-build coretest gcc -O2 -g -Wall -o $W/coretest tests/coretest.c src/*.c && $W/coretest $S 2000 | tail -1
+build coretest gcc -O2 -g -Wall -o $W/coretest tests/coretest.c source/*.c && $W/coretest $S 2000 | tail -1

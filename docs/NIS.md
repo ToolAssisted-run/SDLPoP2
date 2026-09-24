@@ -1,6 +1,6 @@
 # Story scenes (NIS)
 
-Reconstruction: `src/nis.c` (API in `src/nis.h`), test `tests/nistest.c`, tools `tools/nis*.py`.
+Reconstruction: `source/nis.c` (API in `source/nis.h`), test `tests/nistest.c`, tools `tools/nis*.py`.
 The DOS game plays its story scenes ("NIS", non-interactive sequences) from overlay **OVL00**, loaded at segments
 2D3E (start-up), **2D7D** (the scenes), **32D4** (the animation player) and **33B9** (dissolves). Addresses are runtime
 `SEG:OFF` (as in the oracle probes and `~/pop2dec/work/ovl00_2D3E.asm`, the listing made from the relocated overlay
@@ -35,7 +35,7 @@ or 6 (0AAC:0050), then restores game state (0FB3:293A, 1286:07CE). Return: 2 whe
 
 DAT files: the resource files open form a chain searched from the most recently opened (194C:6F4C; 2797:01D4 opens,
 01B6 closes). Each body follows a checksum byte (the sum of checksum and body is 0xFF) and is **the whole size field**
-long (src/dat.c's `dat_find` reports one byte less).
+long (source/dat.c's `dat_find` reports one byte less).
 
 The scenes open NIS.DAT (20..28, 7..10), TRANS.DAT (1..6), CAVERNS.DAT / RUINS.DAT (transitions 1, 2); the sound files
 by the configuration (2797:0260 on DS:1394: NISDIGI.DAT with the digitizer, NISMIDI.DAT for MIDI music (NIS3VC.DAT for
@@ -187,7 +187,7 @@ Arguments in the order the game pushes them (Pascal):
 | 194C:79A3 (first, count, ptr, wait) | `setpal(first, count, ptr, wait)` |
 | 32D4:0BE4 (...) | `play_anim(l, base, n, with_bg, cb0, restore, flags, abort)` |
 
-## The model (src/nis.c)
+## The model (source/nis.c)
 
 - The scene code runs as a coroutine (ucontext, 1 MB stack) that gives control back to `nis_step` wherever the game
   busy-waits. Time is counted in CPU cycles of the reference machine (the oracle: DOSBox-X, 22000 cycles/ms): video
@@ -259,7 +259,7 @@ timing (they vanish at a nearby frame) except the ones listed for 2, 3 and 6.
   with 0AAC:0274's tail (0FB3:293A, 1286:07CE, DS:2BA6 = 0, the level restore of 0AAC:0376/0442 for 1, 2, 3).
   Game state the scenes set: DS:016A (last daughter scene, set by 0AAC:0120 before), DS:2087 (cue), the music (25011 runs
   from 7 into 4 and 8; a scene may leave its music playing).
-- src/dat.c: `dat_find` reports the size one byte short (the body is the whole size field after the checksum byte);
+- source/dat.c: `dat_find` reports the size one byte short (the body is the whole size field after the checksum byte);
   nis.c adds it back. Palettes (PALT, 768 bytes) and MIDI files need the last byte.
 - 0AAC:0080 (black-out before a scene) reads an uninitialised local for n = 4; the model always blacks out.
 - Workspace: `~/pop2dec/work/ovl00_2D3E.asm` (the OVL00 listing, synced on functions and jump tables),

@@ -1,4 +1,4 @@
-/* Sound driver test: replays an oracle capture's sound requests and interrupts through src/audio.c and compares what the
+/* Sound driver test: replays an oracle capture's sound requests and interrupts through source/audio.c and compares what the
  * drivers write (OPL registers, the sequencer's MIDI events, DSP bytes) with what the DOS drivers wrote.
  *   audiotest PRINCE2_DIR CAPTURE-snap.txt [-v]
  * The capture (oracle script lines, see tests/README.md / docs/AUDIO.md):
@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "../src/audio.h"
+#include "../source/audio.h"
 
 typedef struct { int kind; int a, b; int frame; int line; } ev;   /* kind: 1 input, 2 output */
 enum { IN_REQ = 1, IN_REQID, IN_STOP, IN_VOL, IN_REL, IN_ISR, IN_DIGIEND, IN_SPKISR };

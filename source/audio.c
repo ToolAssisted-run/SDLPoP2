@@ -8,7 +8,7 @@
  *   MIDI      (DS:209E..): a standard MIDI file played by a 240 Hz timer interrupt (194C:2DF0/2F10/2FFA) into the
  *                          driver, which is an OPL2 FM synthesizer with a 128-instrument bank (PRESETS.DEF);
  *   speaker   (DS:20B0..): PC speaker note lists (IBMSND.DAT) on their own timer (194C:370A/377B).
- * The FM chip is emulated by Nuked OPL3 (src/audio_opl3.c, LGPL 2.1+, used in OPL2 mode as on a Sound Blaster Pro 2). */
+ * The FM chip is emulated by Nuked OPL3 (source/audio_opl3.c, LGPL 2.1+, used in OPL2 mode as on a Sound Blaster Pro 2). */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

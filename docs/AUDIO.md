@@ -1,8 +1,8 @@
-# Sound playback (src/audio.c)
+# Sound playback (source/audio.c)
 
 How the DOS game makes sound, reconstructed from segment 194C of PRINCE.EXE and the driver files it loads, and how
-`src/audio.c` reproduces it for a frontend. The game logic's side (which sounds are asked for, when, and which answers
-"is it playing" steer the game) is `src/sound.c` (FINDINGS 5.11); this file is the drivers underneath.
+`source/audio.c` reproduces it for a frontend. The game logic's side (which sounds are asked for, when, and which answers
+"is it playing" steer the game) is `source/sound.c` (FINDINGS 5.11); this file is the drivers underneath.
 
 Addresses: `194C:xxxx` in PRINCE.EXE (DS = 3B25); `MIDI.DRV+x` / `DIGI.DRV+x` are file offsets (a driver runs with
 CS = its load paragraph - 0x10, so offsets equal file offsets; in the oracle MIDI.DRV sits at 4BD9:0000, DIGI.DRV at
@@ -148,13 +148,13 @@ reads (mode 0x49), DSP 14 (8-bit single-cycle output) with length - 1, split at 
 +0x526 programs the next piece). After the last piece: channel released, int 15h AX=91F0 -> 194C:3422.
 Measured in the oracle: a sound's busy time = length x 90 us + about 4 ms.
 
-## 6. src/audio.c
+## 6. source/audio.c
 
 `audio_init(dir, caps)` (caps 3 = the CD setup; 0 = PC speaker), `audio_add_file(path)` for the scene DATs,
 `audio_request(id)` (840E), `audio_request_res(id, bytes, len)`, `audio_stop(id)` (83D2), `audio_release(id)`
 (8396), `audio_playing(id)` (8426), `audio_volume(v)` (3380), `audio_cue()`, `audio_render(pcm, frames, rate)` (mono
 s16). The code follows the routines above one to one (same state, same order of register writes); the FM chip is Nuked
-OPL3 1.8 (`src/audio_opl3.c/.h`, unmodified but for the include name; LGPL 2.1 or later, compatible with this GPL
+OPL3 1.8 (`source/audio_opl3.c/.h`, unmodified but for the include name; LGPL 2.1 or later, compatible with this GPL
 project), used in OPL2 mode like the OPL3 of an SB Pro 2. Timing: an audio clock in PIT ticks (1193182 Hz); the MIDI
 interrupt every 4971 ticks from the start call, the speaker player at its own rate, digital samples at 1000000 / q Hz
 (linear interpolation). Requests take effect at the current audio time. Mixing as DOSBox-X does: FM x 1.5 (adlib.cpp
@@ -162,9 +162,9 @@ interrupt every 4971 ticks from the start call, the speaker player at its own ra
 (`audio_dc_block`) because the FM output of these instruments carries a large DC offset.
 
 Frontend wiring (sdl/ is not part of this work): open an SDL audio device (mono s16, e.g. 44100 Hz) whose callback calls
-`audio_render`; set the core's hooks (src/sound.c) `sound_start_hook = n -> audio_request(10000 + n)` and
+`audio_render`; set the core's hooks (source/sound.c) `sound_start_hook = n -> audio_request(10000 + n)` and
 `sound_stop_hook = n -> audio_stop(n == -10000 ? 0 : 10000 + n)`, calling them under SDL_LockAudioDevice; the story
-scenes' sound events (src/nis.c `snd_event`) map to `audio_request(id)` / `audio_stop(id)` after `audio_add_file` of
+scenes' sound events (source/nis.c `snd_event`) map to `audio_request(id)` / `audio_stop(id)` after `audio_add_file` of
 NISDIGI.DAT and NISMIDI.DAT. Not yet driven by the core: the blink beep 65534 (169B:0B9C: every 12 ticks of the
 "press a key" countdown DS:5CDA, when DS:5CDA % 12 == 3 below 0x78), the sound toggle (Alt+S -> `audio_volume(15/0)`).
 

@@ -5,12 +5,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "../src/types.h"
-#include "../src/globals.h"
-#include "../src/glue.h"
+#include "../source/types.h"
+#include "../source/globals.h"
+#include "../source/glue.h"
 #include "snap.h"
-#include "../src/state.h"
-#include "../src/core.h"
+#include "../source/state.h"
+#include "../source/core.h"
 
 static struct { const char *name; int pos; } keymap[] = {   /* oracle key names -> DS:1D00 key table positions */
 	{"left", 0x58}, {"right", 0x5A}, {"up", 0x55}, {"down", 0x5D}, {"home", 0x54}, {"pageup", 0x56}, {"end", 0x5C}, {"pagedown", 0x5E},

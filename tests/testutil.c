@@ -1,8 +1,8 @@
 /* debugging helpers for the tests */
 #include <stdio.h>
-#include "../src/types.h"
-#include "../src/globals.h"
-#include "../src/glue.h"
+#include "../source/types.h"
+#include "../source/globals.h"
+#include "../source/glue.h"
 #include <stdlib.h>
 void debug_case_tiles(void)
 {

@@ -5,12 +5,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../src/types.h"
-#include "../src/globals.h"
-#include "../src/glue.h"
-#include "../src/dat.h"
-#include "../src/render.h"
-#include "../src/render_tiles.h"
+#include "../source/types.h"
+#include "../source/globals.h"
+#include "../source/glue.h"
+#include "../source/dat.h"
+#include "../source/render.h"
+#include "../source/render_tiles.h"
 #include "snap.h"
 static uint8_t *load(const char *p) { FILE *f = fopen(p, "rb"); if (!f) { perror(p); exit(2); } uint8_t *b = malloc(655360); if (fread(b, 1, 655360, f) != 655360) exit(2); fclose(f); return b; }
 static int hexv(int c) { return c <= '9' ? c - '0' : (c | 0x20) - 'a' + 10; }

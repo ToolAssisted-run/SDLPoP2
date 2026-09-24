@@ -25,7 +25,7 @@ typedef void (*nis_event_fn)(int ev, uint32_t frame, void *user);
 typedef void (*nis_sound_fn)(int kind, int id, void *user);
 typedef uint32_t (*nis_tick_fn)(uint32_t frame, void *user);
 
-/* The game engine's parts the transitions use (the rest of the game, src/render*.c):
+/* The game engine's parts the transitions use (the rest of the game, source/render*.c):
  *   nis_room_fn    0AAC:0376 (level, room), called by transitions 2 (level 10, room 22) and 3 (level 14, room 1): load the
  *                  level and draw the room into pixels (the current port: the 320x200 screen, rowbytes 320), as the game
  *                  shows it (rows 0..191); the palette is not the hook's business (the scene sets its own)

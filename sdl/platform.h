@@ -42,3 +42,13 @@ static inline int plat_file_exists(const char *p)
 	return S_ISREG(st.st_mode);
 #endif
 }
+/* a directory exists at p */
+static inline int plat_dir_exists(const char *p)
+{
+	struct stat st; if (!p || stat(p, &st)) return 0;
+#ifdef _WIN32
+	return (st.st_mode & _S_IFMT) == _S_IFDIR;
+#else
+	return S_ISDIR(st.st_mode);
+#endif
+}

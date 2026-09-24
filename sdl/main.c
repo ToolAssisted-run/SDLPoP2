@@ -2,7 +2,7 @@
  * renderer's screen and palette.
  * The program itself (title, menus, scenes, levels) is source/shell.c, stepped one VGA frame (70.086 Hz) at a time.
  * Settings: SDLPoP2.ini (source/settings.h); replays: source/replay.h.
- * usage: sdlpop2 [--ini PATH] [--record NAME | --replay NAME] GAME_DIR [DOS command line words] */
+ * usage: sdlpop2 [--path-to-game DIR] [--enable-cheats] [--level N] [--ini PATH] [--record NAME | --replay NAME] */
 #include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -203,6 +203,7 @@ static void cfg_location(char *out, size_t n, const char *ini_used)
 	else snprintf(out, n, "%.*sSDLPoP2.cfg", (int)(slash - ini_used + 1), ini_used);
 }
 /* the overlay menu changed settings: apply them (OVERLAY_MENU_APPLY_*) */
+static int quiet_cheats;   /* (the start's own toggle shows no message) */
 static int menu_music, menu_sounds, menu_controller, menu_cheats = -1;   /* (menu_cheats: "Enable cheats" changed, -1 not) */
 static void menu_apply(int what)
 {
@@ -231,22 +232,103 @@ static void type_alt_key(shell_input *in, int scan, int ascii)
 	if (!alt) shell_input_key(in, 0x38, 0, 0);
 }
 
-static void usage(const char *prog)
+/* an error before or at start-up: on the terminal, and on Windows (no console: a GUI program) in a message box too */
+static void fatal(const char *msg)
 {
-	fprintf(stderr, "usage: %s [--ini PATH] [--record NAME | --replay NAME] GAME_DIR [DOS COMMAND LINE WORDS, e.g. yippeeyahoo LEVEL3]\n", prog);
+	fprintf(stderr, "sdlpop2: %s\n", msg);
+#ifdef _WIN32
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "SDLPoP2", msg, NULL);
+#endif
+}
+static const char usage_text[] =
+	"usage: sdlpop2 [options]\n"
+	"  --path-to-game DIR   the game's files (PRINCE.EXE, *.DAT); default: the current directory\n"
+	"  --enable-cheats      cheats on from the start (the DOS game's cheat word); default: off\n"
+	"  --level N            start at level N (1-14; the DOS game's LEVELn, with its hit points); default: 0, the intro\n"
+	"  --ini PATH           the settings file; default: SDLPoP2.ini (see README)\n"
+	"  --record NAME        record a replay; --replay NAME plays one back\n"
+	"The copy protection is asked from level 3 on, whatever the options.";
+static void usage(void) { fatal(usage_text); }
+/* a command-line mistake: what is wrong, then the usage */
+static int syntax_error(const char *fmt, const char *arg)
+{
+	char m[1600]; int k = snprintf(m, sizeof m, fmt, arg);
+	snprintf(m + k, sizeof m - (size_t)k, "\n\n%s", usage_text);
+	fatal(m); return 2;
+}
+/* --name VALUE or --name=VALUE: 1 matched (value in *v; NULL when missing), 0 not this option */
+static int opt_value(int argc, char **argv, int *a, const char *name, const char **v)
+{
+	size_t n = strlen(name);
+	if (strncmp(argv[*a], name, n) || (argv[*a][n] != '=' && argv[*a][n] != 0)) return 0;
+	if (argv[*a][n] == '=') *v = argv[*a][n + 1] ? argv[*a] + n + 1 : NULL;
+	else *v = *a + 1 < argc && strncmp(argv[*a + 1], "--", 2) ? argv[++*a] : NULL;
+	return 1;
+}
+/* the game's files: the folder, every file the engine reads, and PRINCE.EXE's version (1.0, the CD's). 0 with a message */
+static const char *const game_files[] = { "PRINCE.EXE", "CONFIG.DAT", "SEQUENCE.DAT", "PRINCE.DAT", "KID.DAT", "GUARD.DAT",
+	"HEAD.DAT", "SKELETON.DAT", "BIRD.DAT", "FLAME.DAT", "JINNEE.DAT", "ROOFTOPS.DAT", "DESERT.DAT", "CAVERNS.DAT", "RUINS.DAT",
+	"TEMPLE.DAT", "FINAL.DAT", "TRANS.DAT", "NIS.DAT", "NIS3VC.DAT", "DIGISND.DAT", "MIDISND.DAT", "IBMSND.DAT", "NISDIGI.DAT",
+	"NISMIDI.DAT", "NISIBM.DAT" };
+#define PRINCE_EXE_SIZE 259583L   /* Prince of Persia 2 1.0 (the Prince of Persia Collection CD) */
+static int check_game_dir(const char *dir, char *m, size_t n)
+{
+	if (!plat_dir_exists(dir)) { snprintf(m, n, "The game's folder \"%s\" does not exist. Give the folder with your copy of Prince of Persia 2 with --path-to-game DIR.", dir); return 0; }
+	char missing[1024] = "", lower[64] = ""; int nmiss = 0;
+	for (size_t i = 0; i < sizeof game_files / sizeof game_files[0]; i++) {
+		char p[1300]; snprintf(p, sizeof p, "%s/%s", dir, game_files[i]);
+		if (plat_file_exists(p)) continue;
+		nmiss++; if (strlen(missing) + 20 < sizeof missing) { if (missing[0]) strcat(missing, ", "); strcat(missing, game_files[i]); }
+		char l[32]; size_t k = 0; for (; game_files[i][k] && k < sizeof l - 1; k++) l[k] = (char)(game_files[i][k] >= 'A' && game_files[i][k] <= 'Z' ? game_files[i][k] + 32 : game_files[i][k]); l[k] = 0;
+		snprintf(p, sizeof p, "%s/%s", dir, l);
+		if (!lower[0] && plat_file_exists(p)) snprintf(lower, sizeof lower, "%s", l);
+	}
+	if (nmiss == (int)(sizeof game_files / sizeof game_files[0]) && !lower[0]) {
+		snprintf(m, n, "The folder \"%s\" does not contain Prince of Persia 2's files (PRINCE.EXE and the .DAT files). Give the folder with your copy of the game with --path-to-game DIR.", dir);
+		return 0;
+	}
+	if (nmiss) {
+		int k = snprintf(m, n, "Prince of Persia 2's files are incomplete in \"%s\": missing %s.", dir, missing);
+		if (lower[0] && k > 0 && (size_t)k < n) snprintf(m + k, n - (size_t)k, " (\"%s\" is there in lowercase: the names must be uppercase, e.g. PRINCE.EXE.)", lower);
+		return 0;
+	}
+	char p[1300]; snprintf(p, sizeof p, "%s/PRINCE.EXE", dir);
+	FILE *f = fopen(p, "rb"); long size = -1; if (f) { fseek(f, 0, SEEK_END); size = ftell(f); fclose(f); }
+	if (size != PRINCE_EXE_SIZE) {
+		snprintf(m, n, "\"%s\" is not the version SDLPoP2 is made for: it needs Prince of Persia 2 1.0 (PRINCE.EXE of %ld bytes, as on the Prince of Persia Collection CD); this one has %ld bytes.", p, PRINCE_EXE_SIZE, size);
+		return 0;
+	}
+	return 1;
 }
 
 int main(int argc, char **argv)
 {
-	const char *ini = NULL, *rec_name = NULL, *play_name = NULL; int a = 1;
-	for (; a < argc && !strncmp(argv[a], "--", 2); a++) {
-		if (!strcmp(argv[a], "--ini") && a + 1 < argc) ini = argv[++a];
-		else if (!strcmp(argv[a], "--record") && a + 1 < argc) rec_name = argv[++a];
-		else if (!strcmp(argv[a], "--replay") && a + 1 < argc) play_name = argv[++a];
-		else { usage(argv[0]); return 2; }
+	const char *ini = NULL, *rec_name = NULL, *play_name = NULL, *dir = ".", *v; int enable_cheats = 0, level = 0;
+	for (int a = 1; a < argc; a++) {
+		if (!strcmp(argv[a], "--help") || !strcmp(argv[a], "-h")) { usage(); return 0; }
+		else if (!strcmp(argv[a], "--enable-cheats")) enable_cheats = 1;
+		else if (!strncmp(argv[a], "--enable-cheats=", 16)) return syntax_error("--enable-cheats takes no value (\"%s\").", argv[a]);
+		else if (opt_value(argc, argv, &a, "--path-to-game", &v)) { if (!v) return syntax_error("--path-to-game needs a folder: --path-to-game DIR%s.", ""); dir = v; }
+		else if (opt_value(argc, argv, &a, "--level", &v)) {
+			if (!v) return syntax_error("--level needs a number from 0 (the intro) to 14%s.", "");
+			char *end; long n = strtol(v, &end, 10);
+			if (*end || end == v || n < 0 || n > 14) return syntax_error("--level must be a number from 0 (the intro) to 14, not \"%s\".", v);
+			level = (int)n;
+		}
+		else if (opt_value(argc, argv, &a, "--ini", &v)) { if (!v) return syntax_error("--ini needs a file: --ini PATH%s.", ""); ini = v; }
+		else if (opt_value(argc, argv, &a, "--record", &v)) { if (!v) return syntax_error("--record needs a name: --record NAME%s.", ""); rec_name = v; }
+		else if (opt_value(argc, argv, &a, "--replay", &v)) { if (!v) return syntax_error("--replay needs a name: --replay NAME%s.", ""); play_name = v; }
+		else if (!strncmp(argv[a], "--", 2)) return syntax_error("Unknown option \"%s\".", argv[a]);
+		else return syntax_error("Unexpected argument \"%s\" (the game's folder is given with --path-to-game DIR).", argv[a]);
 	}
-	if (a >= argc || (rec_name && play_name)) { usage(argv[0]); return 2; }
-	const char *dir = argv[a]; int nwords = argc - a - 1; const char **words = (const char **)argv + a + 1;
+	if (rec_name && play_name) return syntax_error("--record and --replay cannot be used together%s.", "");
+	{ char m[1600]; if (!check_game_dir(dir, m, sizeof m)) { fatal(m); return 1; } }
+	/* the DOS game's command line: its cheat word turns the cheats on and lets LEVELn choose the level; --level alone
+	 * uses it for LEVELn and turns the cheats off again before the first frame (as the menu's toggle: recorded) */
+	static char level_word[16]; snprintf(level_word, sizeof level_word, "LEVEL%d", level);
+	const char *dos_words[2] = { "yippeeyahoo", level_word }; const char **words = dos_words;
+	int nwords = level > 0 ? 2 : enable_cheats ? 1 : 0;
+	int cheats_off_at_start = level > 0 && !enable_cheats;
 	settings_defaults(&S);
 	char ini_used[1024] = "";
 	int ini_ok = load_ini(ini, ini_used, sizeof ini_used);
@@ -272,7 +354,8 @@ int main(int argc, char **argv)
 	if (play_name) {
 		char err[512]; replay_path(path, sizeof path, play_name, 1);
 		if (!replay_open(&play, path, err, sizeof err)) { fprintf(stderr, "sdlpop2: %s\n", err); SDL_Quit(); return 1; }
-		if (nwords) fprintf(stderr, "sdlpop2: replaying %s: its own command line words are used\n", path);
+		if (enable_cheats || level) fprintf(stderr, "sdlpop2: replaying %s: its own options are used\n", path);
+		cheats_off_at_start = 0;   /* (the recording holds its toggles) */
 		settings_copy_gameplay(&S, &play.settings); pop2_settings_game = &S;
 		seed = play.seed; nwords = play.argc; words = play.argp;
 		if (!plat_temp_dir(files_tmp, sizeof files_tmp, "sdlpop2-replay")) {   /* (the player's own saved games are not touched) */ fprintf(stderr, "sdlpop2: no scratch directory for the replay's files\n"); SDL_Quit(); return 1; }
@@ -281,7 +364,12 @@ int main(int argc, char **argv)
 	}
 	platform_sound_volume_hook = platform_sound_volume;   /* (Alt+S / the game's volume -> the audio module) */
 	shell_set_seed(seed);
-	if (!shell_init(dir, nwords, words)) { fprintf(stderr, "cannot load the game from %s\n", dir); SDL_Quit(); return 1; }
+	if (!shell_init(dir, nwords, words)) {
+		char m[1400]; snprintf(m, sizeof m, "Cannot load the game from \"%s\": it needs the original game's files (PRINCE.EXE, the .DAT files). Use --path-to-game DIR.", dir);
+		fatal(m); SDL_Quit(); return 1;
+	}
+	/* (--level without --enable-cheats: the shell sets the cheat flag from its words in its first step; it is turned
+	 * off, as the menu's toggle and recorded, as soon as it is on, before the level starts) */
 	if (rec_name) {
 		replay_path(path, sizeof path, rec_name, 0);
 		if (!replay_record_start(&rec, path, seed, nwords, words, &S)) { fprintf(stderr, "sdlpop2: cannot write %s\n", path); SDL_Quit(); return 1; }
@@ -385,6 +473,7 @@ int main(int argc, char **argv)
 				message(replay_verify(&play) ? "REPLAY VERIFIED" : "REPLAY DIFFERS FROM THE RECORDING");
 				replay_close(&play); replaying = 0; memset(&in, 0, sizeof in); action = REPLAY_NONE;   /* (then the keyboard again) */
 			}
+			if (cheats_off_at_start && shell_cheats()) { menu_cheats = 0; quiet_cheats = 1; cheats_off_at_start = 0; }
 			if (menu_cheats >= 0) {   /* the menu's "Enable cheats": the game's DS:10C2 now (recorded) */
 				if (!replaying && menu_cheats != shell_cheats()) action |= menu_cheats ? REPLAY_CHEATS_ON : REPLAY_CHEATS_OFF;
 				menu_cheats = -1;
@@ -392,7 +481,8 @@ int main(int argc, char **argv)
 			if (rec.f) replay_record_frame(&rec, &in, action);
 			if (action & REPLAY_CHEATS_OFF) shell_set_cheats(0);
 			if (action & REPLAY_CHEATS_ON) shell_set_cheats(1);
-			if (action & (REPLAY_CHEATS_OFF | REPLAY_CHEATS_ON)) message(shell_cheats() ? "CHEATS ON" : "CHEATS OFF");
+			if ((action & (REPLAY_CHEATS_OFF | REPLAY_CHEATS_ON)) && !quiet_cheats) message(shell_cheats() ? "CHEATS ON" : "CHEATS OFF");
+			quiet_cheats = 0;
 			if (action & REPLAY_QUICKSAVE) shell_quicksave();
 			if (action & REPLAY_QUICKLOAD) shell_quickload();
 			if ((action & (REPLAY_QUICKSAVE | REPLAY_QUICKLOAD)) && shell_mode() != SH_PLAY && !replaying) message("QUICKSAVE AND QUICKLOAD: ONLY WHILE PLAYING");
@@ -417,6 +507,7 @@ int main(int argc, char **argv)
 				for (int i = 0; i < SCREEN_W * SCREEN_H; i++) { const uint8_t *c = render_palette + 3 * screen_buf[i]; fputc(c[0] << 2, f); fputc(c[1] << 2, f); fputc(c[2] << 2, f); }
 				fclose(f); }
 		}
+		if (getenv("SDLPOP2_QUIT_AFTER") && shell_frame_count() >= (uint32_t)atoi(getenv("SDLPOP2_QUIT_AFTER"))) goto out;   /* (tests: a normal exit after N frames; a recording is finalised) */
 		next += (Uint64)((double)hz / 70.086);   /* one VGA frame */
 		Uint64 now = SDL_GetPerformanceCounter();
 		if (next > now) SDL_Delay((Uint32)((next - now) * 1000 / hz)); else next = now;

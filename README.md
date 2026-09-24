@@ -39,8 +39,21 @@ writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has every
 </p>
 
 ## Playing
-`sdlpop2 [--ini PATH] [--record NAME | --replay NAME] GAME_DIR [DOS command-line words]`, where GAME_DIR holds your
-copy of the game's files (see "Getting the game" below).
+    sdlpop2 [--path-to-game DIR] [--enable-cheats] [--level N] [--ini PATH] [--record NAME | --replay NAME]
+
+Every option is optional:
+
+| Option | Default | |
+|---|---|---|
+| `--path-to-game DIR` | `.` (the current folder) | the folder with your copy of the game's files (see "Getting the game" below) |
+| `--enable-cheats` | off | cheats on from the start (see Cheats) |
+| `--level N` | `0` (the intro) | start at level N (1-14) with N hit points (3 to 12), the DOS game's `LEVELn`; cheats stay off unless `--enable-cheats` |
+| `--ini PATH` | `SDLPoP2.ini` | the settings file (see Settings) |
+| `--record NAME` / `--replay NAME` | none | record a replay / play one back |
+
+Options may also be written `--level=3`. A mistake in the options, a missing or incomplete game folder (it names the
+missing files) or a different version of the game is reported and the program stops; on Windows the message shows
+in a window. The copy protection is asked from level 3 on, whatever the options.
 
 ### Keyboard (the original game's)
 | | |
@@ -85,15 +98,13 @@ copy of the game's files (see "Getting the game" below).
 | In menus | D-pad / stick move, A = Enter, B = Esc, X = Tab, Y types the name "Prince"; any button = "press a key" |
 
 ### Cheats
-Off by default. The game's cheat word on the command line (`sdlpop2 GAME_DIR yippeeyahoo`, as in the DOS game) turns
-them on from the start; the overlay menu's "Enable cheats" (SETTINGS, GAMEPLAY; SDLPoP's toggle) turns them on or off
+Off by default. `--enable-cheats` (the DOS game's cheat word) turns them on from the start; the overlay menu's "Enable cheats" (SETTINGS, GAMEPLAY; SDLPoP's toggle) turns them on or off
 at any time. The toggle is not saved (it is the game's state: a quicksave keeps it, a replay records it). With the
 cheats on, the pause menu has CHEATS: the list below with the keys, and choosing one closes the menu and does it.
 The copy protection is still asked from level 3 on, cheats or not.
 
 | | |
 |---|---|
-| `LEVELn` (command line) | start at level n (1-14), with n hit points (3 to 12): only with the cheat word |
 | Alt+N | skip to the next level, any level |
 | `+` / `-` | one minute more / less |
 | Shift+`T` / Shift+`K` | one hit point more / less |
@@ -109,7 +120,7 @@ The copy protection is still asked from level 3 on, cheats or not.
 ## Building ([meson](https://mesonbuild.com))
     meson setup build                          # options: meson_options.txt (buildFrontend, buildTools, buildTests, ...)
     meson compile -C build
-    build/sdl/sdlpop2 path/to/prince2          # the game; add DOS command-line words, e.g. `yippeeyahoo LEVEL3`
+    build/sdl/sdlpop2 --path-to-game path/to/prince2   # the game (options: see Playing)
                                                # (options before the directory: --ini PATH, --record NAME, --replay NAME)
 Windows executables are built on Linux with mingw-w64 (SDL2 comes from the [WrapDB](https://mesonbuild.com/Wrapdb-projects.html)
 wrap, built in; `sdlpop2.exe` needs only system DLLs):
@@ -143,9 +154,9 @@ reaches level 3 or later - by playing on, a restored game, the level cheat, Alt+
 
 The core and the shell read the gameplay options through `pop2_settings_game` (`source/settings.h`), NULL unless the
 frontend installs one: at each original site the code is `GAME_SETTING(field, original)`, so the headless core and the
-tests run the verified code unchanged. Replays: `sdlpop2 --record NAME GAME_DIR [words]` records a session from the
+tests run the verified code unchanged. Replays: `sdlpop2 --record NAME [options]` records a session from the
 program's start (the seed, the command-line words, the gameplay settings, the game's own PRINCE.OPT / HOF / SAV and every
-video frame's input) into `replays/NAME.p2r`; `sdlpop2 --replay NAME GAME_DIR` plays it back and checks the final state and
+video frame's input) into `replays/NAME.p2r`; `sdlpop2 --replay NAME` plays it back and checks the final state and
 screen (`source/replay.h`). `meson test -C build --suite settings` (with `-DgameDir`) checks that the ini's defaults are
 the game's and that a scripted session records and replays identically.
 

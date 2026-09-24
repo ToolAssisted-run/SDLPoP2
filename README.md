@@ -94,14 +94,19 @@ SEQUENCE.DAT, levels), `sdl/` for the [SDL2](https://www.libsdl.org) frontend, `
 oracle comparisons (run by `meson test`, or directly: `tests/run_all.sh`, `tools/tiletests.sh`, `tests/run_shell.sh`).
 
 ## License and legal
-Source available for noncommercial use: the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) (`LICENSE`) — use, change and
-redistribute it for research, study, experiment, hobby and the other noncommercial purposes the license lists; no
-credit asked for; no warranty. This is not an "open source" license in the OSI sense.
+SDLPoP2 is free software under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html) or
+later (`LICENSE`), with no warranty.
 
 This is an unofficial reconstruction of Prince of Persia 2 (DOS) for research and education. It is not affiliated
 with or endorsed by the game's rights holders, who own the game, its code, data and trademarks; the contributors
-claim no ownership of it, and no game data is included (you need your own copy). The [Nuked OPL3](https://github.com/nukeykt/Nuked-OPL3) emulator
-(`source/audio_opl3.*`) stays under the LGPL 2.1 or later. Details: `NOTICE`.
+claim no ownership of it, and no game data is included (you need your own copy). Details: `NOTICE`.
+
+## Credits
+- [SDLPoP](https://github.com/NagyD/SDLPoP) by Dávid Nagy and its contributors: this project is modelled on it, and
+  `SDLPoP2.ini` follows its `SDLPoP.ini` (GPL-3.0-or-later).
+- [Nuked OPL3](https://github.com/nukeykt/Nuked-OPL3) by Nuke.YKT: the OPL2/OPL3 emulator in `source/audio_opl3.*`
+  (LGPL-2.1-or-later).
+- The original game: *Prince of Persia 2: The Shadow and the Flame* (Brøderbund, 1993), designed by Jordan Mechner.
 
 **Getting the game:** SDLPoP2 needs the original game's data files, which are not included. The game is not
 currently sold digitally; the legal way to obtain them is an original copy of *Prince of Persia 2: The Shadow and

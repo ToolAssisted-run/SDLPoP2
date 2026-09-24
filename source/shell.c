@@ -228,7 +228,7 @@ static void draw(void (*f)(void))
 	 * shadow, level 13's) or 1 (the flame, level 14's); off the temple and final levels those are a guard palette,
 	 * put back when the spirit is gone) */
 	static int spirit_colors;
-	if (Kid.charid == 1 && cheat_form) { render_pal_load(cheat_form == 2 ? 1 : 0, 0x10, 0x30, 2000); spirit_colors = 1; }
+	if (Kid.charid == 1 && cheat_form) { render_pal_load(cheat_form == 2 && (int8_t)Kid.f12 > 2 ? 1 : 0, 0x10, 0x30, 2000); spirit_colors = 1; }   /* (the flame's colors while it shows: 2F86:0192's rule) */
 	else if (spirit_colors) { spirit_colors = 0; render_pal_guards(); }
 }
 
@@ -263,6 +263,8 @@ void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m)   /* 33FD:0680 / 08C0 /
 	if (tile == 0x25) render_roof25_tick(tp); else if (tile == 0x26) render_roof26_tick(m); else render_roof27_tick(m);
 }
 void hook_pal_rotate(int start, int count) { if (hooks_on) render_pal_rotate(start, count); }   /* 2699:0048 */
+void hook_pal_load(int sub, int count, int start, int res) { if (hooks_on) render_pal_load(sub, count, start, res); }   /* 0FB3:2B1C */
+void hook_pal_restore(void) { if (hooks_on) render_pal_restore(); }   /* 0FB3:294C */
 /* 0AAC:00AE: the first room is the picture the story scene before it ended on (no checkpoint (DS:5AB2), not a
  * restart (DS:5CB6); DS:2BB6, a restored game, not kept here): level 6 room 0x1B, level 10 room 0x16, level 14 room
  * 1 (DS:4418 the level's start room), level 8 room 9 (DS:6B6D, the room entered); with a checkpoint: level 8 room 9 */

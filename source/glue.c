@@ -47,7 +47,7 @@ void seq_ctl_1954(void) { drink(); }   /* items.c */
 void ovl_366c_1704(void) { note(" ovl1704"); }
 void flash_on(uint16_t v) { (void)v; note(" flash_on"); } void flash_off(void) { note(" flash_off"); }
 int ovl_366c_11f8(uint8_t r) { return room_draws_sword_pub(r); }   /* 366C:11F8 (OVL10, guard.c) */
-void shadow_hook_2f9a2(void) {}   /* 2F86:0142: level 13 room 4 f24 0xD: 0FB3:294C (a digital sound); palette */
+
 void rtlink_fatal(int code) { char t[32]; snprintf(t, sizeof t, " FATAL(%x)", code); note(t); }
 /* control.c externs not yet reconstructed */
 uint8_t byte_2ab4, edge_type, start_room; int16_t word_3bf62; uint16_t word_8a84;
@@ -169,7 +169,7 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 /* room.c stubs */
 uint16_t word_68f0;
 void ovl_37d2a(void) { note(" 37d2a"); } 
-void ovl_34958(void) { level6_entrance(); } void ovl_2f9f2(void) {}   /* 2F86:0192: palette by hp */
+void ovl_34958(void) { level6_entrance(); }
 void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {}
 level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
 void ovl_36712(void) { note(" 36712"); } void room_music_087e(void) {}

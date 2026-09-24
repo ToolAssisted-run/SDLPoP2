@@ -40,13 +40,33 @@ static void leave_body(void)
 	Char.index = n; Char.charid = 0; Char.pal_slot = 2;
 	seqtbl_offset_char(0x47); play_seq(); save_char(); loadkid();
 }
+/* 2F86:04AE: the spirit shows as the flame: +0x24 is 0xD, or on the final level (kind 6) more than 2 hit points */
+int spirit_flame_shows(void) { return Char.f24 == 0xD || (level_kind == 6 && (int8_t)Char.f12 > 2); }
+/* 2F86:0142 (0AFF:0AAA start_fall and 1375 of the spirit): on level 13's room 4 merging (+0x24 0xD) the saved colors
+ * back (0FB3:294C); after a cast (seq 0xF2) with no fireball in flight and 2 hit points or fewer, the shadow's colors */
+void shadow_hook_2f9a2(void)
+{
+	if (Char.room == 4 && level_number == 13 && Char.f24 == 0xD) { hook_pal_restore(); return; }
+	if (Char.f19 == 0xF2 && !find_mob_pub(1, 0xC) && (int8_t)Char.f12 <= 2) hook_pal_load(0, 0x10, 0x30, 2000);
+}
+/* 2F86:0192 (0823:1008 on the final level, the prince's hit points changing as the spirit): down to 2 or fewer (not
+ * casting) the shadow's colors, up from 2 or fewer the flame's */
+void ovl_2f9f2(void)
+{
+	int hp = (int8_t)Kid.f12, after = hp + (int8_t)Kid.hp_delta, sub = -1;
+	if (hp > 2 && after <= 2 && Kid.f19 != 0xF2) sub = 0;
+	else if (hp <= 2 && after > 2) sub = 1;
+	if (sub >= 0) hook_pal_load(sub, 0x10, 0x30, 2000);
+}
 /* 2F86:0078 (2FDF:0ED9, a standing turn on kinds 2 and 6): turns in a row count; from the fourth each costs a hit
  * point and a point of the maximum, the eighth leaves the body (more than 4 hp) or kills */
 void turn_count(void)
 {
 	if (Char.charid != 0 || Char.f19 != 5) { word_5cbe = 1; return; }
 	if ((int16_t)++word_5cbe < 4) return;
-	/* the fourth: 0FB3:2B1C palette flash (2F86:04AE) and sound 0x2815 */
+	/* the fourth: the spirit's colors at 0x30 (0FB3:2B1C: PALS 2000, sub-palette 1, the flame's, when 2F86:04AE says
+	 * the flame shows, else 0, the shadow's) and sound 0x2815 */
+	if (word_5cbe == 4) hook_pal_load(spirit_flame_shows() ? 1 : 0, 0x10, 0x30, 2000);
 	if (cheat_god) {}   /* (god mode: turning costs nothing) */
 	else if (!take_hp(1)) Char.f13--; else seqtbl_offset_char(0x47);
 	if (word_5cbe == 8) {

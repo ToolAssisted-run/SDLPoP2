@@ -852,3 +852,8 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   final levels bank 0x30 holds a guard palette, so the frontend puts the spirit's colors there after each drawing
   while the cheat's spirit is out (a second guard palette in the same room shows in them meanwhile). No game state
   depends on the form (kid_sprite_state skips the spirit).
+- 2026-09-24: the spirit's colors (OVL01 2F86): the 4th chained turn loads PALS 2000 at 0x30 (0FB3:2B1C; sub-palette 1,
+  the flame's, when 2F86:04AE says the flame shows, else 0); 2F86:0142 (the spirit starting to fall: level 13's merge
+  puts the saved colors back, 0FB3:294C; after a cast with no fireball in flight at 2 hp or fewer, sub-palette 0) and
+  2F86:0192 (level 14's hp crossing 2: sub-palette 0 going down, 1 going up) were empty stubs. X14_3P (X14_3 with
+  shots): the flame drawn black before (146 pixels at frame 3400), every pixel of rows 0..191 equal now.

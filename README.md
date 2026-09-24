@@ -23,6 +23,86 @@ completion), the drawing matches the game's offscreen buffer frame for frame, th
 writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has everything found; `docs/AUDIO.md`,
 `docs/NIS.md` and `docs/SHELL.md` cover those parts.
 
+## Screenshots
+<p>
+<img src="docs/screenshots/story.png" width="32%" alt="A story scene">
+<img src="docs/screenshots/level01.png" width="32%" alt="Level 1: the palace rooftops">
+<img src="docs/screenshots/level03.png" width="32%" alt="Level 3: the caverns">
+<img src="docs/screenshots/level07.png" width="32%" alt="Level 7: the ruins">
+<img src="docs/screenshots/level10.png" width="32%" alt="Level 10: the temple">
+<img src="docs/screenshots/level14.png" width="32%" alt="Level 14: the final level">
+</p>
+<p>
+<img src="docs/screenshots/menu-pause.png" width="32%" alt="The overlay menu: pause page">
+<img src="docs/screenshots/menu-settings.png" width="32%" alt="The overlay menu: general settings">
+<img src="docs/screenshots/menu-mods.png" width="32%" alt="The overlay menu: gameplay customisation">
+</p>
+
+## Playing
+`sdlpop2 [--ini PATH] [--record NAME | --replay NAME] GAME_DIR [DOS command-line words]`, where GAME_DIR holds your
+copy of the game's files (see "Getting the game" below).
+
+### Keyboard (the original game's)
+| | |
+|---|---|
+| Move | any of three 3x3 grids: the **numeric keypad / arrows + Home, PgUp, End, PgDn**; **W E R / S D F / X C V**; **U I O / J K L / M , .** (up = top row, left / right = the side keys, down = the centre and bottom-centre keys) |
+| Shift (or keypad Del) | careful step, grab ledges, pick up and drink |
+| Ctrl (or keypad 0) | draw the sword / strike; on level 14 the spirit casts |
+| Esc | pause (with `enable_pause_menu`: the overlay menu) |
+| Space | show the time left |
+| Alt+A | restart the level |
+| Alt+R | back to the title |
+| Alt+S / Alt+M | sound / ambient music on or off |
+| Alt+O | options |
+| Alt+G / Alt+L | save / restore the game |
+| Alt+H | hall of fame |
+| Alt+J / Alt+K | joystick / keyboard mode (the DOS joystick is not supported: use a game controller) |
+| Alt+V | the game's version |
+| Alt+N | skip to the next level (without the cheat only up to level 3, and the clock drops to 15 minutes) |
+| Ctrl+Q / Alt+Q | quit |
+| any key | after a death: restart |
+
+### SDLPoP2's own keys
+| | |
+|---|---|
+| Esc / Backspace / click | the overlay menu (Esc: with `enable_pause_menu`) |
+| F1 | the key summary (`enable_info_screen`) |
+| F6 / F9 | quicksave / quickload (`enable_quicksave`; loading costs a minute with `enable_quicksave_penalty`) |
+| Alt+Enter | fullscreen on / off |
+| In the menu | arrows / mouse / wheel to move, Enter or click to choose, Esc / Backspace / right click to go back, Home / End / PgUp / PgDn |
+
+### Game controller (defaults; `[Controller]` in SDLPoP2.ini remaps them)
+| | |
+|---|---|
+| D-pad / left stick | move (the 8 directions) |
+| Y / A | up / down |
+| X, LT, RT | Shift |
+| B | Ctrl (sword; cast) |
+| Start | the overlay menu (the game's pause without `enable_pause_menu`) |
+| Back | restart the level |
+| LB / RB | quicksave / quickload |
+| Right stick click | the time left |
+| In menus | D-pad / stick move, A = Enter, B = Esc, X = Tab, Y types the name "Prince"; any button = "press a key" |
+
+### Cheats
+Only with the game's cheat word on the command line (`sdlpop2 GAME_DIR yippeeyahoo`, as in the DOS game). The copy
+protection is still asked from level 3 on, cheats or not.
+
+| | |
+|---|---|
+| `LEVELn` (command line) | start at level n (1-14), with n hit points (3 to 12) |
+| Alt+N | skip to the next level, any level |
+| `+` / `-` | one minute more / less |
+| `T` / `K` | one hit point more / less |
+| `g` | the opponent one hit point more |
+| `k` | kill every character in the room |
+| `r` | revive a dead prince |
+| `W` | feather fall |
+| `I` | upside down |
+| `R` | show the room number |
+| `S` | temple and final levels: count a spirit turn |
+| F3 | the demo player on / off |
+
 ## Building ([meson](https://mesonbuild.com))
     meson setup build                          # options: meson_options.txt (buildFrontend, buildTools, buildTests, ...)
     meson compile -C build
@@ -123,6 +203,7 @@ claim no ownership of it, and no game data is included (you need your own copy).
 - [SDLPoP](https://github.com/NagyD/SDLPoP) by Dávid Nagy and its contributors: this project is modelled on it,
   `SDLPoP2.ini` follows its `SDLPoP.ini`, and the in-game menu (`sdl/overlay_menu.c`) is its `src/menu.c`
   (GPL-3.0-or-later).
+- The overlay menu's small font comes with SDLPoP's menu; its letters are from Yuji Oshimoto's freeware font 04b_03.
 - [Nuked OPL3](https://github.com/nukeykt/Nuked-OPL3) by Nuke.YKT: the OPL2/OPL3 emulator in `source/audio_opl3.*`
   (LGPL-2.1-or-later).
 - The original game: *Prince of Persia 2: The Shadow and the Flame* (Brøderbund, 1993), designed by Jordan Mechner.

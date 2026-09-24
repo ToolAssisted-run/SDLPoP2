@@ -103,7 +103,7 @@ static void spirit_rejoin(void)
 {
 	if (Opp.charid != 0) return;
 	Kid = Char; load_char(Opp.index); clear_char(); save_char(); loadkid();
-	Char.charid = 0; Char.pal_slot = 0; Char.f0f = 1; cheat_spirit = 0;
+	Char.charid = 0; Char.pal_slot = 0; Char.f0f = 1; cheat_spirit = 0; cheat_form = 0;
 	seqtbl_offset_char(0xE7); play_seq(); Kid = Char;
 }
 /* 2F86:0344 (the spirit dies): the body becomes the prince again (index 0xA), with the spirit's hp; its character is removed */
@@ -114,7 +114,7 @@ void shadow_2fba4(void)
 	char_type body = Char;
 	Char.index = 0xA; Char.pal_slot = 0; Char.f12 = Kid.f12; Char.f13 = Kid.f13; Char.hp_delta = Kid.hp_delta;
 	Kid = Char; Char = body;
-	clear_char(); loadkid(); cheat_spirit = 0;
+	clear_char(); loadkid(); cheat_spirit = 0; cheat_form = 0;
 }
 /* 2FDF:09B2 (control, dead frames and 0xB3..0xB7) */
 void control_dead_0307a2(void)

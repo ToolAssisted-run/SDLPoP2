@@ -846,3 +846,9 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   leaves it alone; and curr_room_tiles was saved relative to tiles0 as if tiles0 and level were one block. The DOS
   game's control keys include the letter grids W E R / S D F / X C V and U I O / J K L / M , . (keyboard_controls):
   a cheat on one of those letters also moves the prince (the DOS cheats K, S, W, I, R, T do); SDLPoP2's use free keys.
+- 2026-09-24: the shadow / flame cheats on any level: the game's spirit is one character (charid 1); the flame is only
+  its drawing (2F86:052E: images 0x122 + tick % 9 of the kid's set, found in FINAL.DAT, with more than 2 hp) and its
+  colors are bank 0x30, PALS 2000 sub-palette 0 (the shadow, level 13's room 4) or 1 (the flame). Off the temple and
+  final levels bank 0x30 holds a guard palette, so the frontend puts the spirit's colors there after each drawing
+  while the cheat's spirit is out (a second guard palette in the same room shows in them meanwhile). No game state
+  depends on the form (kid_sprite_state skips the spirit).

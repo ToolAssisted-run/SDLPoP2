@@ -246,8 +246,11 @@ static void draw_hook_33fd_1512(void)
 	obj_rect(); add_obj(9);
 	mark_tiles_under(mark_fore, sv.rect, Char.index);
 }
-/* 2F86:04AE: the shadow's spirit shows: +0x24 is 0xD, or on the final level (kind 6) more than 2 hit points */
-static int spirit_shows(void) { return Char.f24 == 0xD || (level_kind == 6 && (int8_t)Char.f12 > 2); }
+/* 2F86:04AE: the shadow's spirit shows: +0x24 is 0xD, or on the final level (kind 6) more than 2 hit points (the
+ * prince's spirit out through SDLPoP2's cheats: the flame or the shadow on any level, cheat_form) */
+static int spirit_flame(int kid) { return kid && cheat_form ? cheat_form == 2 : level_kind == 6; }
+static int spirit_shows_kid;
+static int spirit_shows(void) { return Char.f24 == 0xD || (spirit_flame(spirit_shows_kid) && (int8_t)Char.f12 > 2); }
 /* 2F86:052E (OVL, the shadow, charid 1): its spirit, an object of type 0xE: image 0x122 + tick % 9 (2812:1DC4) of
  * the character's image set, moved forward by 13 - image width / 2 (DS:6114), the fore layer marked over it */
 static void draw_hook_2f86_052e(void)
@@ -291,7 +294,7 @@ static void draw_kid(void)
 	else if (level_number == 5 && Char.room == 3 && Char.frame == 0x127) draw_hook_37f0_044a();
 	else if (Char.frame >= 0x132 && Char.frame <= 0x13E) draw_hook_37f0_05fc();
 	else if (Char.frame >= 0x110 && Char.frame <= 0x119) kid_sword_frame();
-	if (Char.charid == 1 && level_kind == 6) draw_hook_2f86_052e();
+	if (Char.charid == 1 && spirit_flame(1)) { spirit_shows_kid = 1; draw_hook_2f86_052e(); spirit_shows_kid = 0; }
 	char_sword(3);
 	char_sword2();
 }

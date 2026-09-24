@@ -115,8 +115,8 @@ SDLPoP2's own (not in the DOS game; on keys the game's controls leave free):
 | | |
 |---|---|
 | Shift+`G` | god mode on / off: no fall, sword, head, snake, trap, crusher, sinking floor or flame hurts the prince (falls land softly, blades and bites miss, the moving walls let him through, a closing gate pushes him aside); out of the level he falls for ever, and turning god mode off then kills him |
-| `H` | leave the body as the shadow (levels 1–13), as the temple's eighth turn does but without its cost; crouch at the body to go back |
-| `B` | leave the body as the flame (level 14, where the game draws the spirit as a flame) |
+| `H` | leave the body as the shadow, as the temple's eighth turn does but without its cost; crouch at the body to go back |
+| `B` | the same as the flame (level 14's form of the spirit) |
 | `Z` | the sword: none → short (levels 7–8's, 5 pixels less reach) → full; not with the sword drawn |
 | Alt+arrows | look into the room left / right / above / below of the one shown (again: further); the prince goes on unseen, and leaving his room brings the view back |
 | `T` | teleport the prince into the room shown, at the same place in it |
@@ -125,16 +125,17 @@ SDLPoP2's own (not in the DOS game; on keys the game's controls leave free):
 <p>
 <img src="docs/screenshots/cheat-god.png" width="32%" alt="God mode: a guard's sword never lands">
 <img src="docs/screenshots/cheat-shadow.png" width="32%" alt="H: the prince's shadow beside his body (level 1)">
-<img src="docs/screenshots/cheat-flame.png" width="32%" alt="B: the flame (level 14)">
+<img src="docs/screenshots/cheat-flame.png" width="32%" alt="B: the flame (level 3)">
 <img src="docs/screenshots/cheat-look.png" width="32%" alt="Alt+Left: looking into room 2 while the prince stays in his room">
 <img src="docs/screenshots/cheat-fly.png" width="32%" alt="A held with the arrows: the prince flying over the rooftops">
 <img src="docs/screenshots/menu-cheats.png" width="32%" alt="The overlay menu's CHEATS page">
 </p>
 
-God mode against a guard's sword; the shadow beside the prince's body (level 1); the flame (level 14); looking into
+God mode against a guard's sword; the shadow beside the prince's body (level 1); the flame (level 3); looking into
 room 2 (the prince stays in his own room, unseen); flying over the rooftops; the CHEATS page.
 
-The game knows three sword states (none, the short sword, the full sword); the level-14 spirit's fireball is its cast
+The game has one spirit: the temple levels draw it as the shadow, level 14 as the flame. `H` and `B` choose the form on
+any level; only the drawing differs (level 14's casts work in either form). The game knows three sword states (none, the short sword, the full sword); the level-14 spirit's fireball is its cast
 (Ctrl in rooms 7 and 8), not a sword. Like the DOS cheats, these are game state: a quicksave keeps them, a replay
 records them.
 

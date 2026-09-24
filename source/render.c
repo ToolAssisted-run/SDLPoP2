@@ -138,6 +138,7 @@ const image_t *render_image(int chtab, int n)
 	if (!render_image_res(chtab, n, &dat, &res)) return NULL;
 	const image_t *im = decode_res(dat, res);
 	if (!im && chtab == 2) im = decode_res(level_kind_dat(), res);   /* (the resource search goes on through the scenery file: level 14's fireballs) */
+	if (!im && chtab == 2 && cheat_form == 2) im = decode_res("FINAL.DAT", res);   /* (SDLPoP2's flame cheat off level 14: the flame's images) */
 	return im;
 }
 

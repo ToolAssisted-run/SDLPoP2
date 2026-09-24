@@ -858,12 +858,12 @@ static const cheat_type cheats[] = {
 		{'G', CHEAT_ACTION_TYPE_KEY, "God mode on / off",
 				"Nothing hurts or kills the prince: falls, swords, heads, snakes, traps, crushers, sinking floors, flames.\n"
 				"Out of the level he falls for ever: turned off, that kills him."},
-		{'h', CHEAT_ACTION_TYPE_KEY, "The shadow (levels 1-13)",
-				"Standing, the prince leaves his body as the shadow, as the eighth turn does on the temple levels, "
-				"without its cost. Back: crouch at the body."},
-		{'b', CHEAT_ACTION_TYPE_KEY, "The flame (level 14)",
-				"Standing, the prince leaves his body as the flame (level 14's spirit), without the cost. "
-				"Back: crouch at the body."},
+		{'h', CHEAT_ACTION_TYPE_KEY, "The shadow",
+				"Standing, the prince leaves his body as the shadow (any level), as the eighth turn does on the "
+				"temple levels, without its cost. Back: crouch at the body."},
+		{'b', CHEAT_ACTION_TYPE_KEY, "The flame",
+				"Standing, the prince leaves his body as the flame (level 14's spirit, on any level), without the "
+				"cost. Back: crouch at the body."},
 		{'z', CHEAT_ACTION_TYPE_KEY, "Sword: none / short / full",
 				"The prince's sword: none, the short one (levels 7 and 8's, 5 pixels less reach), the full one. "
 				"Not with the sword drawn."},

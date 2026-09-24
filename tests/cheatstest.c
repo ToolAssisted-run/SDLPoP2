@@ -48,7 +48,7 @@ static void do_cheat(int act)   /* (as inside the prince's control, where the sh
 	case 0: case 1: case 2: case 3: cheat_look(act); break;
 	case 4: cheat_teleport(); break;
 	case 5: cheat_sword(); break;
-	case 6: cheat_leave_body(level_number == 14); break;
+	case 6: case 8: cheat_leave_body(act == 8); break;
 	case 7: cheat_god_toggle(); break;
 	}
 	Kid = Char;

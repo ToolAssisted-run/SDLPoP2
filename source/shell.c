@@ -224,6 +224,12 @@ static void draw(void (*f)(void))
 	static uint8_t *save; static size_t n;
 	if (!save) { n = pop2_state_size(); save = malloc(n); }
 	pop2_save(save); f(); pop2_load(save);
+	/* (SDLPoP2's shadow / flame cheat: the spirit draws with colors 0x30.., the game's PALS 2000 sub-palette 0 (the
+	 * shadow, level 13's) or 1 (the flame, level 14's); off the temple and final levels those are a guard palette,
+	 * put back when the spirit is gone) */
+	static int spirit_colors;
+	if (Kid.charid == 1 && cheat_form) { render_pal_load(cheat_form == 2 ? 1 : 0, 0x10, 0x30, 2000); spirit_colors = 1; }
+	else if (spirit_colors) { spirit_colors = 0; render_pal_guards(); }
 }
 
 /* ---- the core's drawing hooks (weak no-ops in the core: game.c, level.c, roomhooks.c, glue.c), on while the shell

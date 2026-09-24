@@ -699,6 +699,9 @@ static void shell_main(void)   /* 0823:0000 */
 
 /* ---- the host side ---- */
 void shell_set_seed(uint32_t seed) { seed_value = seed; seed_set = 1; }
+void shell_reseed(uint32_t seed) { random_seed = seed; }
+void shell_goto(int level, int entry) { if (cheat_mode && mode == SH_PLAY) cheat_goto(level, entry); }
+int shell_level_entries(int *levels, int *entries, int *rooms, int max) { return cheat_level_entries(levels, entries, rooms, max); }
 static void entry(void) { shell_main(); shell_done = 1; }
 int shell_init(const char *dir, int argc, const char **argv)
 {

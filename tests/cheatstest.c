@@ -144,6 +144,17 @@ int main(int argc, char **argv)
 		if (first >= 0) rt_bad++;
 		cheat_god = 0; cheat_fly_key = 0;
 	}
+	/* the copy protection on any way into level 3 or later (the level cheat's jumps): asked unless answered */
+	{
+		uint16_t w = word_0366; uint8_t b = byte_6b6c; int cp_bad = 0;
+		byte_6b6c = 1;
+		for (int from = 1; from <= 2; from++) for (int to = 3; to <= 14; to++) { word_0366 = 0; if (story_scene(from, to) != 0x64) cp_bad++; }
+		word_0366 = 0; if (story_scene(1, 2) == 0x64) cp_bad++;   /* (level 2: not yet) */
+		word_0366 = 1; if (story_scene(1, 5) == 0x64) cp_bad++;   /* (answered: not again) */
+		word_0366 = w; byte_6b6c = b;
+		printf("copy protection on level jumps: %s\n", cp_bad ? "FAIL" : "ok");
+		if (cp_bad) bad++;
+	}
 	printf("cheatstest: %d god-mode failures, %d of 14 round trips differ\n", bad, rt_bad);
 	free(st);
 	return bad || rt_bad;

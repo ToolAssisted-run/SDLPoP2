@@ -11,12 +11,15 @@
 #include "settings.h"
 
 /* the frontend's actions of a frame (bits): quick save / load (shell_quicksave / shell_quickload), the cheats turned
- * off / on (shell_set_cheats, the overlay menu's "Enable cheats"), each done before the frame's shell_step */
-enum { REPLAY_NONE = 0, REPLAY_QUICKSAVE = 1, REPLAY_QUICKLOAD = 2, REPLAY_CHEATS_OFF = 4, REPLAY_CHEATS_ON = 8 };
+ * off / on (shell_set_cheats, the overlay menu's "Enable cheats"), a new random seed (shell_reseed, the menu's
+ * "Restart game": the seed in replay_rec / replay_play .reseed), each done before the frame's shell_step */
+enum { REPLAY_NONE = 0, REPLAY_QUICKSAVE = 1, REPLAY_QUICKLOAD = 2, REPLAY_CHEATS_OFF = 4, REPLAY_CHEATS_ON = 8, REPLAY_RESEED = 16, REPLAY_GOTO = 32 };   /* (REPLAY_GOTO: shell_goto, .goto_level / .goto_entry) */
 
 typedef struct replay_rec {
 	FILE *f; uint32_t frame;
 	shell_input last; int have_last;
+	uint32_t reseed;           /* the seed of a REPLAY_RESEED action */
+	int goto_level, goto_entry;   /* a REPLAY_GOTO action's */
 } replay_rec;
 /* before shell_init's first step: the game's own files are read where loader.h's file_dir says */
 int  replay_record_start(replay_rec *r, const char *path, uint32_t seed, int argc, const char **argv, const pop2_settings *s);
@@ -32,6 +35,8 @@ typedef struct replay_play {
 	/* the recorded game files, to be written where the replay's files are read */
 	int nfiles; struct { char name[16]; uint8_t *data; long size; } files[3];
 	uint32_t next_frame; int next_type; int eof;
+	uint32_t reseed;           /* the seed of the last REPLAY_RESEED action */
+	int goto_level, goto_entry;   /* the last REPLAY_GOTO action's */
 } replay_play;
 int  replay_open(replay_play *p, const char *path, char *err, size_t errlen);   /* 0 on failure (err says why) */
 int  replay_write_files(const replay_play *p, const char *dir);   /* the recorded PRINCE.OPT / HOF / SAV into dir */

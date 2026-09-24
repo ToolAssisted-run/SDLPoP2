@@ -178,6 +178,25 @@ void level_begin(void)
 static void kind_level_init(void); extern int last_scene; int load_level_ex(int n, int full);
 /* the frontend's hooks (shell.c; no-ops for the core alone) */
 
+/* the sword type a level starts with: 1286:0D06 by level, or SDLPoP2.ini's [Level N] sword_type */
+static uint8_t level_sword(void)
+{
+	uint8_t t = level_number == 6 ? 0xFF : (level_number == 7 || level_number == 8) ? 2 : 1;
+	if (pop2_settings_game && level_number >= 1 && level_number <= SETTINGS_LEVELS) t = pop2_settings_game->sword_type[level_number];
+	return t;
+}
+/* (SDLPoP2's level cheat, cheats.c) the fresh level starts at the chosen entry: a checkpoint as if just reached (the
+ * level as loaded), or level 7's start (DS:5CB9: 2 room 4, else room 32) */
+static void cheat_goto_apply(void)
+{
+	int e = cheat_goto_entry - 1; cheat_goto_entry = 0;
+	if (level_number == 7) flag_5cb9 = e == 3 ? 2 : 1;
+	uint8_t room = e == 1 || e == 2 ? checkpoint_table()[2 * (e - 1)] : 0;
+	if (room == 0 || room > level.nrooms) { cp.used = 0; return; }
+	cp.used = 1; cp.index = (uint16_t)e;
+	memcpy(cp.tiles, LV, 0x3C0); memcpy(cp.attrs, LV + 0x3C0, 0xF00); memcpy(cp.records, LV + 0x1867, 0xE80); memcpy(cp.spawns, LV + 0x26F9, 0x440);
+	cp.level = level_number; cp.hp = start_hp; cp.dir = (int8_t)~level.start_dir; cp.updown = 0; cp.sword = level_sword();
+}
 /* 1286:01F2 / 02EE: load level n (resource 0x7CF + n, +0x14 with the GAMEPLAY switch), then the checkpoint copy.
  * A different level than the current one drops the checkpoint. */
 int load_level(int n) { return load_level_ex(n, n != (int8_t)word_32d8 || last_scene); }
@@ -191,10 +210,11 @@ int load_level_ex(int n, int full)
 	if (!p) return 0;
 	memcpy(&level, p, size < sizeof level ? size : sizeof level);
 	level_kind = level.hdr_pad2[4]; level_number = level.number;
-	level_postprocess(); checkpoint_restore();
+	level_postprocess();
+	if (cheat_goto_entry) cheat_goto_apply();   /* (SDLPoP2's level cheat) */
+	checkpoint_restore();
 	/* 1286:0D06: the sword type: the checkpoint's (DS:5AB2 is the checkpoint block's far pointer, +0xC), else by level */
-	byte_5cba = cp.used ? cp.sword : level_number == 6 ? 0xFF : (level_number == 7 || level_number == 8) ? 2 : 1;
-	if (pop2_settings_game && !cp.used && level_number >= 1 && level_number <= SETTINGS_LEVELS) byte_5cba = pop2_settings_game->sword_type[level_number];   /* (SDLPoP2.ini [Level N] sword_type) */
+	byte_5cba = cp.used ? cp.sword : level_sword();
 	if (full) {   /* the full load (1286:01F2); a plain restart reloads through 1286:0332 */
 		guard_sprites_loaded(level.type);   /* 1286:027E -> 087E */
 		kind_level_init();
@@ -223,6 +243,7 @@ int story_scene(int prev, int n)
 	 * asks before its first level; otherwise it comes after level 2 (case 2 below). No setting changes this. */
 	if ((int8_t)byte_6b6c > 2 && word_0366 == 0) return last_scene = 0x64;
 	if (byte_6b6c == 0) return last_scene = 0;
+	if (n > 2 && word_0366 == 0) return last_scene = 0x64;   /* (SDLPoP2: any way into level 3 or later, the level cheat's jumps too: the game's own way always passes level 2's end, below) */
 	if (!(prev != 0 && (n == prev || n == -1)))
 		switch (prev) { case 1: si = 9; break; case 2: si = 0x64; break; case 3: si = 0xA; break; case 5: si = 1; break; case 8: si = 2; break; case 13: si = 3; break; }
 	if (si == 0 && prev >= 4) {

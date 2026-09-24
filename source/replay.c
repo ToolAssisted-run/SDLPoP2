@@ -8,7 +8,7 @@
 #include "render.h"
 
 #define MAGIC "SDLPoP2 replay 1"
-enum { REC_INPUT = 1, REC_QUICKSAVE = 2, REC_QUICKLOAD = 3, REC_CHEATS_OFF = 4, REC_CHEATS_ON = 5, REC_END = 0xFE };
+enum { REC_INPUT = 1, REC_QUICKSAVE = 2, REC_QUICKLOAD = 3, REC_CHEATS_OFF = 4, REC_CHEATS_ON = 5, REC_RESEED = 6 /* + the seed, 4 bytes */, REC_GOTO = 7 /* + level, entry */, REC_END = 0xFE };
 static const char *const game_files[3] = { "PRINCE.OPT", "PRINCE.HOF", "PRINCE.SAV" };
 
 uint32_t replay_screen_checksum(void)   /* FNV-1a over the screen and its palette */
@@ -53,6 +53,8 @@ void replay_record_frame(replay_rec *r, const shell_input *in, int action)
 	}
 	static const struct { int bit, rec; } acts[4] = { {REPLAY_CHEATS_OFF, REC_CHEATS_OFF}, {REPLAY_CHEATS_ON, REC_CHEATS_ON}, {REPLAY_QUICKSAVE, REC_QUICKSAVE}, {REPLAY_QUICKLOAD, REC_QUICKLOAD} };
 	for (int i = 0; i < 4; i++) if (action & acts[i].bit) { w32(r->f, r->frame); fputc(acts[i].rec, r->f); }
+	if (action & REPLAY_RESEED) { w32(r->f, r->frame); fputc(REC_RESEED, r->f); w32(r->f, r->reseed); }
+	if (action & REPLAY_GOTO) { w32(r->f, r->frame); fputc(REC_GOTO, r->f); fputc(r->goto_level, r->f); fputc(r->goto_entry, r->f); }
 	r->frame++;
 }
 void replay_record_end(replay_rec *r)
@@ -141,6 +143,8 @@ int replay_frame(replay_play *p, shell_input *in, int *action)
 		else if (t == REC_QUICKLOAD) *action |= REPLAY_QUICKLOAD;
 		else if (t == REC_CHEATS_OFF) *action |= REPLAY_CHEATS_OFF;
 		else if (t == REC_CHEATS_ON) *action |= REPLAY_CHEATS_ON;
+		else if (t == REC_RESEED) { if (!r32(p->f, &p->reseed)) { p->eof = 1; break; } *action |= REPLAY_RESEED; }
+		else if (t == REC_GOTO) { int l = fgetc(p->f), e = fgetc(p->f); if (e == EOF) { p->eof = 1; break; } p->goto_level = l; p->goto_entry = e; *action |= REPLAY_GOTO; }
 		else { p->eof = 1; break; }
 		next_header(p);
 	}

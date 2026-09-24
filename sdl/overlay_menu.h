@@ -23,7 +23,7 @@ enum { OVERLAY_MENU_APPLY_VIDEO = 1,        /* use_correct_aspect_ratio, use_int
        OVERLAY_MENU_APPLY_CHEATS = 32 };    /* "Enable cheats" (not a setting: the game's DS:10C2, overlay_menu_cheats) */
 /* what overlay_menu_frame asks of the frontend */
 enum { OVERLAY_MENU_NONE, OVERLAY_MENU_QUICKSAVE, OVERLAY_MENU_QUICKLOAD, OVERLAY_MENU_RESTART_LEVEL,
-       OVERLAY_MENU_RESTART_GAME, OVERLAY_MENU_QUIT, OVERLAY_MENU_KEY, OVERLAY_MENU_CHEAT };
+       OVERLAY_MENU_RESTART_GAME, OVERLAY_MENU_QUIT, OVERLAY_MENU_KEY, OVERLAY_MENU_CHEAT, OVERLAY_MENU_GOTO };
 
 typedef struct overlay_menu_host {
 	pop2_settings *settings;       /* the frontend's settings: the menu edits them in place */
@@ -57,6 +57,7 @@ int  overlay_menu_frame(SDL_Scancode *key, uint16_t *mod);
  * cheats on the pause menu has CHEATS, a page of the cheat keys (each chosen: typed into the game) */
 int  overlay_menu_cheats(void);
 int  overlay_menu_cheat_key(void);   /* the DOS keystroke code of the CHEATS entry chosen (OVERLAY_MENU_CHEAT) */
+void overlay_menu_goto(int *level, int *entry);   /* the level and entry point "Go to level" chose (OVERLAY_MENU_GOTO: shell_goto) */
 /* a DOS keystroke code as the CHEATS page shows it: 'k' "K", 'K' "Shift+K", '+' "+", 0x3D00 "F3", 0x3100 "Alt+N", 0x9B00 "Alt+Left" (the BIOS Alt+arrows) */
 void overlay_menu_key_label(int code, char *out, size_t n);
 /* (tests) the page (0 the pause menu, 1 the settings, 2 the cheats), the item under the cursor, the settings page shown ("GENERAL",

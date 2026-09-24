@@ -58,6 +58,8 @@ static void script_input(int f, shell_input *in, int *action)
 		if (f == CHEATS_OFF1) *action |= REPLAY_CHEATS_OFF;
 		if (f == CHEATS_ON1 + 100 || f == CHEATS_OFF1 + 100) shell_input_type(in, 'T');
 		if (f == CHEATS_OFF1 + 200) shell_input_type(in, '+');
+		if (f == CHEATS_ON1 + 150) *action |= REPLAY_RESEED;   /* (a new seed, as the menu's RESTART GAME: script_seed) */
+		if (f == CHEATS_ON1 + 160) *action |= REPLAY_GOTO;     /* (the CHEATS page's "Go to level": level 1's checkpoint) */
 	}
 }
 static void scratch_dir(char *out, size_t n) { snprintf(out, n, "/tmp/sdlpop2-settingstest-XXXXXX"); if (!mkdtemp(out)) { perror("mkdtemp"); exit(2); } }
@@ -94,7 +96,10 @@ static result session(const pop2_settings *s, const char *rec_path, const char *
 		int action;
 		if (play_path) { if (!replay_frame(&p, &in, &action)) break; }
 		else script_input(f, &in, &action);
+		rec.reseed = 0xC0FFEE; rec.goto_level = 1; rec.goto_entry = 2;   /* (the script's) */
 		if (rec_path) replay_record_frame(&rec, &in, action);
+		if (action & REPLAY_RESEED) shell_reseed(play_path ? p.reseed : rec.reseed);
+		if (action & REPLAY_GOTO) shell_goto(play_path ? p.goto_level : rec.goto_level, play_path ? p.goto_entry : rec.goto_entry);
 		if (action & REPLAY_CHEATS_OFF) shell_set_cheats(0);
 		if (action & REPLAY_CHEATS_ON) shell_set_cheats(1);
 		if (action & REPLAY_QUICKSAVE) shell_quicksave();

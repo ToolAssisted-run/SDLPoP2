@@ -54,6 +54,11 @@ void shell_quick_clear(void);     /* forget the slot */
 int  shell_cheats(void);
 void shell_set_cheats(int on);
 void shell_set_seed(uint32_t seed);   /* before shell_init: the random seed the program takes from the clock (DOS time()) */
+void shell_reseed(uint32_t seed);
+/* the cheats' level jump (the overlay menu's CHEATS page; a replay records it): with the cheats on while playing, to
+ * level `level` at one of its entry points (shell_level_entries: the start, its checkpoints, level 7's second start) */
+void shell_goto(int level, int entry);
+int  shell_level_entries(int *levels, int *entries, int *rooms, int max);     /* between two steps: a new random seed (the frontend's "Restart game"; a replay records it) */
 
 /* sounds the shell starts outside the tick's sound queue go to sound.c's hooks (sound_start_hook(res - 10000), the SDL
  * frontend's audio_request(res)): 0xFFFE the error beep (and 169B:0B9C's "press a key" blink), 10000 + 0x10C the title

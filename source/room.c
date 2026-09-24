@@ -484,7 +484,7 @@ void cheat_view_apply(void)
 /* the prince into the room shown, at the same place in it */
 const char *cheat_teleport(void)
 {
-	if (!cheat_looking || drawn_room == 0 || drawn_room == Kid.room) return "LOOK INTO A ROOM FIRST (ALT+ARROWS)";
+	if (!cheat_looking || drawn_room == 0 || drawn_room == Kid.room) return "USE ALT+ARROWS FIRST";
 	if (Char.alive >= 0) return NULL;
 	Char.room = drawn_room;
 	if (Char.curr_row < 0 || Char.curr_row > 2) { Char.curr_row = Char.curr_row < 0 ? 0 : 2; char_y_to_floor(); Char.fall_y = 0; }

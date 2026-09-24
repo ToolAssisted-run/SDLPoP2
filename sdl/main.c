@@ -203,6 +203,18 @@ static void cfg_location(char *out, size_t n, const char *ini_used)
 	else snprintf(out, n, "%.*sSDLPoP2.cfg", (int)(slash - ini_used + 1), ini_used);
 }
 /* the overlay menu changed settings: apply them (OVERLAY_MENU_APPLY_*) */
+static int menu_reseed, menu_goto;    /* (the menu's "Restart game": a new random seed before the next step) */
+/* the random seed of a start or a restart: SDLPoP2.ini's random_seed, or (clock, the default) the system's high-resolution
+ * timer with the time of day (the DOS game's time() alone gives nearby seeds to nearby starts, and often the same copy
+ * protection question) */
+static uint32_t start_seed(void)
+{
+	if (!S.random_seed_clock) return S.random_seed;
+	uint64_t c = SDL_GetPerformanceCounter(); uint32_t t = (uint32_t)time(NULL);
+	uint32_t h = (uint32_t)c ^ (uint32_t)(c >> 32) * 0x9E3779B9u ^ t * 0x85EBCA6Bu;
+	h ^= h >> 16; h *= 0x7FEB352Du; h ^= h >> 15; h *= 0x846CA68Bu; h ^= h >> 16;
+	return h;
+}
 static int quiet_cheats;   /* (the start's own toggle shows no message) */
 static int menu_music, menu_sounds, menu_controller, menu_cheats = -1;   /* (menu_cheats: "Enable cheats" changed, -1 not) */
 static void menu_apply(int what)
@@ -350,7 +362,7 @@ int main(int argc, char **argv)
 
 	/* replays: a recording starts with the program; a replay brings its seed, words, gameplay settings and game files */
 	static replay_play play; static replay_rec rec; char path[1024], files_tmp[512] = "";
-	uint32_t seed = S.random_seed_clock ? (uint32_t)time(NULL) : S.random_seed;   /* (DOS: time() at start) */
+	uint32_t seed = start_seed();
 	if (play_name) {
 		char err[512]; replay_path(path, sizeof path, play_name, 1);
 		if (!replay_open(&play, path, err, sizeof err)) { fprintf(stderr, "sdlpop2: %s\n", err); SDL_Quit(); return 1; }
@@ -457,10 +469,13 @@ int main(int argc, char **argv)
 			case OVERLAY_MENU_QUICKSAVE: action = REPLAY_QUICKSAVE; break;
 			case OVERLAY_MENU_QUICKLOAD: action = REPLAY_QUICKLOAD; break;
 			case OVERLAY_MENU_RESTART_LEVEL: type_alt_key(&in, 0x1E, 'a'); break;   /* Alt+A */
-			case OVERLAY_MENU_RESTART_GAME: type_alt_key(&in, 0x13, 'r'); break;    /* Alt+R */
+			case OVERLAY_MENU_RESTART_GAME: menu_reseed = 1; type_alt_key(&in, 0x13, 'r'); break;    /* a new seed (SDLPoP2.ini random_seed), Alt+R */
 			case OVERLAY_MENU_QUIT: goto out;
 			case OVERLAY_MENU_KEY:   /* a key with Alt or Ctrl: the game's (held as the keyboard holds it) */
 				if (!replaying) shell_input_key(&in, keymap[key], 1, keyaction[key] ? 0 : ascii_of(SDL_GetKeyFromScancode(key), mod));
+				break;
+			case OVERLAY_MENU_GOTO:   /* the CHEATS page's "Go to level" (done before the next step, recorded) */
+				if (!replaying) { overlay_menu_goto(&rec.goto_level, &rec.goto_entry); menu_goto = 1; }
 				break;
 			case OVERLAY_MENU_CHEAT:   /* the CHEATS page: the cheat's key typed into the game */
 				if (!replaying) shell_input_type(&in, overlay_menu_cheat_key());
@@ -470,7 +485,7 @@ int main(int argc, char **argv)
 		}
 		if (!info_shown && !overlay_menu_is_open()) {   /* (while the info screen or the menu shows, the game waits) */
 			if (replaying && !replay_frame(&play, &in, &action)) {
-				message(replay_verify(&play) ? "REPLAY VERIFIED" : "REPLAY DIFFERS FROM THE RECORDING");
+				message(replay_verify(&play) ? "REPLAY VERIFIED" : "REPLAY DIFFERS");
 				replay_close(&play); replaying = 0; memset(&in, 0, sizeof in); action = REPLAY_NONE;   /* (then the keyboard again) */
 			}
 			if (cheats_off_at_start && shell_cheats()) { menu_cheats = 0; quiet_cheats = 1; cheats_off_at_start = 0; }
@@ -478,14 +493,21 @@ int main(int argc, char **argv)
 				if (!replaying && menu_cheats != shell_cheats()) action |= menu_cheats ? REPLAY_CHEATS_ON : REPLAY_CHEATS_OFF;
 				menu_cheats = -1;
 			}
+			if (menu_reseed) {   /* the menu's "Restart game": a new seed, then Alt+R (recorded) */
+				if (!replaying) { action |= REPLAY_RESEED; rec.reseed = start_seed(); }
+				menu_reseed = 0;
+			}
+			if (menu_goto) { if (!replaying) action |= REPLAY_GOTO; menu_goto = 0; }
 			if (rec.f) replay_record_frame(&rec, &in, action);
+			if (action & REPLAY_RESEED) shell_reseed(replaying ? play.reseed : rec.reseed);
+			if (action & REPLAY_GOTO) shell_goto(replaying ? play.goto_level : rec.goto_level, replaying ? play.goto_entry : rec.goto_entry);
 			if (action & REPLAY_CHEATS_OFF) shell_set_cheats(0);
 			if (action & REPLAY_CHEATS_ON) shell_set_cheats(1);
 			if ((action & (REPLAY_CHEATS_OFF | REPLAY_CHEATS_ON)) && !quiet_cheats) message(shell_cheats() ? "CHEATS ON" : "CHEATS OFF");
 			quiet_cheats = 0;
 			if (action & REPLAY_QUICKSAVE) shell_quicksave();
 			if (action & REPLAY_QUICKLOAD) shell_quickload();
-			if ((action & (REPLAY_QUICKSAVE | REPLAY_QUICKLOAD)) && shell_mode() != SH_PLAY && !replaying) message("QUICKSAVE AND QUICKLOAD: ONLY WHILE PLAYING");
+			if ((action & (REPLAY_QUICKSAVE | REPLAY_QUICKLOAD)) && shell_mode() != SH_PLAY && !replaying) message("ONLY WHILE PLAYING");
 			action = REPLAY_NONE;
 			if (adev) SDL_LockAudioDevice(adev);
 			int r = shell_step(&in);

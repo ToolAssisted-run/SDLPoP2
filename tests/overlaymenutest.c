@@ -107,6 +107,7 @@ static void frame(void)
 		case OVERLAY_MENU_QUIT: quitted = 1; break;
 		case OVERLAY_MENU_KEY: shell_input_key(&in, shell_pc_scancode(k), 1, ascii(k)); break;
 		case OVERLAY_MENU_CHEAT: if (!replaying) shell_input_type(&in, overlay_menu_cheat_key()); break;
+		case OVERLAY_MENU_GOTO: if (!replaying) { overlay_menu_goto(&rec.goto_level, &rec.goto_entry); action |= REPLAY_GOTO; } break;
 		}
 		if (overlay_menu_is_open()) return;
 	}
@@ -120,6 +121,7 @@ static void frame(void)
 	if (action & REPLAY_CHEATS_ON) shell_set_cheats(1);
 	if (action & REPLAY_QUICKSAVE) shell_quicksave();
 	if (action & REPLAY_QUICKLOAD) shell_quickload();
+	if (action & REPLAY_GOTO) shell_goto(playing ? play.goto_level : rec.goto_level, playing ? play.goto_entry : rec.goto_entry);
 	action = REPLAY_NONE;
 	shell_step(&in);
 	in.ntyped = 0;
@@ -493,7 +495,7 @@ int main(int argc, char **argv)
 	CHECK(page == 2 && at_item("CHEATS") && !strcmp(subsection, ""), "Esc: the page's left part (%s)", item);
 	press(SDL_SCANCODE_DOWN); CHECK(at_item("BACK"), "BACK (%s)", item);
 	press(SDL_SCANCODE_UP); press(SDL_SCANCODE_RETURN);
-	press(SDL_SCANCODE_HOME); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN);
+	press(SDL_SCANCODE_HOME); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN);
 	CHECK(at_setting("One more hit point"), "the fourth entry (%s)", setting);
 	screenshot("cheats_hitpoint");
 	uint8_t hp1 = Kid.f13;
@@ -515,6 +517,29 @@ int main(int argc, char **argv)
 	for (int i = 0; i < (int)(sizeof labels / sizeof labels[0]); i++) {
 		char l[32]; overlay_menu_key_label(labels[i].code, l, sizeof l);
 		CHECK(!strcmp(l, labels[i].label), "key label of 0x%X: %s (%s)", labels[i].code, labels[i].label, l);
+	}
+	/* "Go to level" (the CHEATS page's second entry): level 1's checkpoint (room 15, a restart of this level), then
+	 * level 2's start (the game's own level change) */
+	{
+		press(SDL_SCANCODE_ESCAPE); cheats_item_shown(); press(SDL_SCANCODE_RETURN);
+		press(SDL_SCANCODE_HOME); press(SDL_SCANCODE_DOWN); state();
+		CHECK(at_setting("Go to level"), "CHEATS: Go to level, the second entry (%s)", setting);
+		press(SDL_SCANCODE_RIGHT); screenshot("cheats_goto");
+		press(SDL_SCANCODE_RETURN);
+		CHECK(!overlay_menu_is_open(), "Go to level chosen: the menu closes");
+		frames(400);
+		CHECK(pop2_level() == 1 && Kid.room == 15, "Go to level: level 1, room 15 (the checkpoint) (level %d, room %d)", pop2_level(), Kid.room);
+		press(SDL_SCANCODE_ESCAPE); cheats_item_shown(); press(SDL_SCANCODE_RETURN);
+		press(SDL_SCANCODE_HOME); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_RIGHT); press(SDL_SCANCODE_RETURN);
+		for (int i = 0; i < 40000 && !(pop2_level() == 2 && shell_mode() == SH_PLAY); i++) frame();   /* (level 1's story scene first) */
+		CHECK(pop2_level() == 2 && Kid.room == 2, "Go to level: level 2's start (level %d, room %d)", pop2_level(), Kid.room);
+		press(SDL_SCANCODE_ESCAPE); cheats_item_shown(); press(SDL_SCANCODE_RETURN);
+		word_0366 = 1;   /* (harness: the copy protection answered; leaving level 2 asks it) */
+		press(SDL_SCANCODE_HOME); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_LEFT); press(SDL_SCANCODE_LEFT);   /* (the choice stays: back to level 1's start) */
+		press(SDL_SCANCODE_RETURN);
+		for (int i = 0; i < 40000 && !(pop2_level() == 1 && shell_mode() == SH_PLAY); i++) frame();
+		frames(60);
+		CHECK(pop2_level() == 1, "Go to level: back to level 1 (level %d)", pop2_level());
 	}
 	/* SDLPoP2's own cheats from the keyboard: Shift+G god mode, Alt+arrows look, T teleports, A held with the arrows flies */
 	{
@@ -548,7 +573,7 @@ int main(int argc, char **argv)
 	shell_set_cheats(1); replaying = 1;
 	press(SDL_SCANCODE_ESCAPE);
 	CHECK(cheats_item_shown(), "replaying with the cheats on: CHEATS shown");
-	press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN);
+	press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN);
 	screenshot("cheats_replaying");
 	press(SDL_SCANCODE_END); press(SDL_SCANCODE_UP); screenshot("cheats_replaying_spirit"); press(SDL_SCANCODE_HOME);
 	press(SDL_SCANCODE_RETURN);
@@ -573,7 +598,7 @@ int main(int argc, char **argv)
 		CHECK(replay_record_start(&rec, rpath, 0x1234, 0, NULL, &S), "recording %s", rpath);
 		until_playing();
 		set_cheats_in_menu(1, NULL);
-		cheats_item_shown(); press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN);
+		cheats_item_shown(); press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN);
 		uint8_t h = Kid.f13; press(SDL_SCANCODE_RETURN); frames(30);
 		CHECK(shell_cheats() && Kid.f13 == h + 1, "recording: cheats on, Shift+T from CHEATS (%d -> %d)", h, Kid.f13);
 		key(SDL_SCANCODE_RIGHT, 1, 0); frames(40); key(SDL_SCANCODE_RIGHT, 0, 0); frames(10);

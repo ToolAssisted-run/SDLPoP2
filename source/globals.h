@@ -231,7 +231,8 @@ void fall_scream_room(uint8_t room); int snd_ch_id(int k); int snd_ch_left(int k
 void hook_draw(int whole); void hook_first_room(int stage); void hook_hp_bars(void); void hook_level_loaded(void);
 void hook_room_enter(int bg); void hook_room_leave(int bg);
 /* cheats.c (SDLPoP2's own cheats; room.c, kid.c and spirit.c hold the parts that need their statics) */
-extern uint8_t cheat_god, cheat_fly_key, cheat_flying, cheat_view, cheat_looking, cheat_spirit, cheat_form;
+extern uint8_t cheat_god, cheat_fly_key, cheat_flying, cheat_view, cheat_looking, cheat_spirit, cheat_form, cheat_goto_entry;
+int cheat_level_entries(int *levels, int *entries, int *rooms, int max); void cheat_goto(int level, int entry);
 #define GOD_KID (cheat_god && Char.index == 10)   /* god mode and Char is the prince */
 void cheats_reset(void); const char *cheat_god_toggle(void); const char *cheat_leave_body(int flame); const char *cheat_sword(void); int cheat_look(int dir);
 void cheat_view_apply(void); const char *cheat_teleport(void); void cheat_fly_step(void); int spirit_leave_body(void);

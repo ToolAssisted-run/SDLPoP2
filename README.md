@@ -86,6 +86,7 @@ The copy protection is still asked from level 3 on, cheats or not.
 | | |
 |---|---|
 | Alt+N | skip to the next level, any level |
+| (CHEATS page) Go to level | any level, at its start, one of its checkpoints or level 7's second start (left / right to choose); the copy protection is still asked from level 3 on |
 | `+` / `-` | one minute more / less |
 | Shift+`T` / Shift+`K` | one hit point more / less |
 | `G` | the opponent one hit point more |
@@ -176,7 +177,7 @@ current directory, next to the binary (the build copies it to `build/sdl/`), or 
 Every option is documented in the file, `default` is accepted everywhere, unknown options are reported. Every default is
 the original game: `[General]` (window, 4:3 aspect, integer scaling, sharp / fuzzy / blurry scaling, music, sounds,
 volume, the sound device, the intro, the story scenes, skipping the title, the in-game menu, the control keys),
-`[AdditionalFeatures]` (F6 / F9 quicksave with SDLPoP's one-minute penalty, replays, the random seed, the F1 key
+`[AdditionalFeatures]` (F6 / F9 quicksave with SDLPoP's one-minute penalty, replays, the random seed (the system timer by default, or a number: at the start and on the menu's RESTART GAME), the F1 key
 summary), `[Controller]` (game controllers: on / off, rumble, the stick's dead zone and horizontal-only mode, extra
 mappings, the buttons), `[CustomGameplay]` (starting time and hit points, ticks per minute, the hit point cap, Alt+N's minutes, the
 first level, the tick speeds), `[Level N]` (the prince's sword type) and `[Skill N]`

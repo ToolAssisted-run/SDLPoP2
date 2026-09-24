@@ -363,6 +363,12 @@ static int restart_allowed;              /* not while replaying */
 static int cheats_enabled;               /* SDLPoP's cheats_enabled: the game's DS:10C2 (shell_cheats) as the menu shows it */
 static int cheats_editable;              /* SDLPoP2: "Enable cheats" and the CHEATS page: not while replaying */
 static int cheat_key_chosen;             /* SDLPoP2: the CHEATS page's key for the game (OVERLAY_MENU_CHEAT) */
+static int goto_levels[48], goto_entries[48], goto_rooms[48], goto_count = -1, goto_index;   /* SDLPoP2: "Go to level" */
+static void goto_label(int i, char* out, size_t n) {
+	if (goto_count <= 0) { snprintf(out, n, "-"); return; }
+	if (goto_entries[i] == 0) snprintf(out, n, "Level %d", goto_levels[i]);
+	else snprintf(out, n, "Level %d, room %d", goto_levels[i], goto_rooms[i]);
+}
 
 static void play_menu_sound(int sound_id) {
 	/* SDLPoP2: SDLPoP plays PoP1's sounds here (play_sound + play_next_sound); the game's sound is frozen while the
@@ -506,6 +512,7 @@ enum setting_ids {
 	SETTING_USE_INTEGER_SCALING,
 	SETTING_SCALING_TYPE,
 	SETTING_ENABLE_CHEATS,
+	SETTING_RANDOM_SEED, // SDLPoP2
 	SETTING_ENABLE_QUICKSAVE,
 	SETTING_ENABLE_QUICKSAVE_PENALTY,
 	SETTING_ENABLE_REPLAY,
@@ -645,12 +652,21 @@ static setting_type visuals_settings[] = {
 						"Blurry - Use smooth scaling."},
 };
 
+KEY_VALUE_LIST(random_seed_setting_names, {{"Timer (default)", -1}});   // SDLPoP2
 static setting_type gameplay_settings[] = {
 		// SDLPoP2: not a setting of SDLPoP2.ini (not saved, as SDLPoP's): the game's DS:10C2 (overlay_menu_cheats)
 		{.id = SETTING_ENABLE_CHEATS, .style = SETTING_STYLE_TOGGLE, .linked = &cheats_enabled, .required = &cheats_editable,
 				.text = "Enable cheats",
 				.explanation = "Turn cheats on or off (yippeeyahoo: on at the start).\n"
 						"Also, display the CHEATS option on the pause menu."},
+		// SDLPoP2: random_seed = clock (shown as -1) or a number; used at the start and by RESTART GAME
+		{.id = SETTING_RANDOM_SEED, .style = SETTING_STYLE_NUMBER, .number_type = SETTING_INT,
+				LINK(random_seed), .min = -1, .max = 99999, .names_list = &random_seed_setting_names_list,
+				.ini = "AdditionalFeatures/random_seed",
+				.text = "Random seed",
+				.explanation = "The game's random numbers (the copy protection's question, the guards, ...) at the start "
+						"and when the game is restarted (RESTART GAME).\nTimer (default): different each time. "
+						"A number: the same game every time."},
 		{.id = SETTING_ENABLE_QUICKSAVE, .style = SETTING_STYLE_TOGGLE, LINK(enable_quicksave), .ini = "AdditionalFeatures/enable_quicksave",
 				.text = "Enable quicksave",
 				.explanation = "Enable quicksave/load feature.\nPress F6 to quicksave, F9 to quickload."},
@@ -828,6 +844,7 @@ static setting_type controls_settings[] = {
 enum cheat_action_ids {
 	CHEAT_ACTION_TYPE_KEY, // the key typed into the game (OVERLAY_MENU_CHEAT, the menu closes)
 	CHEAT_ACTION_TYPE_HOLD, // a key held while playing (the page only tells it)
+	CHEAT_ACTION_TYPE_GOTO, // left / right choose a level's entry point, chosen: OVERLAY_MENU_GOTO (shell_goto)
 };
 typedef struct cheat_type {
 	word key;
@@ -839,6 +856,9 @@ static const cheat_type cheats[] = {
 		{0x3100, CHEAT_ACTION_TYPE_KEY, "Skip to the next level",
 				"Any level, the clock not cut (without cheats: up to level 3).\n"
 				"The copy protection is still asked before level 3."},
+		{0, CHEAT_ACTION_TYPE_GOTO, "Go to level",
+				"Left / right: a level and where to start it (its start, its checkpoints, level 7's second start).\n"
+				"Enter: go there. The copy protection is still asked from level 3 on."},
 		{'+', CHEAT_ACTION_TYPE_KEY, "One more minute", "One minute more on the clock."},
 		{'-', CHEAT_ACTION_TYPE_KEY, "One minute less", "One minute less on the clock (not below one)."},
 		{'T', CHEAT_ACTION_TYPE_KEY, "One more hit point", "One more hit point, and one more at most (up to MODS: Max hitpoints allowed)."},
@@ -1259,6 +1279,8 @@ static int setting_apply_group(int setting_id) {
 		case SETTING_ENABLE_CHEATS: return OVERLAY_MENU_APPLY_CHEATS;
 	}
 }
+// SDLPoP2: the random seed setting as the menu shows it: -1 the clock, else the number (shown up to 99999)
+static int seed_setting_get(const pop2_settings* s) { return s->random_seed_clock ? -1 : s->random_seed > 99999 ? 99999 : (int) s->random_seed; }
 static void apply_setting(setting_type* setting) {
 	if (setting->gameplay) pop2_settings_game = S;
 	int what = setting_apply_group(setting->id);
@@ -1301,6 +1323,7 @@ static int get_setting_value(setting_type* setting) {
 				break;
 		}
 		if (setting->id == SETTING_SWORD_TYPE && value == SWORD_NONE) value = 0;   // SDLPoP2: none, 1, 2
+		if (setting->id == SETTING_RANDOM_SEED) value = seed_setting_get((const pop2_settings*) ((const char*) setting->linked - offsetof(pop2_settings, random_seed)));
 	}
 	return value;
 }
@@ -1308,6 +1331,12 @@ static int get_setting_value(setting_type* setting) {
 static void set_setting_value(setting_type* setting, int value) {
 	if (setting->linked != NULL) {
 		if (setting->id == SETTING_SWORD_TYPE && value == 0) value = SWORD_NONE;   // SDLPoP2
+		if (setting->id == SETTING_RANDOM_SEED) {   // SDLPoP2: -1 the clock
+			pop2_settings* s = (pop2_settings*) ((char*) setting->linked - offsetof(pop2_settings, random_seed));
+			s->random_seed_clock = value < 0; s->random_seed = value < 0 ? 0 : (uint32_t) value;
+			apply_setting(setting);
+			return;
+		}
 		switch(setting->number_type) {
 			default:
 			case SETTING_BYTE:
@@ -1524,6 +1553,26 @@ static void draw_setting(setting_type* setting, rect_type* parent, int* y_offset
 		// closes and the key goes to the game
 		const cheat_type* cheat = (const cheat_type*) setting->linked;
 		char key_text[32];
+		if (cheat->action == CHEAT_ACTION_TYPE_GOTO) {   // SDLPoP2: the level / entry point chooser
+			if (goto_count < 0) goto_count = shell_level_entries(goto_levels, goto_entries, goto_rooms, COUNT(goto_levels));
+			if (highlighted_setting_id == setting->id && !disabled && goto_count > 0) {
+				if (menu_control_x > 0) goto_index = (goto_index + 1) % goto_count;
+				else if (menu_control_x < 0) goto_index = (goto_index + goto_count - 1) % goto_count;
+			}
+			goto_label(goto_index, key_text, sizeof(key_text));
+			show_text_with_color(&text_rect, halign_right, valign_top, key_text, disabled ? unselected_color : selected_color);
+			if (highlighted_setting_id == setting->id && !disabled) {
+				int w = get_line_width(key_text, (int) strlen(key_text));
+				draw_image_with_blending(arrowhead_right_image, text_rect.right + 2, text_rect.top);
+				draw_image_with_blending(arrowhead_left_image, text_rect.right - w - 6, text_rect.top);
+				if ((pressed_enter || (mouse_clicked && is_mouse_over_rect(&setting_box))) && goto_count > 0) {
+					play_menu_sound(sound_22_loose_shake_3);
+					menu_action = OVERLAY_MENU_GOTO; need_close_menu = 1;
+				}
+			}
+			*y_offset += 15;
+			return;
+		}
 		overlay_menu_key_label(cheat->key, key_text, sizeof(key_text));
 		if (cheat->action == CHEAT_ACTION_TYPE_HOLD) { char k[24]; snprintf(k, sizeof(k), "%.20s", key_text); snprintf(key_text, sizeof(key_text), "Hold %.20s", k); }
 		show_text_with_color(&text_rect, halign_right, valign_top, key_text, disabled ? unselected_color : selected_color);
@@ -2278,6 +2327,11 @@ static void write_setting_value(FILE* f, const setting_type* setting, const void
 	else if (setting->number_type == SETTING_BYTE) value = *(const byte*) linked;
 	else value = *(const int*) linked;
 	if (setting->id == SETTING_SWORD_TYPE) value = value == SWORD_NONE ? 0 : value;
+	if (setting->id == SETTING_RANDOM_SEED) {   // SDLPoP2
+		const pop2_settings* s = (const pop2_settings*) ((const char*) linked - offsetof(pop2_settings, random_seed));
+		if (s->random_seed_clock) fprintf(f, "clock\n"); else fprintf(f, "%u\n", (unsigned) s->random_seed);
+		return;
+	}
 	if (setting->style == SETTING_STYLE_TOGGLE) fprintf(f, "%s\n", bool_ini_values[value != 0]);
 	else if (setting->ini_values) fprintf(f, "%s\n", setting->ini_values[value]);
 	else fprintf(f, "%d\n", value);
@@ -2595,6 +2649,7 @@ void overlay_menu_state(int* page, const char** item, const char** subsection, c
 
 int overlay_menu_cheats(void) { return cheats_enabled; }
 int overlay_menu_cheat_key(void) { return cheat_key_chosen; }
+void overlay_menu_goto(int* level, int* entry) { *level = goto_count > 0 ? goto_levels[goto_index] : 1; *entry = goto_count > 0 ? goto_entries[goto_index] : 0; }
 
 void overlay_menu_close(void) {
 	if (is_menu_shown) menu_was_closed();

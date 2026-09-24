@@ -8,7 +8,7 @@
 #include "render.h"
 
 #define MAGIC "SDLPoP2 replay 1"
-enum { REC_INPUT = 1, REC_QUICKSAVE = 2, REC_QUICKLOAD = 3, REC_END = 0xFE };
+enum { REC_INPUT = 1, REC_QUICKSAVE = 2, REC_QUICKLOAD = 3, REC_CHEATS_OFF = 4, REC_CHEATS_ON = 5, REC_END = 0xFE };
 static const char *const game_files[3] = { "PRINCE.OPT", "PRINCE.HOF", "PRINCE.SAV" };
 
 uint32_t replay_screen_checksum(void)   /* FNV-1a over the screen and its palette */
@@ -51,7 +51,8 @@ void replay_record_frame(replay_rec *r, const shell_input *in, int action)
 		for (int i = 0; i < n; i++) { fputc(in->typed[i] & 0xFF, r->f); fputc(in->typed[i] >> 8, r->f); }
 		r->last = *in; r->have_last = 1;
 	}
-	if (action == REPLAY_QUICKSAVE || action == REPLAY_QUICKLOAD) { w32(r->f, r->frame); fputc(action == REPLAY_QUICKSAVE ? REC_QUICKSAVE : REC_QUICKLOAD, r->f); }
+	static const struct { int bit, rec; } acts[4] = { {REPLAY_CHEATS_OFF, REC_CHEATS_OFF}, {REPLAY_CHEATS_ON, REC_CHEATS_ON}, {REPLAY_QUICKSAVE, REC_QUICKSAVE}, {REPLAY_QUICKLOAD, REC_QUICKLOAD} };
+	for (int i = 0; i < 4; i++) if (action & acts[i].bit) { w32(r->f, r->frame); fputc(acts[i].rec, r->f); }
 	r->frame++;
 }
 void replay_record_end(replay_rec *r)
@@ -136,8 +137,10 @@ int replay_frame(replay_play *p, shell_input *in, int *action)
 			for (int s = 0; s < 0x60; s++) p->cur.down[s] = (uint8_t)(bits[s >> 3] >> (s & 7) & 1);
 			p->cur.shift_flags = (uint8_t)sf; p->cur.ntyped = nt;
 			for (int i = 0; i < nt; i++) { int lo = fgetc(p->f), hi = fgetc(p->f); p->cur.typed[i] = (uint16_t)(lo | hi << 8); }
-		} else if (t == REC_QUICKSAVE) *action = REPLAY_QUICKSAVE;
-		else if (t == REC_QUICKLOAD) *action = REPLAY_QUICKLOAD;
+		} else if (t == REC_QUICKSAVE) *action |= REPLAY_QUICKSAVE;
+		else if (t == REC_QUICKLOAD) *action |= REPLAY_QUICKLOAD;
+		else if (t == REC_CHEATS_OFF) *action |= REPLAY_CHEATS_OFF;
+		else if (t == REC_CHEATS_ON) *action |= REPLAY_CHEATS_ON;
 		else { p->eof = 1; break; }
 		next_header(p);
 	}

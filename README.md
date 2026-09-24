@@ -58,7 +58,7 @@ copy of the game's files (see "Getting the game" below).
 | Alt+H | hall of fame |
 | Alt+J / Alt+K | joystick / keyboard mode (the DOS joystick is not supported: use a game controller) |
 | Alt+V | the game's version |
-| Alt+N | skip to the next level (without the cheat only up to level 3, and the clock drops to 15 minutes) |
+| Alt+N | skip to the next level (without cheats only up to level 3, and the clock drops to 15 minutes) |
 | Ctrl+Q / Alt+Q | quit |
 | any key | after a death: restart |
 
@@ -85,22 +85,25 @@ copy of the game's files (see "Getting the game" below).
 | In menus | D-pad / stick move, A = Enter, B = Esc, X = Tab, Y types the name "Prince"; any button = "press a key" |
 
 ### Cheats
-Only with the game's cheat word on the command line (`sdlpop2 GAME_DIR yippeeyahoo`, as in the DOS game). The copy
-protection is still asked from level 3 on, cheats or not.
+Off by default. The game's cheat word on the command line (`sdlpop2 GAME_DIR yippeeyahoo`, as in the DOS game) turns
+them on from the start; the overlay menu's "Enable cheats" (SETTINGS, GAMEPLAY; SDLPoP's toggle) turns them on or off
+at any time. The toggle is not saved (it is the game's state: a quicksave keeps it, a replay records it). With the
+cheats on, the pause menu has CHEATS: the list below with the keys, and choosing one closes the menu and does it.
+The copy protection is still asked from level 3 on, cheats or not.
 
 | | |
 |---|---|
-| `LEVELn` (command line) | start at level n (1-14), with n hit points (3 to 12) |
+| `LEVELn` (command line) | start at level n (1-14), with n hit points (3 to 12): only with the cheat word |
 | Alt+N | skip to the next level, any level |
 | `+` / `-` | one minute more / less |
-| `T` / `K` | one hit point more / less |
-| `g` | the opponent one hit point more |
-| `k` | kill every character in the room |
-| `r` | revive a dead prince |
-| `W` | feather fall |
-| `I` | upside down |
-| `R` | show the room number |
-| `S` | temple and final levels: count a spirit turn |
+| Shift+`T` / Shift+`K` | one hit point more / less |
+| `G` | the opponent one hit point more |
+| `K` | kill every character in the room |
+| `R` | revive a dead prince |
+| Shift+`W` | feather fall |
+| Shift+`I` | upside down |
+| Shift+`R` | show the room number |
+| Shift+`S` | temple levels and level 14: count a spirit turn |
 | F3 | the demo player on / off |
 
 ## Building ([meson](https://mesonbuild.com))
@@ -148,8 +151,8 @@ the game's and that a scripted session records and replays identically.
 
 ### Overlay menu
 The in-game menu is [SDLPoP](https://github.com/NagyD/SDLPoP)'s, transcribed from its `src/menu.c` (commit 3c5add5fb7f8)
-into `sdl/overlay_menu.c` (GPL-3.0-or-later, Dávid Nagy's copyright): the same pause menu (RESUME, QUICKSAVE, QUICKLOAD,
-RESTART LEVEL, SETTINGS, RESTART GAME, QUIT GAME) over the dimmed game, the same settings screen (GENERAL, GAMEPLAY,
+into `sdl/overlay_menu.c` (GPL-3.0-or-later, Dávid Nagy's copyright): the same pause menu (RESUME, CHEATS, QUICKSAVE,
+QUICKLOAD, RESTART LEVEL, SETTINGS, RESTART GAME, QUIT GAME) over the dimmed game, the same settings screen (GENERAL, GAMEPLAY,
 VISUALS, MODS with "Customize level..." and, made like it, "Customize guard skill...", CONTROLS; toggles, numbers,
 the help line, "Restore defaults...", the key redefinition and the confirmations), its font and colours, and its
 keyboard, mouse and controller navigation. Esc opens it while playing (`enable_pause_menu`, SDLPoP's default: on; off,
@@ -160,7 +163,10 @@ RESTART GAME the game's Alt+A / Alt+R, QUIT GAME ends the program (a recording i
 SDLPoP2.ini's, applied at once; as SDLPoP does with `SDLPoP.cfg`, it saves them when it closes to `SDLPoP2.cfg` next to
 the ini (in the ini's syntax), read after the ini unless the ini is newer. The settings that change the game (those a
 replay holds) cannot be changed while a replay is recorded or played back, and a replay being played back offers no
-quicksave or restart; recordings made with the menu replay exactly. There is no setting for the copy protection.
+quicksave or restart; recordings made with the menu replay exactly. "Enable cheats" (GAMEPLAY) and the CHEATS item
+(shown only with the cheats on) are SDLPoP's cheats toggle and its planned cheats menu: the CHEATS page lists the
+game's cheat keys, laid out as the settings, and choosing one types its key into the game; a replay records the toggle
+(and the key), and while one plays back both follow the recording. There is no setting for the copy protection.
 `meson test -C build --suite menu` (with `-DgameDir`) drives it headlessly (keyboard, mouse, a virtual controller).
 
 Game controllers (`sdl/controller.c`, SDL's game controller database, hot-plugging; every connected controller drives the

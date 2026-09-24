@@ -14,8 +14,13 @@
  *     the quit confirmation (Cancel, then OK: the frontend quits);
  *  6. a controller: button_menu opens it, the D-pad moves, A selects, B backs out;
  *  7. enable_pause_menu = false: Esc is the game's own pause, Backspace still opens the menu;
- *  8. screenshots (PPM) of the pages when OVERLAYMENU_SHOTS names a directory.
- * The copy protection is not involved (level 1).
+ *  8. the cheats: off by default (no CHEATS item, the cheat keys do nothing); "Enable cheats" (GAMEPLAY) turns them on
+ *     and off while playing (the CHEATS item appears and goes, a cheat key works or not; not saved to SDLPoP2.cfg);
+ *     the CHEATS page (every entry's key label) and an entry chosen (Shift+T: a hit point more); greyed out while a
+ *     replay plays back; a recording with the toggles and a CHEATS entry replays VERIFIED; the cheat word at launch;
+ *     the copy protection still asked (the cheats on in the menu, Alt+N from level 2);
+ *  9. screenshots (PPM) of the pages when OVERLAYMENU_SHOTS names a directory.
+ * The copy protection is not involved (level 1) but in 8.
  * usage: overlaymenutest GAME_DIR */
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,8 +44,9 @@ static int failures;
 
 static pop2_settings S;
 static shell_input in;
-static int action, quick_result, quitted, recording, replaying, applied;
-static void apply(int what) { applied |= what; }
+static int action, quick_result, quitted, recording, replaying, applied, menu_cheats = -1;
+static replay_rec rec; static replay_play play; static int playing, play_ended;   /* (a replay recorded / played back as sdl/main.c does) */
+static void apply(int what) { applied |= what; if (what & OVERLAY_MENU_APPLY_CHEATS) menu_cheats = overlay_menu_cheats(); }
 
 /* ---- the frontend's frame loop (sdl/main.c) ---- */
 static int ascii(SDL_Scancode sc)
@@ -100,11 +106,20 @@ static void frame(void)
 		case OVERLAY_MENU_RESTART_GAME: type_alt(0x13, 'r'); break;
 		case OVERLAY_MENU_QUIT: quitted = 1; break;
 		case OVERLAY_MENU_KEY: shell_input_key(&in, shell_pc_scancode(k), 1, ascii(k)); break;
+		case OVERLAY_MENU_CHEAT: if (!replaying) shell_input_type(&in, overlay_menu_cheat_key()); break;
 		}
 		if (overlay_menu_is_open()) return;
 	}
-	if (action == REPLAY_QUICKSAVE) shell_quicksave();
-	if (action == REPLAY_QUICKLOAD) shell_quickload();
+	if (playing && !play_ended && !replay_frame(&play, &in, &action)) { play_ended = 1; return; }
+	if (menu_cheats >= 0) {
+		if (!replaying && menu_cheats != shell_cheats()) action |= menu_cheats ? REPLAY_CHEATS_ON : REPLAY_CHEATS_OFF;
+		menu_cheats = -1;
+	}
+	if (rec.f) replay_record_frame(&rec, &in, action);
+	if (action & REPLAY_CHEATS_OFF) shell_set_cheats(0);
+	if (action & REPLAY_CHEATS_ON) shell_set_cheats(1);
+	if (action & REPLAY_QUICKSAVE) shell_quicksave();
+	if (action & REPLAY_QUICKLOAD) shell_quickload();
 	action = REPLAY_NONE;
 	shell_step(&in);
 	in.ntyped = 0;
@@ -153,6 +168,31 @@ static int attach(void)
 	return vjoy != NULL && controller_count() == 1;
 }
 static void button(int b) { SDL_JoystickSetVirtualButton(vjoy, b, 1); frame(); SDL_JoystickSetVirtualButton(vjoy, b, 0); frame(); }
+
+/* the cheats: the menu's "Enable cheats" (SETTINGS, GAMEPLAY, its first setting) turned on (Right) or off (Left) */
+static int to_pause_item(const char *t) { for (int i = 0; i < 10 && !at_item(t); i++) press(SDL_SCANCODE_UP); return at_item(t); }
+static void set_cheats_in_menu(int on, const char *shot)
+{
+	press(SDL_SCANCODE_ESCAPE); to_pause_item("SETTINGS");
+	press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_RETURN);   /* GAMEPLAY */
+	press(on ? SDL_SCANCODE_RIGHT : SDL_SCANCODE_LEFT);
+	if (shot) screenshot(shot);
+	press(SDL_SCANCODE_ESCAPE); press(SDL_SCANCODE_ESCAPE);   /* the pause menu (at SETTINGS) */
+}
+static void close_menu(void) { for (int i = 0; i < 4 && overlay_menu_is_open(); i++) press(SDL_SCANCODE_ESCAPE); }
+static int cheats_item_shown(void)   /* Down from RESUME: CHEATS (shown) or the next item */
+{
+	press(SDL_SCANCODE_HOME); to_pause_item("RESUME"); press(SDL_SCANCODE_DOWN);
+	return at_item("CHEATS");
+}
+static void scratch(char *out, size_t n) { snprintf(out, n, "/tmp/sdlpop2-overlaymenutest-XXXXXX"); if (!mkdtemp(out)) { perror("mkdtemp"); exit(2); } }
+static void remove_scratch(const char *d)
+{
+	const char *names[3] = { "PRINCE.OPT", "PRINCE.HOF", "PRINCE.SAV" }; char p[600];
+	for (int i = 0; i < 3; i++) { snprintf(p, sizeof p, "%s/%s", d, names[i]); remove(p); }
+	rmdir(d);
+}
+static void until_playing(void) { memset(&in, 0, sizeof in); frames(5); for (int f = 0; f < 3000 && shell_mode() != SH_PLAY; f++) frame(); frames(60); }
 
 static int file_newer(const char *path, int seconds)   /* the file's modification time moved by seconds */
 {
@@ -423,6 +463,149 @@ int main(int argc, char **argv)
 	CHECK(at_item("SETTINGS"), "replaying: RESUME, then SETTINGS (%s)", item);
 	screenshot("pause_replaying");
 	press(SDL_SCANCODE_ESCAPE); replaying = 0;
+
+	/* 8. the cheats */
+	remove(cfg);
+	CHECK(!shell_cheats(), "cheats: off by default");
+	press(SDL_SCANCODE_ESCAPE);
+	CHECK(!cheats_item_shown() && at_item("QUICKSAVE (F6)"), "cheats off: no CHEATS item (down from RESUME: %s)", item);
+	close_menu();
+	uint8_t hp0 = Kid.f13;
+	shell_input_type(&in, 'T'); frames(30);
+	CHECK(Kid.f13 == hp0, "cheats off: Shift+T does nothing (%d -> %d)", hp0, Kid.f13);
+	applied = 0; set_cheats_in_menu(1, "settings_gameplay_cheats");
+	CHECK(overlay_menu_cheats() == 1 && (applied & OVERLAY_MENU_APPLY_CHEATS) && !shell_cheats(), "Enable cheats: on in the menu (the game's at its next step)");
+	CHECK(cheats_item_shown(), "the CHEATS item appears at once (%s)", item);
+	screenshot("pause_cheats");
+	close_menu();
+	CHECK(shell_cheats(), "the game's cheats on");
+	CHECK(access(cfg, F_OK) != 0, "the cheats are not saved to SDLPoP2.cfg");
+	shell_input_type(&in, 'T'); frames(30);
+	CHECK(Kid.f13 == hp0 + 1, "cheats on: Shift+T, a hit point more (%d -> %d)", hp0, Kid.f13);
+	/* the CHEATS page */
+	press(SDL_SCANCODE_ESCAPE); cheats_item_shown(); press(SDL_SCANCODE_RETURN); state();
+	CHECK(page == 2 && !strcmp(subsection, "CHEATS") && at_setting("Skip to the next level"), "CHEATS: the page, at its first entry (%d, %s, %s)", page, subsection, setting);
+	screenshot("cheats");
+	press(SDL_SCANCODE_END);
+	CHECK(at_setting("Demo player on / off"), "End: the last entry (%s)", setting);
+	screenshot("cheats_end");
+	press(SDL_SCANCODE_ESCAPE); state();
+	CHECK(page == 2 && at_item("CHEATS") && !strcmp(subsection, ""), "Esc: the page's left part (%s)", item);
+	press(SDL_SCANCODE_DOWN); CHECK(at_item("BACK"), "BACK (%s)", item);
+	press(SDL_SCANCODE_UP); press(SDL_SCANCODE_RETURN);
+	press(SDL_SCANCODE_HOME); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN);
+	CHECK(at_setting("One more hit point"), "the fourth entry (%s)", setting);
+	screenshot("cheats_hitpoint");
+	uint8_t hp1 = Kid.f13;
+	press(SDL_SCANCODE_RETURN);
+	CHECK(!overlay_menu_is_open(), "an entry chosen: the menu closes");
+	frames(30);
+	CHECK(Kid.f13 == hp1 + 1, "CHEATS, Shift+T: a hit point more (%d -> %d)", hp1, Kid.f13);
+	press(SDL_SCANCODE_ESCAPE); cheats_item_shown(); press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_ESCAPE); state();
+	press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_RETURN); state();
+	CHECK(page == 0 && at_item("CHEATS"), "BACK: the pause menu at CHEATS (%d, %s)", page, item);
+	press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_ESCAPE); press(SDL_SCANCODE_ESCAPE); state();
+	CHECK(page == 0 && at_item("CHEATS"), "Esc, Esc: the pause menu at CHEATS");
+	close_menu();
+	/* the key labels */
+	static const struct { int code; const char *label; } labels[] = {
+		{'k', "K"}, {'K', "Shift+K"}, {'g', "G"}, {'T', "Shift+T"}, {'+', "+"}, {'-', "-"}, {0x3D00, "F3"}, {0x3100, "Alt+N"}, {0x1E00, "Alt+A"},
+	};
+	for (int i = 0; i < (int)(sizeof labels / sizeof labels[0]); i++) {
+		char l[32]; overlay_menu_key_label(labels[i].code, l, sizeof l);
+		CHECK(!strcmp(l, labels[i].label), "key label of 0x%X: %s (%s)", labels[i].code, labels[i].label, l);
+	}
+	/* off again */
+	set_cheats_in_menu(0, NULL);
+	CHECK(overlay_menu_cheats() == 0 && !cheats_item_shown(), "Enable cheats off: the CHEATS item goes (%s)", item);
+	close_menu();
+	CHECK(!shell_cheats(), "the game's cheats off");
+	uint8_t hp2 = Kid.f13;
+	shell_input_type(&in, 'T'); frames(30);
+	CHECK(Kid.f13 == hp2, "cheats off: Shift+T does nothing");
+	/* while a replay plays back: greyed out */
+	shell_set_cheats(1); replaying = 1;
+	press(SDL_SCANCODE_ESCAPE);
+	CHECK(cheats_item_shown(), "replaying with the cheats on: CHEATS shown");
+	press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN);
+	screenshot("cheats_replaying");
+	press(SDL_SCANCODE_END); press(SDL_SCANCODE_UP); screenshot("cheats_replaying_spirit"); press(SDL_SCANCODE_HOME);
+	press(SDL_SCANCODE_RETURN);
+	CHECK(overlay_menu_is_open(), "replaying: an entry does nothing");
+	press(SDL_SCANCODE_ESCAPE); press(SDL_SCANCODE_ESCAPE);
+	to_pause_item("SETTINGS"); press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_RETURN);
+	press(SDL_SCANCODE_LEFT);
+	CHECK(overlay_menu_cheats() == 1, "replaying: Enable cheats cannot change");
+	screenshot("settings_gameplay_replaying");
+	close_menu(); frames(5);
+	CHECK(shell_cheats(), "replaying: the cheats as they were");
+	replaying = 0; shell_set_cheats(0);
+
+	/* a recording with the cheats turned on and off in the menu and a CHEATS entry replays VERIFIED */
+	S.skip_title = 1; pop2_settings_game = &S;   /* (the defaults were restored above) */
+	{
+		char rdir[256], pdir[256], rpath[600]; scratch(rdir, sizeof rdir); scratch(pdir, sizeof pdir);
+		snprintf(rpath, sizeof rpath, "%s/cheats.p2r", rdir);
+		snprintf(file_dir, sizeof file_dir, "%s", rdir);
+		shell_quick_clear(); shell_set_seed(0x1234);
+		CHECK(shell_init(argv[1], 0, NULL), "the program again, recording");
+		CHECK(replay_record_start(&rec, rpath, 0x1234, 0, NULL, &S), "recording %s", rpath);
+		until_playing();
+		set_cheats_in_menu(1, NULL);
+		cheats_item_shown(); press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_DOWN);
+		uint8_t h = Kid.f13; press(SDL_SCANCODE_RETURN); frames(30);
+		CHECK(shell_cheats() && Kid.f13 == h + 1, "recording: cheats on, Shift+T from CHEATS (%d -> %d)", h, Kid.f13);
+		key(SDL_SCANCODE_RIGHT, 1, 0); frames(40); key(SDL_SCANCODE_RIGHT, 0, 0); frames(10);
+		set_cheats_in_menu(0, NULL); close_menu(); frames(20);
+		shell_input_type(&in, 'T'); frames(30);
+		CHECK(!shell_cheats() && Kid.f13 == h + 1, "recording: cheats off, Shift+T nothing");
+		replay_record_end(&rec);
+		uint64_t rec_hash = pop2_hash();
+		char err[256] = "";
+		CHECK(replay_open(&play, rpath, err, sizeof err), "the recording opens (%s)", err);
+		replay_write_files(&play, pdir); snprintf(file_dir, sizeof file_dir, "%s", pdir);
+		static pop2_settings ps; ps = play.settings; pop2_settings_game = &ps;
+		shell_quick_clear(); shell_set_seed(play.seed);
+		CHECK(shell_init(argv[1], play.argc, play.argp), "the program again, playing the recording back");
+		memset(&in, 0, sizeof in); playing = 1; play_ended = 0; replaying = 1;
+		for (int f = 0; f < 100000 && !play_ended; f++) frame();
+		CHECK(play_ended && replay_verify(&play) && pop2_hash() == rec_hash, "the recording with the cheat toggles: REPLAY VERIFIED (%u frames)", play.end_frame);
+		replay_close(&play); playing = 0; replaying = 0; pop2_settings_game = &S;
+		remove(rpath); remove_scratch(rdir); remove_scratch(pdir);
+	}
+	/* the cheat word at launch */
+	{
+		char wdir[256]; scratch(wdir, sizeof wdir); snprintf(file_dir, sizeof file_dir, "%s", wdir);
+		const char *words[1] = { "yippeeyahoo" };
+		shell_quick_clear(); shell_set_seed(0x5EED);
+		CHECK(shell_init(argv[1], 1, words), "the program again, with yippeeyahoo");
+		until_playing();
+		CHECK(shell_mode() == SH_PLAY && shell_cheats(), "yippeeyahoo: the cheats on from the start");
+		press(SDL_SCANCODE_ESCAPE);
+		CHECK(cheats_item_shown() && overlay_menu_cheats() == 1, "yippeeyahoo: CHEATS in the pause menu (%s)", item);
+		close_menu();
+		uint8_t h = Kid.f13; shell_input_type(&in, 'T'); frames(30);
+		CHECK(Kid.f13 == h + 1, "yippeeyahoo: Shift+T works");
+		remove_scratch(wdir);
+	}
+	/* the copy protection stays: the cheats turned on in the menu, Alt+N from level 2 waits at the question */
+	{
+		char cdir[256]; scratch(cdir, sizeof cdir); snprintf(file_dir, sizeof file_dir, "%s", cdir);
+		S.enable_story_scenes = 0;   /* (straight to the next level: the copy protection is not a story scene) */
+		shell_quick_clear(); shell_set_seed(0x5EED);
+		CHECK(shell_init(argv[1], 0, NULL), "the program again, for the copy protection");
+		until_playing();
+		set_cheats_in_menu(1, NULL); close_menu(); frames(5);
+		type_alt(0x31, 'n');   /* Alt+N: level 2 */
+		for (int f = 0; f < 4000 && !(shell_mode() == SH_PLAY && pop2_level() == 2); f++) frame();
+		CHECK(shell_cheats() && shell_mode() == SH_PLAY && pop2_level() == 2, "cheats on, Alt+N: level 2");
+		frames(60); type_alt(0x31, 'n');   /* Alt+N: level 3 */
+		int play = 0, menu = 0;
+		for (int f = 0; f < 1500; f++) { frame(); play += shell_mode() == SH_PLAY; menu += shell_mode() == SH_MENU; }
+		CHECK(play < 30 && menu > 1000, "cheats on, Alt+N to level 3: the copy protection is asked (%d menu / %d play frames)", menu, play);
+		S.enable_story_scenes = 1;
+		remove_scratch(cdir);
+	}
 
 	controller_quit();
 	remove(cfg); remove(ini);

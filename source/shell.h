@@ -31,6 +31,7 @@ enum shell_mode { SH_START, SH_TITLE, SH_SCENE, SH_MENU, SH_PLAY, SH_PAUSE, SH_D
 int  shell_init(const char *game_dir, int argc, const char **argv);   /* 0 when the game files are missing */
 int  shell_step(const shell_input *in);   /* (the frontend clears in->ntyped after each step) */
 void shell_input_key(shell_input *in, int scan, int down, int ascii);   /* a key event into the frame's input */
+void shell_input_type(shell_input *in, int code);   /* a keystroke (a DOS code) typed without holding a key */
 int  shell_pc_scancode(int usb_hid);   /* SDL_Scancode (USB HID usage) -> PC scan code set 1 (0: none) */
 int  shell_mode(void);            /* what the program is doing (enum shell_mode) */
 int  shell_scene(void);           /* the story scene playing (0AAC:0274's number; -1 the intro 7-4-8; 0 none) */
@@ -47,6 +48,11 @@ void shell_quicksave(void);
 void shell_quickload(void);
 int  shell_quick_result(void);    /* since the last call: 1 saved, 2 loaded, -1 nothing to load, 0 none */
 void shell_quick_clear(void);     /* forget the slot */
+/* the cheats (DS:10C2, 0823:0528's keys, Alt+N past level 3): on at start with the cheat word "yippeeyahoo", which
+ * alone also governs the command line's LEVELn / NIS / TREE and LEVELn's hit points; the frontend turns them on or off
+ * between two steps (the overlay menu's "Enable cheats"; a replay records it). Game state: quicksaves keep it. */
+int  shell_cheats(void);
+void shell_set_cheats(int on);
 void shell_set_seed(uint32_t seed);   /* before shell_init: the random seed the program takes from the clock (DOS time()) */
 
 /* sounds the shell starts outside the tick's sound queue go to sound.c's hooks (sound_start_hook(res - 10000), the SDL

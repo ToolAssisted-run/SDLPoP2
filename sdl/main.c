@@ -203,7 +203,7 @@ static void cfg_location(char *out, size_t n, const char *ini_used)
 	else snprintf(out, n, "%.*sSDLPoP2.cfg", (int)(slash - ini_used + 1), ini_used);
 }
 /* the overlay menu changed settings: apply them (OVERLAY_MENU_APPLY_*) */
-static int menu_music, menu_sounds, menu_controller;
+static int menu_music, menu_sounds, menu_controller, menu_cheats = -1;   /* (menu_cheats: "Enable cheats" changed, -1 not) */
 static void menu_apply(int what)
 {
 	if (what & OVERLAY_MENU_APPLY_FULLSCREEN) SDL_SetWindowFullscreen(win, S.start_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -216,6 +216,7 @@ static void menu_apply(int what)
 	}
 	menu_music = S.enable_music; menu_sounds = S.enable_sounds;
 	if (what & OVERLAY_MENU_APPLY_KEYS) build_keymap();
+	if (what & OVERLAY_MENU_APPLY_CHEATS) menu_cheats = overlay_menu_cheats();   /* (the game's, at the next step: a replay records it) */
 	if (what & OVERLAY_MENU_APPLY_CONTROLLER) {
 		if (menu_controller != S.enable_controller) { controller_quit(); controller_init(&S, 0); menu_controller = S.enable_controller; }
 		controller_settings(&S);
@@ -373,6 +374,9 @@ int main(int argc, char **argv)
 			case OVERLAY_MENU_KEY:   /* a key with Alt or Ctrl: the game's (held as the keyboard holds it) */
 				if (!replaying) shell_input_key(&in, keymap[key], 1, keyaction[key] ? 0 : ascii_of(SDL_GetKeyFromScancode(key), mod));
 				break;
+			case OVERLAY_MENU_CHEAT:   /* the CHEATS page: the cheat's key typed into the game */
+				if (!replaying) shell_input_type(&in, overlay_menu_cheat_key());
+				break;
 			}
 			if (!overlay_menu_is_open() && adev) SDL_PauseAudioDevice(adev, 0);
 		}
@@ -381,10 +385,17 @@ int main(int argc, char **argv)
 				message(replay_verify(&play) ? "REPLAY VERIFIED" : "REPLAY DIFFERS FROM THE RECORDING");
 				replay_close(&play); replaying = 0; memset(&in, 0, sizeof in); action = REPLAY_NONE;   /* (then the keyboard again) */
 			}
+			if (menu_cheats >= 0) {   /* the menu's "Enable cheats": the game's DS:10C2 now (recorded) */
+				if (!replaying && menu_cheats != shell_cheats()) action |= menu_cheats ? REPLAY_CHEATS_ON : REPLAY_CHEATS_OFF;
+				menu_cheats = -1;
+			}
 			if (rec.f) replay_record_frame(&rec, &in, action);
-			if (action == REPLAY_QUICKSAVE) shell_quicksave();
-			if (action == REPLAY_QUICKLOAD) shell_quickload();
-			if (action && shell_mode() != SH_PLAY && !replaying) message("QUICKSAVE AND QUICKLOAD: ONLY WHILE PLAYING");
+			if (action & REPLAY_CHEATS_OFF) shell_set_cheats(0);
+			if (action & REPLAY_CHEATS_ON) shell_set_cheats(1);
+			if (action & (REPLAY_CHEATS_OFF | REPLAY_CHEATS_ON)) message(shell_cheats() ? "CHEATS ON" : "CHEATS OFF");
+			if (action & REPLAY_QUICKSAVE) shell_quicksave();
+			if (action & REPLAY_QUICKLOAD) shell_quickload();
+			if ((action & (REPLAY_QUICKSAVE | REPLAY_QUICKLOAD)) && shell_mode() != SH_PLAY && !replaying) message("QUICKSAVE AND QUICKLOAD: ONLY WHILE PLAYING");
 			action = REPLAY_NONE;
 			if (adev) SDL_LockAudioDevice(adev);
 			int r = shell_step(&in);

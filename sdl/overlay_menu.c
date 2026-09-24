@@ -42,11 +42,21 @@ The authors of this program may be contacted at https://forum.princed.org
  *    replay plays back (nor the restarts): SDLPoP's `required`, but an unavailable item is greyed out in its place
  *    where SDLPoP leaves it out; QUIT GAME's confirmation ends the program.
  *    Keys with Alt or Ctrl (PoP2's commands) close the menu and go to the game, as SDLPoP's Ctrl+ keys.
+ *  - Cheats: SDLPoP's "Enable cheats" (GAMEPLAY) turns PoP2's cheats (DS:10C2, shell_cheats / shell_set_cheats) on
+ *    and off at any time; off by default, on from the start with the cheat word (yippeeyahoo), as SDLPoP's megahit.
+ *    It is not saved (SDLPoP does not save cheats_enabled either); the frontend makes the change at the next game step
+ *    and a replay records it. SDLPoP's CHEATS pause item (commented out there, "TODO: Add a cheats menu, where you can
+ *    choose a cheat from a list?") is made: shown only with the cheats on (SDLPoP's `required`: left out, the one pause
+ *    item that is not greyed out instead), a page laid out as the settings (CHEATS / BACK, the list on the right, the
+ *    help line) listing PoP2's cheat keys (the `cheats` table below: shell.c's cheat_keys, 0823:0528, and Alt+N's cheat
+ *    rule) with their keys, as the CONTROLS page shows keys; choosing one closes the menu and types its key into the
+ *    game (as SDLPoP's menu passes its Ctrl+ keys on). While a replay plays back, both are greyed out (the recording
+ *    decides).
  *  - Settings: SDLPoP2.ini's sections mapped onto SDLPoP's pages: GENERAL (the menu, the info screen, sound, music, volume,
- *    the sound device, the controller), GAMEPLAY (quicksave, its penalty, replays, the intro, the story scenes), VISUALS
- *    (fullscreen, 4:3, integer scaling, the scaling method), MODS ([CustomGameplay], skip_title, "Customize level..." ->
- *    [Level N], "Customize guard skill..." -> [Skill N], the latter an SDLPoP2 page made like the level page), CONTROLS
- *    (the key_* keys). SDLPoP's PoP1-only settings (bug fixes, cheats, fading, lighting, hardware acceleration, the copy
+ *    the sound device, the controller), GAMEPLAY (the cheats, quicksave, its penalty, replays, the intro, the story
+ *    scenes), VISUALS (fullscreen, 4:3, integer scaling, the scaling method), MODS ([CustomGameplay], skip_title,
+ *    "Customize level..." -> [Level N], "Customize guard skill..." -> [Skill N], the latter an SDLPoP2 page made like
+ *    the level page), CONTROLS (the key_* keys). SDLPoP's PoP1-only settings (bug fixes, fading, lighting, hardware acceleration, the copy
  *    protection level) have no counterpart; there is no setting that skips or moves PoP2's copy protection.
  *    The settings that change the game (the ones a replay holds: settings_write_gameplay) are disabled (SDLPoP's
  *    `required`) while a replay is recorded or played back; otherwise they apply at once, where the game next reads
@@ -350,6 +360,9 @@ static int replaying_replay;
 static int gameplay_settings_editable;   /* 0 while a replay is recorded or played back */
 static int quicksave_allowed;            /* enable_quicksave, not while replaying */
 static int restart_allowed;              /* not while replaying */
+static int cheats_enabled;               /* SDLPoP's cheats_enabled: the game's DS:10C2 (shell_cheats) as the menu shows it */
+static int cheats_editable;              /* SDLPoP2: "Enable cheats" and the CHEATS page: not while replaying */
+static int cheat_key_chosen;             /* SDLPoP2: the CHEATS page's key for the game (OVERLAY_MENU_CHEAT) */
 
 static void play_menu_sound(int sound_id) {
 	/* SDLPoP2: SDLPoP plays PoP1's sounds here (play_sound + play_next_sound); the game's sound is frozen while the
@@ -402,10 +415,14 @@ enum pause_menu_item_ids {
 	SETTINGS_MENU_BACK,
 	SETTINGS_MENU_CONTROLS,
 	SETTINGS_MENU_SKILL_CUSTOMIZATION, // SDLPoP2
+	SETTINGS_MENU_CHEATS, // SDLPoP2: the CHEATS page's list
+	CHEATS_MENU_BACK, // SDLPoP2
 };
 
 static pause_menu_item_type pause_menu_items[] = {
 		{.id = PAUSE_MENU_RESUME,        .text = "RESUME"},
+		// SDLPoP: "TODO: Add a cheats menu, where you can choose a cheat from a list?" (commented out); SDLPoP2: made
+		{.id = PAUSE_MENU_CHEATS,        .text = "CHEATS", .required = &cheats_enabled},
 		// SDLPoP2: the frontend's F6 / F9, with enable_quicksave (not while a replay plays back)
 		{.id = PAUSE_MENU_SAVE_GAME,     .text = "QUICKSAVE (F6)", .required = &quicksave_allowed},
 		{.id = PAUSE_MENU_LOAD_GAME,     .text = "QUICKLOAD (F9)", .required = &quicksave_allowed},
@@ -443,6 +460,11 @@ static pause_menu_item_type settings_menu_items[] = {
 		{.id = SETTINGS_MENU_CONTROLS, .text = "CONTROLS"},
 		{.id = SETTINGS_MENU_BACK, .text = "BACK"},
 };
+// SDLPoP2: the CHEATS page, laid out as the settings page (its left part)
+static pause_menu_item_type cheats_menu_items[] = {
+		{.id = SETTINGS_MENU_CHEATS, .text = "CHEATS"},
+		{.id = CHEATS_MENU_BACK, .text = "BACK"},
+};
 static int active_settings_subsection = 0;
 static int highlighted_settings_subsection = 0;
 static int scroll_position = 0;
@@ -455,6 +477,7 @@ enum menu_setting_style_ids {
 	SETTING_STYLE_NUMBER,
 	SETTING_STYLE_TEXT_ONLY,
 	SETTING_STYLE_KEY,
+	SETTING_STYLE_CHEAT, // SDLPoP2: an entry of the CHEATS page (its key shown as SETTING_STYLE_KEY's)
 };
 
 enum menu_setting_number_type_ids {
@@ -482,6 +505,7 @@ enum setting_ids {
 	SETTING_USE_CORRECT_ASPECT_RATIO,
 	SETTING_USE_INTEGER_SCALING,
 	SETTING_SCALING_TYPE,
+	SETTING_ENABLE_CHEATS,
 	SETTING_ENABLE_QUICKSAVE,
 	SETTING_ENABLE_QUICKSAVE_PENALTY,
 	SETTING_ENABLE_REPLAY,
@@ -515,6 +539,7 @@ enum setting_ids {
 	SETTING_KEY_DOWNRIGHT,
 	SETTING_KEY_SHIFT,
 	SETTING_KEY_CTRL,
+	SETTING_CHEAT_FIRST, // SDLPoP2: the CHEATS page's entries (SETTING_CHEAT_FIRST + their index in `cheats`)
 };
 
 typedef struct setting_type {
@@ -621,6 +646,11 @@ static setting_type visuals_settings[] = {
 };
 
 static setting_type gameplay_settings[] = {
+		// SDLPoP2: not a setting of SDLPoP2.ini (not saved, as SDLPoP's): the game's DS:10C2 (overlay_menu_cheats)
+		{.id = SETTING_ENABLE_CHEATS, .style = SETTING_STYLE_TOGGLE, .linked = &cheats_enabled, .required = &cheats_editable,
+				.text = "Enable cheats",
+				.explanation = "Turn cheats on or off (yippeeyahoo: on at the start).\n"
+						"Also, display the CHEATS option on the pause menu."},
 		{.id = SETTING_ENABLE_QUICKSAVE, .style = SETTING_STYLE_TOGGLE, LINK(enable_quicksave), .ini = "AdditionalFeatures/enable_quicksave",
 				.text = "Enable quicksave",
 				.explanation = "Enable quicksave/load feature.\nPress F6 to quicksave, F9 to quickload."},
@@ -792,6 +822,40 @@ static setting_type controls_settings[] = {
 				.explanation = ""},
 };
 
+// SDLPoP2: the CHEATS page: PoP2's cheats (shell.c: cheat_keys, 0823:0528, and Alt+N's rule with the cheats on),
+// one line each: the key (a DOS keystroke code: overlay_menu_key_label shows it), what the action does with it, the
+// line on the page, the help line.
+enum cheat_action_ids {
+	CHEAT_ACTION_TYPE_KEY, // the key typed into the game (OVERLAY_MENU_CHEAT, the menu closes)
+};
+typedef struct cheat_type {
+	word key;
+	byte action;
+	const char* text;
+	const char* explanation;
+} cheat_type;
+static const cheat_type cheats[] = {
+		{0x3100, CHEAT_ACTION_TYPE_KEY, "Skip to the next level",
+				"Any level, the clock not cut (without cheats: up to level 3).\n"
+				"The copy protection is still asked before level 3."},
+		{'+', CHEAT_ACTION_TYPE_KEY, "One more minute", "One minute more on the clock."},
+		{'-', CHEAT_ACTION_TYPE_KEY, "One minute less", "One minute less on the clock (not below one)."},
+		{'T', CHEAT_ACTION_TYPE_KEY, "One more hit point", "One more hit point, and one more at most (up to MODS: Max hitpoints allowed)."},
+		{'K', CHEAT_ACTION_TYPE_KEY, "One hit point less", "The prince loses a hit point (at none he dies)."},
+		{'g', CHEAT_ACTION_TYPE_KEY, "Opponent: one more hit point", "The prince's opponent gets one more hit point, and one more at most."},
+		{'k', CHEAT_ACTION_TYPE_KEY, "Kill the room's characters",
+				"Every character in the room dies (skeletons collapse, the heads turn away)."},
+		{'r', CHEAT_ACTION_TYPE_KEY, "Revive the prince", "A dead prince lives again."},
+		{'W', CHEAT_ACTION_TYPE_KEY, "Feather fall", "The prince falls slowly for a while."},
+		{'I', CHEAT_ACTION_TYPE_KEY, "Upside down", "The screen upside down (again: back)."},
+		{'R', CHEAT_ACTION_TYPE_KEY, "Show the room number", "The room's number on the status line."},
+		{'S', CHEAT_ACTION_TYPE_KEY, "Count a spirit turn",
+				"Temple levels and level 14: the spirit's turn counter to its end "
+				"(it leaves with more than 4 hit points, else death)."},
+		{0x3D00, CHEAT_ACTION_TYPE_KEY, "Demo player on / off", "The game's demo player on or off (PLAYER ON / PLAYER OFF)."},
+};
+static setting_type cheats_settings[COUNT(cheats)];   // (from `cheats`: init_cheats_settings)
+
 typedef struct settings_area_type {
 	setting_type* settings;
 	int setting_count;
@@ -804,6 +868,7 @@ static settings_area_type mods_settings_area = { .settings = mods_settings, .set
 static settings_area_type level_settings_area = { .settings = level_settings, .setting_count = COUNT(level_settings)};
 static settings_area_type skill_settings_area = { .settings = skill_settings, .setting_count = COUNT(skill_settings)};
 static settings_area_type controls_settings_area = { .settings = controls_settings, .setting_count = COUNT(controls_settings)};
+static settings_area_type cheats_settings_area = { .settings = cheats_settings, .setting_count = COUNT(cheats_settings)}; // SDLPoP2
 
 static settings_area_type* get_settings_area(int menu_item_id) {
 	switch(menu_item_id) {
@@ -823,6 +888,8 @@ static settings_area_type* get_settings_area(int menu_item_id) {
 			return &skill_settings_area;
 		case SETTINGS_MENU_CONTROLS:
 			return &controls_settings_area;
+		case SETTINGS_MENU_CHEATS: // SDLPoP2
+			return &cheats_settings_area;
 	}
 }
 static settings_area_type* const all_settings_areas[] = {   // SDLPoP2 (saving, restoring the defaults)
@@ -857,6 +924,35 @@ static void init_settings_list(setting_type* first_setting, int setting_count) {
 	}
 }
 
+// SDLPoP2: the CHEATS page's entries, from the `cheats` table
+static void init_cheats_settings(void) {
+	for (int i = 0; i < COUNT(cheats); ++i) {
+		setting_type* setting = &cheats_settings[i];
+		setting->id = SETTING_CHEAT_FIRST + i;
+		setting->style = SETTING_STYLE_CHEAT;
+		setting->linked = (void*) &cheats[i];
+		setting->required = &cheats_editable;
+		snprintf(setting->text, sizeof(setting->text), "%s", cheats[i].text);
+		snprintf(setting->explanation, sizeof(setting->explanation), "%s", cheats[i].explanation);
+	}
+}
+
+void overlay_menu_key_label(int code, char* out, size_t n) {
+	static const char scan_letters[] =   // PC scan codes 0x10..0x32: the letters (Alt+letter is scan << 8)
+		"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0QWERTYUIOP\0\0\0\0ASDFGHJKL\0\0\0\0\0ZXCVBNM";
+	if (n == 0) return;
+	if (code > 0 && code < 0x100) {
+		if (code >= 'a' && code <= 'z') snprintf(out, n, "%c", code - 'a' + 'A');
+		else if (code >= 'A' && code <= 'Z') snprintf(out, n, "Shift+%c", code);
+		else snprintf(out, n, "%c", code);
+		return;
+	}
+	int scan = code >> 8;
+	if (scan >= 0x3B && scan <= 0x44) snprintf(out, n, "F%d", scan - 0x3B + 1);
+	else if (scan >= 0x10 && scan < (int) sizeof(scan_letters) - 1 && scan_letters[scan]) snprintf(out, n, "Alt+%c", scan_letters[scan]);
+	else snprintf(out, n, "0x%04X", code);
+}
+
 static void clear_menu_controls(void);
 static void process_additional_menu_input(void);
 static int key_test_paused_menu(int key);
@@ -866,6 +962,7 @@ static void init_menu(void) {
 
 	init_pause_menu_items(pause_menu_items, COUNT(pause_menu_items));
 	init_pause_menu_items(settings_menu_items, COUNT(settings_menu_items));
+	init_pause_menu_items(cheats_menu_items, COUNT(cheats_menu_items)); // SDLPoP2
 
 	init_settings_list(general_settings, COUNT(general_settings));
 	init_settings_list(visuals_settings, COUNT(visuals_settings));
@@ -874,6 +971,8 @@ static void init_menu(void) {
 	init_settings_list(level_settings, COUNT(level_settings));
 	init_settings_list(skill_settings, COUNT(skill_settings));
 	init_settings_list(controls_settings, COUNT(controls_settings));
+	init_cheats_settings(); // SDLPoP2
+	init_settings_list(cheats_settings, COUNT(cheats_settings));
 }
 
 static bool_type is_mouse_over_rect(const rect_type* rect) {
@@ -972,6 +1071,13 @@ static void pause_menu_clicked(pause_menu_item_type* item) {
 		case PAUSE_MENU_RESUME:
 			need_close_menu = 1;
 			break;
+		case PAUSE_MENU_CHEATS:
+			// SDLPoP2: the CHEATS page (drawn as the settings page), the list in focus at the entry chosen last
+			drawn_menu = 2;
+			hovering_pause_menu_item = SETTINGS_MENU_CHEATS;
+			enter_settings_subsection(SETTINGS_MENU_CHEATS);
+			scroll_position = MAX(0, highlighted_setting_id - SETTING_CHEAT_FIRST - 8);
+			break;
 		case PAUSE_MENU_SAVE_GAME:
 			// SDLPoP2: the frontend's F6 (shell_quicksave: while playing, at the next game tick)
 			menu_action = OVERLAY_MENU_QUICKSAVE;
@@ -1008,7 +1114,13 @@ static void pause_menu_clicked(pause_menu_item_type* item) {
 		case SETTINGS_MENU_VISUALS:
 		case SETTINGS_MENU_MODS:
 		case SETTINGS_MENU_CONTROLS:
+		case SETTINGS_MENU_CHEATS: // SDLPoP2
 			enter_settings_subsection(item->id);
+			break;
+		case CHEATS_MENU_BACK: // SDLPoP2
+			reset_paused_menu();
+			active_settings_subsection = highlighted_settings_subsection = 0;
+			hovering_pause_menu_item = PAUSE_MENU_CHEATS;
 			break;
 		case SETTINGS_MENU_BACK:
 			reset_paused_menu();
@@ -1027,6 +1139,7 @@ static void draw_pause_menu_item(pause_menu_item_type* item, rect_type* parent, 
 	// (SDLPoP leaves it out); navigation skips it as in SDLPoP
 	if (item->required != NULL && *item->required == 0) {
 		if (hovering_pause_menu_item == item->id) hovering_pause_menu_item = PAUSE_MENU_RESUME;
+		if (item->id == PAUSE_MENU_CHEATS) return; // skip this item (disabled): SDLPoP's way, for CHEATS (cheats off)
 		show_text_with_color(&text_rect, halign_center, valign_top, item->text, color_7_lightgray);   /* (as SDLPoP's disabled settings) */
 		*y_offset += 13;
 		return;
@@ -1065,7 +1178,7 @@ static void draw_pause_menu_item(pause_menu_item_type* item, rect_type* parent, 
 			if (is_mouse_over_rect(&selection_box)) {
 				pause_menu_clicked(item);
 			}
-		} else if (pressed_enter && (drawn_menu == 0 || (drawn_menu == 1 && controlled_area == 0))) {
+		} else if (pressed_enter && (drawn_menu == 0 || (drawn_menu >= 1 && controlled_area == 0))) { // (SDLPoP2: 2 the CHEATS page)
 			pause_menu_clicked(item);
 		}
 
@@ -1115,6 +1228,7 @@ static int setting_apply_group(int setting_id) {
 		case SETTING_KEY_LEFT: case SETTING_KEY_RIGHT: case SETTING_KEY_UP: case SETTING_KEY_DOWN: case SETTING_KEY_UPLEFT:
 		case SETTING_KEY_UPRIGHT: case SETTING_KEY_DOWNLEFT: case SETTING_KEY_DOWNRIGHT: case SETTING_KEY_SHIFT:
 		case SETTING_KEY_CTRL: return OVERLAY_MENU_APPLY_KEYS;
+		case SETTING_ENABLE_CHEATS: return OVERLAY_MENU_APPLY_CHEATS;
 	}
 }
 static void apply_setting(setting_type* setting) {
@@ -1124,7 +1238,7 @@ static void apply_setting(setting_type* setting) {
 }
 
 static void turn_setting_on_off(setting_type* setting, byte new_state) {
-	were_settings_changed = 1;
+	if (setting->id != SETTING_ENABLE_CHEATS) were_settings_changed = 1; // SDLPoP2: (the cheats: nothing to save)
 	if (setting->linked != NULL) {
 		*(int*)(setting->linked) = new_state;
 	}
@@ -1220,6 +1334,8 @@ static void draw_setting_explanation(setting_type* setting) {
 	char text[512];
 	if (setting->gameplay && !gameplay_settings_editable) {
 		snprintf(text, sizeof(text), "%s\n(Not while a replay is %s.)", setting->explanation, replaying_replay ? "played back" : "recorded");
+	} else if (setting->required == &cheats_editable && !cheats_editable) {   // (the cheats: the recording's)
+		snprintf(text, sizeof(text), "%s\n(Not while a replay is played back.)", setting->explanation);
 	} else {
 		snprintf(text, sizeof(text), "%s", setting->explanation);
 	}
@@ -1375,6 +1491,27 @@ static void draw_setting(setting_type* setting, rect_type* parent, int* y_offset
 			draw_image_with_blending(arrowhead_left_image, text_rect.right - value_text_width - 6, text_rect.top);
 		}
 
+	} else if (setting->style == SETTING_STYLE_CHEAT) {
+		// SDLPoP2: an entry of the CHEATS page: its key on the right (as the CONTROLS page's keys); chosen, the menu
+		// closes and the key goes to the game
+		const cheat_type* cheat = (const cheat_type*) setting->linked;
+		char key_text[32];
+		overlay_menu_key_label(cheat->key, key_text, sizeof(key_text));
+		show_text_with_color(&text_rect, halign_right, valign_top, key_text, disabled ? unselected_color : selected_color);
+		if (highlighted_setting_id == setting->id && !disabled) {
+			if (pressed_enter || (mouse_clicked && is_mouse_over_rect(&setting_box))) {
+				play_menu_sound(sound_22_loose_shake_3);
+				switch (cheat->action) {
+					default:
+					case CHEAT_ACTION_TYPE_KEY:
+						menu_action = OVERLAY_MENU_CHEAT;
+						cheat_key_chosen = cheat->key;
+						need_close_menu = 1;
+						break;
+				}
+			}
+		}
+
 	} else if (setting->style == SETTING_STYLE_KEY && !disabled) {
 		// SDLPoP2: the key is SDLPoP2.ini's SDL scancode name
 		int value = SDL_GetScancodeFromName((const char*) setting->linked);
@@ -1439,7 +1576,7 @@ static void menu_scroll(int y) {
 	settings_area_type* current_settings_area = get_settings_area(active_settings_subsection);
 	if (current_settings_area != NULL) {
 		int max_scroll = MAX(0, current_settings_area->setting_count - 9);
-		if (drawn_menu == 1 && controlled_area == 1) {
+		if (drawn_menu >= 1 && controlled_area == 1) { // (SDLPoP2: 2 the CHEATS page)
 			if (y < 0 && scroll_position > 0) {
 				--scroll_position;
 			} else if (y > 0 && scroll_position < max_scroll) {
@@ -1595,11 +1732,14 @@ static void draw_settings_menu(void) {
 		}
 	}
 
+	// SDLPoP2: the CHEATS page has its own left part
+	pause_menu_item_type* left_items = (drawn_menu == 2) ? cheats_menu_items : settings_menu_items;
+	int left_item_count = (drawn_menu == 2) ? COUNT(cheats_menu_items) : COUNT(settings_menu_items);
 	int y_offset = 50;
-	for (int i = 0; i < COUNT(settings_menu_items); ++i) {
-		pause_menu_item_type* item = &settings_menu_items[i];
+	for (int i = 0; i < left_item_count; ++i) {
+		pause_menu_item_type* item = &left_items[i];
 		int text_color = (highlighted_settings_subsection == item->id) ? color_15_brightwhite : color_7_lightgray;
-		draw_pause_menu_item(&settings_menu_items[i], &pause_rect_inner, &y_offset, text_color);
+		draw_pause_menu_item(&left_items[i], &pause_rect_inner, &y_offset, text_color);
 	}
 
 	draw_settings_area(settings_area);
@@ -1853,6 +1993,13 @@ static void draw_menu_pass(void) {
 				reset_paused_menu(); // Go back to the top level pause menu.
 				hovering_pause_menu_item = PAUSE_MENU_SETTINGS;
 			}
+		} else if (drawn_menu == 2) { // SDLPoP2: the CHEATS page, as the settings page
+			if (controlled_area == 1) {
+				leave_settings_subsection();
+			} else {
+				reset_paused_menu();
+				hovering_pause_menu_item = PAUSE_MENU_CHEATS;
+			}
 		} else {
 			need_close_menu = 1; // Close the menu.
 			goto out;
@@ -1878,7 +2025,7 @@ static void draw_menu_pass(void) {
 		textstate.ptr_font = hc_small_font;
 		if (drawn_menu == 0) {
 			draw_pause_menu();
-		} else if (drawn_menu == 1) {
+		} else if (drawn_menu == 1 || drawn_menu == 2) { // (SDLPoP2: 2 the CHEATS page, drawn as the settings)
 			draw_settings_menu();
 		}
 		textstate.ptr_font = saved_font;
@@ -2242,6 +2389,8 @@ void overlay_menu_open(int recording, int replaying) {
 	gameplay_settings_editable = !recording && !replaying;
 	quicksave_allowed = S->enable_quicksave && !replaying;
 	restart_allowed = !replaying;
+	cheats_enabled = shell_cheats();   // (the game's: the cheat word, a toggle, a quickload)
+	cheats_editable = !replaying;
 	// seg000.c (process_key, play_level_2): is_paused = 1, is_menu_shown = 1; display_text_bottom("GAME PAUSED")
 	is_menu_shown = 1;
 	display_text_bottom("GAME PAUSED");
@@ -2401,6 +2550,10 @@ void overlay_menu_state(int* page, const char** item, const char** subsection, c
 		if (settings_menu_items[i].id == hovering_pause_menu_item) *item = settings_menu_items[i].text;
 		if (settings_menu_items[i].id == active_settings_subsection) *subsection = settings_menu_items[i].text;
 	}
+	for (int i = 0; i < COUNT(cheats_menu_items); ++i) {
+		if (cheats_menu_items[i].id == hovering_pause_menu_item) *item = cheats_menu_items[i].text;
+		if (cheats_menu_items[i].id == active_settings_subsection) *subsection = cheats_menu_items[i].text;
+	}
 	if (active_settings_subsection == SETTINGS_MENU_LEVEL_CUSTOMIZATION) *subsection = "LEVEL";
 	if (active_settings_subsection == SETTINGS_MENU_SKILL_CUSTOMIZATION) *subsection = "SKILL";
 	settings_area_type* area = get_settings_area(active_settings_subsection);
@@ -2409,6 +2562,9 @@ void overlay_menu_state(int* page, const char** item, const char** subsection, c
 	}
 	*dialog = current_dialog_box;
 }
+
+int overlay_menu_cheats(void) { return cheats_enabled; }
+int overlay_menu_cheat_key(void) { return cheat_key_chosen; }
 
 void overlay_menu_close(void) {
 	if (is_menu_shown) menu_was_closed();

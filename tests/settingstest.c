@@ -5,7 +5,8 @@
  *  3. the whole program (the shell) on a scripted session (the intro cut short, play, quick saves and loads): with no
  *     settings, with the default settings installed, and while recording a replay: the same states every frame;
  *  4. the replay played back reproduces the recording (pop2_hash and the screen at the end), also with non-default
- *     gameplay settings, which travel in the replay file and change the game;
+ *     gameplay settings, which travel in the replay file and change the game, and with the cheats turned on and off
+ *     during play (the frontend's toggle, a replay action) and a cheat key used meanwhile;
  *  5. no settings = the default settings on other levels (guards, sword types);
  *  6. the shell's options: story scenes off (the same state after them), the copy protection off or later, the intro
  *     off, skip_title with first_level, start_minutes_left and a level's sword_type.
@@ -31,7 +32,9 @@ static int nwarn; static void count_warn(const char *m) { nwarn++; if (getenv("V
 
 /* ---- the scripted session ---- */
 enum { FRAMES = 9000, SAVE1 = 2600, LOAD1 = 4200, SAVE2 = 5000, LOAD2 = 7600 };
-typedef struct result { uint64_t digest, hash; uint32_t screen; int minutes, verified, frames, mode_play, saves, loads; } result;
+typedef struct result { uint64_t digest, hash; uint32_t screen; int minutes, verified, frames, mode_play, saves, loads, cheats; } result;
+enum { CHEATS_ON1 = 3000, CHEATS_OFF1 = 3400 };
+static int cheat_script;   /* the session toggles the cheats (section 4) */
 static uint32_t lcg;
 static uint32_t rnd(void) { lcg = lcg * 1103515245u + 12345u; return lcg >> 16; }
 static void script_input(int f, shell_input *in, int *action)
@@ -50,6 +53,12 @@ static void script_input(int f, shell_input *in, int *action)
 	}
 	if (f == SAVE1 || f == SAVE2) *action = REPLAY_QUICKSAVE;
 	if (f == LOAD1 || f == LOAD2) *action = REPLAY_QUICKLOAD;
+	if (cheat_script) {   /* (no cheat word) the cheats on, 'T' (one more hit point), off, 'T' again (nothing), '+' */
+		if (f == CHEATS_ON1) *action |= REPLAY_CHEATS_ON;
+		if (f == CHEATS_OFF1) *action |= REPLAY_CHEATS_OFF;
+		if (f == CHEATS_ON1 + 100 || f == CHEATS_OFF1 + 100) shell_input_type(in, 'T');
+		if (f == CHEATS_OFF1 + 200) shell_input_type(in, '+');
+	}
 }
 static void scratch_dir(char *out, size_t n) { snprintf(out, n, "/tmp/sdlpop2-settingstest-XXXXXX"); if (!mkdtemp(out)) { perror("mkdtemp"); exit(2); } }
 static void remove_dir(const char *d)
@@ -86,11 +95,14 @@ static result session(const pop2_settings *s, const char *rec_path, const char *
 		if (play_path) { if (!replay_frame(&p, &in, &action)) break; }
 		else script_input(f, &in, &action);
 		if (rec_path) replay_record_frame(&rec, &in, action);
-		if (action == REPLAY_QUICKSAVE) shell_quicksave();
-		if (action == REPLAY_QUICKLOAD) shell_quickload();
+		if (action & REPLAY_CHEATS_OFF) shell_set_cheats(0);
+		if (action & REPLAY_CHEATS_ON) shell_set_cheats(1);
+		if (action & REPLAY_QUICKSAVE) shell_quicksave();
+		if (action & REPLAY_QUICKLOAD) shell_quickload();
 		int r = shell_step(&in);
 		in.ntyped = 0;
 		int q = shell_quick_result(); if (q == 1) res.saves++; if (q == 2) res.loads++;
+		if (f == CHEATS_ON1 + 50 || f == CHEATS_OFF1 + 50) res.cheats = res.cheats * 2 + shell_cheats();
 		if (shell_mode() == SH_PLAY) res.mode_play++;
 		dg = (dg ^ pop2_hash()) * 1099511628211ull;
 		res.frames = f + 1;
@@ -192,6 +204,12 @@ int main(int argc, char **argv)
 	result r4 = run(&c, rec2, NULL), r5 = run(NULL, NULL, rec2);
 	CHECK(r4.digest != r1.digest && r4.minutes == 10, "custom gameplay settings change the game (minutes left %d)", r4.minutes);
 	CHECK(r5.verified && r5.digest == r4.digest && r5.screen == r4.screen, "a replay carries its gameplay settings");
+	/* the cheats turned on and off during play (no cheat word): recorded, replayed */
+	cheat_script = 1;
+	result r6 = run(&d, rec2, NULL), r7 = run(NULL, NULL, rec2);
+	cheat_script = 0;
+	CHECK(r6.cheats == 2 && r6.digest != r1.digest, "the cheats toggled during play: on, then off (%d), the game differs", r6.cheats);
+	CHECK(r7.verified && r7.digest == r6.digest && r7.screen == r6.screen && r7.cheats == 2, "a replay reproduces the cheat toggles");
 	unlink(rec1); unlink(rec2);
 	/* 5. no settings / defaults on other levels (the guards' tables, the sword types, the copy protection answered) */
 	cp_answered = 1;

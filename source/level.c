@@ -242,7 +242,9 @@ void game_start(void)
 	word_5cdc = word_5cda = word_5ce8 = word_5cd0 = 0;
 	if (word_5cb6) return;
 	minutes_left = (uint16_t)GAME_SETTING(start_minutes_left, 75); clock_ticks = (uint16_t)GAME_SETTING(ticks_per_minute, 0x2CF); start_hp = (uint8_t)GAME_SETTING(start_hitp, 3);   /* 169B:0006 (SDLPoP2.ini start_minutes_left, ticks_per_minute, start_hitp) */
-	if (cheat_mode && level_switch) { int8_t v = (int8_t)level_number; start_hp = v < 3 ? 3 : v > 12 ? 12 : v; }
+	/* 169B:0006 tests DS:10C2 and DS:0978; DS:0978 (level_switch) is only set with the cheat word, which alone decides
+	 * here (SDLPoP2's menu can turn DS:10C2 off or on since the start) */
+	if (level_switch) { int8_t v = (int8_t)level_number; start_hp = v < 3 ? 3 : v > 12 ? 12 : v; }
 }
 /* the state a shown scene leaves behind (0AAC:0274 shows it; the NIS themselves are not reconstructed): scene 0x64
  * is the copy protection (0D5E:1288), asked once per game unless in a demo; it is taken as answered */

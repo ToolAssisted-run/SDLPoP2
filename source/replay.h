@@ -1,16 +1,18 @@
 #pragma once
 /* Replays: the whole program is deterministic given the random seed (DOS time() at start), the command-line words, the
  * settings the shell and the core read, the game's own files as they were at the start (PRINCE.OPT / HOF / SAV) and
- * the shell_input of every video frame (with the frontend's quick save / load requests). A replay file holds exactly
- * that: a text header (the seed, the words, the files, the gameplay settings as SDLPoP2.ini text), then the frames
- * whose input changed, and at the end the frame count, pop2_hash() and a checksum of the screen, which playing it
- * back must reproduce. No SDL here: tests/settingstest.c records and replays headlessly. */
+ * the shell_input of every video frame (with the frontend's quick save / load requests and cheat toggles). A replay
+ * file holds exactly that: a text header (the seed, the words, the files, the gameplay settings as SDLPoP2.ini text),
+ * then the frames whose input changed or that have an action, and at the end the frame count, pop2_hash() and a
+ * checksum of the screen, which playing it back must reproduce. No SDL here: tests/settingstest.c records and replays headlessly. */
 #include <stdint.h>
 #include <stdio.h>
 #include "shell.h"
 #include "settings.h"
 
-enum { REPLAY_NONE = 0, REPLAY_QUICKSAVE = 1, REPLAY_QUICKLOAD = 2 };   /* the frontend's action of a frame */
+/* the frontend's actions of a frame (bits): quick save / load (shell_quicksave / shell_quickload), the cheats turned
+ * off / on (shell_set_cheats, the overlay menu's "Enable cheats"), each done before the frame's shell_step */
+enum { REPLAY_NONE = 0, REPLAY_QUICKSAVE = 1, REPLAY_QUICKLOAD = 2, REPLAY_CHEATS_OFF = 4, REPLAY_CHEATS_ON = 8 };
 
 typedef struct replay_rec {
 	FILE *f; uint32_t frame;
@@ -35,7 +37,7 @@ int  replay_open(replay_play *p, const char *path, char *err, size_t errlen);   
 int  replay_write_files(const replay_play *p, const char *dir);   /* the recorded PRINCE.OPT / HOF / SAV into dir */
 /* the input of the next frame (the held keys carry over) and its action; 0 once the recording has ended (frame ==
  * end_frame): then compare replay_verify() */
-int  replay_frame(replay_play *p, shell_input *in, int *action);
+int  replay_frame(replay_play *p, shell_input *in, int *action);   /* (*action: REPLAY_* bits) */
 int  replay_verify(const replay_play *p);   /* 1: pop2_hash() and the screen are the recorded ones */
 void replay_close(replay_play *p);
 uint32_t replay_screen_checksum(void);

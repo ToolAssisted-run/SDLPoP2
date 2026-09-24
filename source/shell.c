@@ -45,6 +45,7 @@ static int running, exit_code, mode = SH_START; static char exit_msg[128]; stati
 uint16_t word_00ec = 1;            /* DS:00EC: the title skips the credits and the hall of fame (1 at start) */
 #define word_2ba6 (*(uint16_t *)(tiles0 + 0xC))   /* DS:2BA6: a scene is playing (read by the drawing: 0FB3:22BA, 33FD:145E) */
 static int poll_menu;              /* DS:1F32: 0823:10A0 (0) or 0D5E:0390 (1) */
+static int cheat_word;             /* the cheat word was on the command line (DS:10C2 at start; the menu can change DS:10C2 since) */
 static pop2_config config;         /* DS:[1FB8] */
 
 /* ---- the clock: video frames (70.086 Hz), the 60 Hz timer derived from them ---- */
@@ -645,7 +646,7 @@ static void main_loop(void)   /* 0823:00B2 */
 {
 	int local = (int8_t)byte_6b6c;
 	for (;;) {
-		if (cheat_mode && (arg_find("NIS") || arg_find("TREE"))) for (;;) sh_scene(story_scene((int8_t)word_32d8, 0));   /* (0AAC:000E(0, 0) for ever) */
+		if (cheat_word && (arg_find("NIS") || arg_find("TREE"))) for (;;) sh_scene(story_scene((int8_t)word_32d8, 0));   /* (0AAC:000E(0, 0) for ever) */
 		sound_stop_all(); word_32d8 = 0xFF; word_5cc0 = 0;   /* 0823:13E6 (with 0993:075E) */
 		if (byte_6b6c == 0) { local = title(); continue; }
 		local = (int8_t)game(local);
@@ -666,10 +667,10 @@ static void shell_main(void)   /* 0823:0000 */
 	sound_init_ambient();          /* 1611:02AC(DS:2B98) */
 	pal_std16();                   /* 0FB3:293A */
 	const char *cheat = txt4_get(10, NULL);   /* "YIPPEEYAHOO" */
-	cheat_mode = cheat && arg_find(cheat) ? 1 : 0;
+	cheat_mode = cheat_word = cheat && arg_find(cheat) ? 1 : 0;
 	options_load();                /* 0D5E:2166 */
 	byte_6b6c = 0;                 /* 0823:0192: LEVELn with the cheat word */
-	const char *lv = cheat_mode ? arg_find("LEVEL") : NULL;
+	const char *lv = cheat_word ? arg_find("LEVEL") : NULL;
 	if (lv) { int v = atoi(lv + 5); byte_6b6c = (uint8_t)(v < 1 || v > 14 ? 1 : v); level_switch = 1; }
 	res_open("KID.DAT"); res_open("SEQUENCE.DAT");   /* DS:0598 */
 	random_seed = seed_set ? seed_value : (uint32_t)time(NULL);   /* 2751:00D6(0): the C library's time() */
@@ -687,7 +688,7 @@ int shell_init(const char *dir, int argc, const char **argv)
 	if (!pop2_init(dir)) return 0;
 	nargs = 0; for (int i = 0; i < argc && nargs < 16; i++) snprintf(args[nargs++], sizeof args[0], "%s", argv[i]);
 	pop2_reset_state();           /* the data segment as the program starts */
-	byte_6b6c = 0; cheat_mode = 0; level_switch = 0; word_32d8 = 0xFF;
+	byte_6b6c = 0; cheat_mode = 0; cheat_word = 0; level_switch = 0; word_32d8 = 0xFF;
 	frame_on_time_hook = frame_on_time_shell;
 	coro_destroy(shell_coro); shell_coro = coro_create(entry, 1 << 20);
 	hooks_on = 1; render_track_tiles = 1;   /* (the tick-time redraw requests the core leaves out: from the tile changes) */
@@ -702,6 +703,14 @@ int shell_step(const shell_input *in)
 	coro_resume(shell_coro);
 	return shell_done ? SHELL_EXIT : SHELL_RUNNING;
 }
+/* for frontends: a keystroke typed without a key held (the overlay menu's CHEATS page) */
+void shell_input_type(shell_input *in, int code)
+{
+	if (code > 0 && in->ntyped < 8) in->typed[in->ntyped++] = (uint16_t)code;
+}
+/* the cheats (DS:10C2), on or off from the frontend between two steps (the overlay menu's "Enable cheats") */
+int shell_cheats(void) { return cheat_mode != 0; }
+void shell_set_cheats(int on) { cheat_mode = on ? 1 : 0; }
 /* for frontends: a key goes down or up; the BIOS shift flags follow the modifier keys, and a key going down types the
  * code DOS would give: Alt+key the scan code << 8, Ctrl+letter 1..26, a character its ASCII code, others scan << 8 */
 void shell_input_key(shell_input *in, int scan, int down, int ascii)

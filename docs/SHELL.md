@@ -94,7 +94,10 @@ Every keystroke first passes 2797:00E2: Ctrl-Q (0x11) and Alt-Q (0x1000) quit th
 | Alt-N | 0x3100 | next level: only up to level 3 without the cheat word (which also caps the clock at 15 minutes); with it, level 14 goes to 1 |
 | any key / button | | after a death (Kid alive > 6, time left) or during a demo (then DS:2BAA = 1): restart / leave the demo |
 
-Messages go to the status line (0FB3:204C) with DS:5CDC = DS:5CDA = 0x18. With the cheat word (0823:0528):
+The cheat word sets DS:10C2 at the start (it alone also decides LEVELn, NIS / TREE and LEVELn's hit points);
+SDLPoP2's overlay menu can turn DS:10C2 on and off later (`shell_set_cheats`, between two frames; a replay action),
+which governs the cheat keys, Alt-N past level 3 and 18C8:0008's loadkid.
+Messages go to the status line (0FB3:204C) with DS:5CDC = DS:5CDA = 0x18. With DS:10C2 set (0823:0528):
 `+` / `-` minutes, `I` upside down, `R` "Room n", `T` one more hit point (0823:0F16, music 0x65), `W` feather fall
 (0823:13C4), `r` revive a dead prince, F3 the demo player on/off ("PLAYER ON/OFF"), `K` one hit point less (hp delta
 -1, sound 0x1F, 0823:1008 / 0F38; seq 0x47 at 0), `g` the opponent one more hit point and maximum, `k` every
@@ -282,7 +285,9 @@ The core's e2e captures stay identical with the core changes of 10 (tests/run_al
 - level.c: `load_level_ex(n, full)` (the level loop's full / reload choice; `load_level` unchanged in effect);
   1286:0213 keeps the checkpoint for a restored game (DS:5CB6); FIX: 1286:0D06 takes the sword type from the
   checkpoint block when there is one (DS:5AB2 is the checkpoint's far pointer, not an unused override);
-  `checkpoint_get_block` / `checkpoint_put_block` (the DS:5AB2 layout, for saved games).
+  `checkpoint_get_block` / `checkpoint_put_block` (the DS:5AB2 layout, for saved games); 169B:0006's LEVELn hit
+  points test DS:0978 (`level_switch`) alone, not DS:10C2 as well: DS:0978 is only set with the cheat word, so it is
+  the same test in the DOS game, and the cheat word keeps deciding it when SDLPoP2's menu turns DS:10C2 off or on.
 - core.c: `pop2_reset_state()` (the program's start state, used by `pop2_new_game_loaded` and the shell).
 - roomhooks.c: `room_unload_pub` (0CD6:073A, the options menu).
 - Found, not changed: DS:2BA2 (`input_device`) and DS:2BAA (`word_2baa`) are separate globals in the core although

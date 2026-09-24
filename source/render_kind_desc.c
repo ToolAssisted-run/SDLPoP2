@@ -170,6 +170,13 @@ void render_trob_request(int which, uint16_t arg)
 		if (!trob_rect_of(t, r)) return;
 		mark_back((int8_t)cur_trob.tilepos, r); mark_back(trob_right(), r); mark_back(trob_above_right(), r);
 		break; }
+	case 0x8F4: {   /* (arg: the floor object's stage byte) 33FD:08F4, a caverns lava floor (tiles 0x17 / 0x18): the template DS:1526
+	                 * with its top by the stage, at the tile, the one right of it and the one after that */
+		tmpl_words(0x1526, t); t[0] = (int16_t)((arg & 0x80) ? 0x10 : (arg & 0x40) ? 0x27 : 0x30);
+		if (!trob_rect_of(t, r)) return;
+		mark_back((int8_t)cur_trob.tilepos, r); mark_back(trob_right(), r);
+		if ((int8_t)cur_trob.tilepos % 10 < 8) { cur_trob.tilepos++; mark_back(trob_right(), r); cur_trob.tilepos--; }
+		break; }
 	case 0x416:     /* (arg: the template) 33FD:04B6, a caverns rock */
 		if (!arg || !render_trob_rect(arg, r)) return;
 		mark_back(trob_self(), r); mark_back(trob_right(), r);

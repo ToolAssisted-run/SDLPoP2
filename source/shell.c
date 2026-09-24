@@ -254,6 +254,14 @@ void hook_desert_gate(int8_t tp) { if (hooks_on) render_desert_gate_tick(tp); } 
 void hook_desert_wave(int8_t tp) { if (hooks_on) render_desert_wave_tick(tp); }   /* 33FD:067C / 0708 */
 void hook_desert_tile1e(void) { if (hooks_on) render_desert_tile1e_tick(); }      /* 33FD:08BE */
 void hook_trob_request(int which, uint16_t arg) { if (hooks_on) render_trob_request(which, arg); }   /* 1375:01F4..0416 */
+/* 1375:2296(how) from the tick: the tiles under the falling floor just started (cur_mob) asked again; left_shift: the
+ * rect moved 0x140 left when the floor is in the room on the left (347C:0126) */
+void hook_mob_mark(int how, int left_shift)
+{
+	if (!hooks_on) return;
+	int16_t x = cur_mob.x; if (left_shift && cur_mob.room == room_L) cur_mob.x = (int16_t)(cur_mob.x - 0x140);
+	render_mob_mark(how); cur_mob.x = x;
+}
 void hook_desert_press(int col) { if (hooks_on) render_desert_press(col); }       /* 33FD:0904 */
 void hook_lever5_mouth(void) { if (hooks_on) render_lever5_mouth_tick(); }           /* 37F0:0756 */
 void hook_lever5_trap(void) { if (hooks_on) render_lever5_trap_tick(); }             /* 37F0:053B */

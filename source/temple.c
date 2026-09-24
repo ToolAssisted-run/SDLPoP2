@@ -16,7 +16,8 @@ static void slab_drop(uint8_t room, int8_t tp)
 	static const int16_t row_y[3] = {66, 129, 192};   /* DS:0D40 */
 	cur_mob.y = row_y[tile_row]; cur_mob.row = tp / 10; cur_mob.type = 10;
 	add_mob();
-	play_sound(0x5E);   /* 1375:2296(0) redraws */
+	play_sound(0x5E);
+	hook_mob_mark(0, 0);   /* 1375:2296(0) */
 }
 /* 347C:0E48 (after a character moves): standing on an intact 0x1A slab drops it */
 void slab_step(void)

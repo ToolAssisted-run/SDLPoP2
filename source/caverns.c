@@ -154,10 +154,11 @@ void anim_floor(void)
 	if (st == 0x17 || ((obj[0] & 0x80) && st == 3)) {
 		int v = obj[0] & 0x40; floor_init(obj, 0);
 		if (st == 3) obj[0] = v ? 0xC4 : 0x84;
-		return;   /* 33FD:08F4 redraws */
+		hook_trob_request(0x8F4, obj[0]);   /* 33FD:08F4: the floor redrawn */
+		return;
 	}
 	obj[0]++;
-	if ((obj[0] & 0x80) && st < 3) return;
+	if ((obj[0] & 0x80) && st < 3) { hook_trob_request(0x8F4, obj[0]); return; }
 	if (obj[0] & 0x80) { if (st == 4) { obj[0] &= 0x7F; play_sound(0x61); } st -= 3; }
 	for (int i = 0; i < 10; i++) {
 		uint8_t *s = obj + 1 + i * 10;
@@ -173,6 +174,7 @@ void anim_floor(void)
 		if ((int8_t)cav_ds[e] > st) break;
 		if ((int8_t)cav_ds[e] == st) floor_add_sub(obj, e);
 	}
+	hook_trob_request(0x8F4, obj[0]);   /* 33FD:08F4 */
 }
 /* 33FD:0878: the trob of the collapsing floor under (row, col, room) (0x18 is its right half) */
 static trob_type *floor_trob(int8_t row, int8_t col, uint8_t room)
@@ -193,7 +195,7 @@ static void floor_collapse(void)
 	else { play_sound(Char.charid == 0 ? 0x63 : 0x62); seqtbl_offset_char(0x73); }
 	Char.f23 = 0; Char.f0f = 1; Char.f24 = 5; Char.fall_x = Char.fall_y = 0;
 	take_hp(100); play_seq();
-	if ((t = floor_trob(Char.curr_row, Char.curr_col, Char.room)) != NULL) cur_trob = *t;   /* 33FD:08F4 redraws it */
+	if ((t = floor_trob(Char.curr_row, Char.curr_col, Char.room)) != NULL) { cur_trob = *t; hook_trob_request(0x8F4, floor_objs[t->state & 7][0]); }   /* 33FD:08F4 redraws it */
 }
 /* 33FD:06E6 (kind 3, after a character moves): standing on a collapsing floor's surface */
 void floor_touch_check(void)

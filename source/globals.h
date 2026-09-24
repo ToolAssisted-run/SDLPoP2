@@ -178,7 +178,7 @@ const uint8_t *guard_frame_table(uint8_t charid);   /* platform: FRAM 750 of the
 /* kind1.c (level 2, OVL03) */ extern int8_t puzzle_answer, puzzle_last; extern uint8_t byte_14a0; int sound_playing(uint16_t id);
 void anim_tile1e(void); int tile1e_start(uint8_t room, int8_t tp, uint8_t mode); void anim_gate_kind1(void); void kind1_tick(void);
 void anim_wave_kind1(void); void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m);
-void hook_desert_gate(int8_t tilepos); void hook_desert_wave(int8_t tilepos); void hook_desert_tile1e(void); void hook_desert_press(int col); void hook_pal_rotate(int start, int count); void hook_pal_load(int sub, int count, int start, int res); void hook_pal_restore(void); void hook_trob_request(int which, uint16_t arg);   /* the drawing's parts of tick code (weak no-ops; shell.c: the renderer) */
+void hook_desert_gate(int8_t tilepos); void hook_desert_wave(int8_t tilepos); void hook_desert_tile1e(void); void hook_desert_press(int col); void hook_pal_rotate(int start, int count); void hook_pal_load(int sub, int count, int start, int res); void hook_pal_restore(void); void hook_trob_request(int which, uint16_t arg); void hook_mob_mark(int how, int left_shift);   /* the drawing's parts of tick code (weak no-ops; shell.c: the renderer) */
 extern int level_switch; extern uint16_t word_2b96; void game_start(void);   /* level.c 169B:0006 */
 extern int last_scene; extern uint8_t byte_2b68, byte_6937; void kind1_level_init(void); int room_background_id(void);
 void scene_played(int si);   /* level.c */

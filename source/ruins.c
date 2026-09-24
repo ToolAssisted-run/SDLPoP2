@@ -18,7 +18,7 @@ void ruins_crumble(void)
 	cur_mob.w7 = 0; cur_mob.speed = 0; cur_mob.type = 3; cur_mob.row = tile_row; cur_mob.wd = 0;
 	add_mob();
 	remove_loose_pub(curr_tilepos, curr_room);   /* 1375:17FC */
-	/* 1375:2296 redraws (with x shifted by -0x140 when in the left room) */
+	hook_mob_mark(0, 1);   /* 1375:2296(0), x shifted by -0x140 when in the left room */
 }
 /* 347C:12FA: set (open) or clear bit 0x80 of the current tile's attribute; a change looks at the neighbours (their
  * redraw) when the tile's low bits are clear */

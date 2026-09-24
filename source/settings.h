@@ -33,6 +33,7 @@ typedef struct pop2_settings {
 	int volume;                               /* 0..15: what "sound on" (the game's 15) plays at */
 	int sound_device;                         /* SOUND_DEVICE_* (audio_init's caps) */
 	char keys[KEY_COUNT][32];                 /* SDL scancode names ("Left", "Left Shift", ...) */
+	int enable_pause_menu;                    /* Esc (and the controller's menu button) opens the overlay menu (SDLPoP's) */
 	/* [General], read by the shell (recorded in replays) */
 	int enable_intro, enable_story_scenes, skip_title;
 	/* [AdditionalFeatures] */

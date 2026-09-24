@@ -36,6 +36,7 @@ void settings_defaults(pop2_settings *s)
 	s->use_correct_aspect_ratio = 1; s->scaling_type = SCALING_SHARP;
 	s->enable_music = s->enable_sounds = 1; s->volume = 15; s->sound_device = SOUND_DEVICE_FM_DIGITAL;
 	for (int k = 0; k < KEY_COUNT; k++) snprintf(s->keys[k], sizeof s->keys[k], "%s", key_defaults[k]);
+	s->enable_pause_menu = 1;   /* (SDLPoP's default) */
 	s->enable_intro = s->enable_story_scenes = 1; s->skip_title = 0;
 	s->enable_quicksave = s->enable_quicksave_penalty = s->enable_replay = 1;
 	snprintf(s->replays_folder, sizeof s->replays_folder, "replays");
@@ -67,6 +68,7 @@ static const field fields[] = {
 	F("General", enable_sounds, T_BOOL, 0, 1, 0),
 	F("General", volume, T_INT, 0, 15, 0),
 	F("General", sound_device, T_SOUNDDEV, 0, 3, 0),
+	F("General", enable_pause_menu, T_BOOL, 0, 1, 0),
 	F("General", enable_intro, T_BOOL, 0, 1, 1),
 	F("General", enable_story_scenes, T_BOOL, 0, 1, 1),
 	F("General", skip_title, T_BOOL, 0, 1, 1),

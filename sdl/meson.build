@@ -5,7 +5,7 @@ if host_machine.system() == 'windows'
 endif
 
 sdlpop2Frontend = executable('sdlpop2',
-  'main.c', 'controller.c',
+  'main.c', 'controller.c', 'overlay_menu.c',
   c_args : [ commonCompileArgs,
              '-DSDLPOP2_DATADIR="' + (get_option('prefix') / get_option('datadir') / 'sdlpop2') + '"' ],
   dependencies : [ sdlpop2Dependency, sdl2Dependencies ],

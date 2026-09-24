@@ -24,6 +24,7 @@ static uint32_t prev_cur, prev_active, ignored;   /* the buttons down / in use l
 static int prev_cat = CAT_NONE, held_dirs, repeat_count;
 static uint8_t held[0x60];                   /* the keys the controllers hold down in the frame's input */
 static int prev_mode = -1, prev_level, prev_hp;
+static int pause_menu_on;                    /* button_menu while playing opens the overlay menu (controller_set_pause_menu) */
 
 static void pad_open(int device);
 static uint32_t parse_buttons(const char *action, const char *v)
@@ -47,7 +48,7 @@ int controller_init(const pop2_settings *s, int only_virtual)
 	held_dirs = repeat_count = 0; memset(held, 0, sizeof held); prev_mode = -1;
 	if (!s->enable_controller) return 0;
 	for (int b = 0; b < BUTTON_COUNT; b++) button_mask[b] = parse_buttons(settings_button_ini_names[b], s->buttons[b]);
-	rumble_on = s->controller_rumble; threshold = s->joystick_threshold; only_horizontal = s->joystick_only_horizontal; only_virt = only_virtual;
+	controller_settings(s); only_virt = only_virtual;
 	if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0) { fprintf(stderr, "sdlpop2: no game controllers (%s)\n", SDL_GetError()); return 0; }
 	if (s->gamecontrollerdb_file[0] && SDL_GameControllerAddMappingsFromFile(s->gamecontrollerdb_file) < 0)
 		fprintf(stderr, "sdlpop2: gamecontrollerdb_file %s: %s\n", s->gamecontrollerdb_file, SDL_GetError());
@@ -62,6 +63,22 @@ void controller_quit(void)
 	if (enabled) SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
 	enabled = 0;
 }
+void controller_settings(const pop2_settings *s) { rumble_on = s->controller_rumble; threshold = s->joystick_threshold; only_horizontal = s->joystick_only_horizontal; }
+void controller_set_pause_menu(int on) { pause_menu_on = on; }
+uint32_t controller_held(int *stick_x, int *stick_y)
+{
+	uint32_t held = 0; long best = -1; *stick_x = *stick_y = 0;
+	for (int i = 0; i < npads; i++) {
+		SDL_GameController *gc = pads[i].gc;
+		for (int b = 0; b < NBUTTONS; b++) if (SDL_GameControllerGetButton(gc, (SDL_GameControllerButton)b)) held |= B(b);
+		if (SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > threshold) held |= B(BIT_LTRIGGER);
+		if (SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > threshold) held |= B(BIT_RTRIGGER);
+		int x = SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_LEFTX), y = SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_LEFTY);
+		if (x * (long)x + y * (long)y > best) { best = x * (long)x + y * (long)y; *stick_x = x; *stick_y = y; }
+	}
+	return held;
+}
+uint32_t controller_menu_buttons(void) { return button_mask[BUTTON_MENU]; }
 int controller_count(void) { return npads; }
 int controller_rumbles(void) { return rumbles; }
 
@@ -150,6 +167,7 @@ int controller_frame(shell_input *in, int mode, int feed)
 		release_all(in);
 		if (PRESSED(BUTTON_INFO)) actions |= CONTROLLER_INFO;
 		else if (pressed & ~DPAD & ~B(SDL_CONTROLLER_BUTTON_GUIDE)) actions |= CONTROLLER_CLOSE;
+		if (pause_menu_on && mode == SH_PLAY && PRESSED(BUTTON_MENU)) actions |= CONTROLLER_MENU;   /* (a replay playing back) */
 		return actions;
 	}
 	/* the directions: the D-pad (never ignored) and the stick; while playing, the up / down buttons */
@@ -177,7 +195,11 @@ int controller_frame(shell_input *in, int mode, int feed)
 	if (PRESSED(BUTTON_INFO)) { actions |= CONTROLLER_INFO; others &= ~button_mask[BUTTON_INFO]; }
 	switch (cat) {
 	case CAT_GAME:
-		if (PRESSED(BUTTON_MENU)) { if (mode == SH_PAUSE) key_type(in, SC_ENTER, 0x0D); else key_type(in, SC_ESC, 0x1B); }
+		if (PRESSED(BUTTON_MENU)) {
+			if (mode == SH_PAUSE) key_type(in, SC_ENTER, 0x0D);
+			else if (pause_menu_on) actions |= CONTROLLER_MENU;   /* (the frontend opens the overlay menu) */
+			else key_type(in, SC_ESC, 0x1B);
+		}
 		if (PRESSED(BUTTON_RESTART)) { shell_input_key(in, SC_ALT, 1, 0); key_type(in, SC_A, 'a'); if (!held[SC_ALT]) shell_input_key(in, SC_ALT, 0, 0); }
 		if (PRESSED(BUTTON_TIME)) key_type(in, SC_SPACE, 0x20);
 		if (PRESSED(BUTTON_QUICKSAVE)) actions |= CONTROLLER_QUICKSAVE;

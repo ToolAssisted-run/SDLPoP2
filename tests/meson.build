@@ -77,6 +77,22 @@ if sdl2Dependency.found() and not isWindows
        suite : [ 'controller' ])
 endif
 
+# The in-game overlay menu (sdl/overlay_menu.c, SDLPoP's menu) driven headlessly on the whole program at level 1:
+# keyboard, mouse, a virtual controller, settings and SDLPoP2.cfg, quicksave / quickload, the game frozen while it shows.
+# OVERLAYMENU_SHOTS=DIR writes screenshots of its pages.
+if sdl2Dependency.found() and not isWindows and get_option('gameDir') != ''
+  overlaymenutest = executable('overlaymenutest',
+    'overlaymenutest.c', files('../sdl/overlay_menu.c', '../sdl/controller.c'),
+    c_args : commonCompileArgs,
+    dependencies : [ sdlpop2Dependency, sdl2Dependency ],
+  )
+  test('overlaymenutest', overlaymenutest,
+       args : [ get_option('gameDir') ],
+       env : { 'SDL_VIDEODRIVER' : 'offscreen', 'SDL_AUDIODRIVER' : 'dummy' },
+       timeout : 600,
+       suite : [ 'menu' ])
+endif
+
 # The oracle suites: the scripts take the programs built here through BUILD
 if get_option('oracleTests') == true and not isWindows
   bash = find_program('bash')

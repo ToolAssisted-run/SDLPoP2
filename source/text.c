@@ -77,8 +77,15 @@ static const uint8_t *system_font(void)
 	if (!loaded) { loaded = -1; FILE *e = fopen(game_path("PRINCE.EXE"), "rb"); if (e) { if (!fseek(e, 0x3B220, SEEK_SET) && fread(f, 1, sizeof f, e) == sizeof f) loaded = 1; fclose(e); } }
 	return loaded > 0 ? f : NULL;
 }
+/* fonts a frontend supplies (not the game's; e.g. the overlay menu's): gfx_add_font */
+static const uint8_t *added_font[4]; static uint16_t added_id[4];
+void gfx_add_font(uint16_t id, const uint8_t *data)
+{
+	for (int i = 0; i < 4; i++) if (!added_font[i] || added_id[i] == id) { added_font[i] = data; added_id[i] = id; return; }
+}
 static const uint8_t *font_data(uint16_t id)
 {
+	for (int i = 0; i < 4 && added_font[i]; i++) if (added_id[i] == id) return added_font[i];
 	uint16_t n; if (!id) return system_font();
 	const uint8_t *f = res_get("FONT", id, &n);
 	if (!f && res_open("PRINCE.DAT")) f = res_get("FONT", id, &n);   /* (without the shell nothing has opened it) */

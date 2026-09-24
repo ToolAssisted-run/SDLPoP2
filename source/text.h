@@ -41,6 +41,8 @@ void gfx_copy_bits(const gport *src, gport *dst, const qrect *sr, const qrect *d
 void gfx_move_to(int v, int h);                   /* 194C:50D8 */
 void gfx_move(int dv, int dh);                    /* 194C:50C0 */
 void gfx_text_font(uint16_t id);                  /* 194C:52D0 (FONT resource 10..13, 100) */
+void gfx_add_font(uint16_t id, const uint8_t *data);   /* (not in the game) a frontend's font under an id no FONT resource
+                                                     has (the same format; the data stays the caller's) */
 int  gfx_text_width(const char *s, int n);        /* 194C:53E2 */
 int  gfx_draw_text(const char *s, int n);         /* 194C:4CD2: glyphs at the pen (baseline), the pen moves; -> the advance */
 void gfx_draw_string(const char *s);              /* 194C:4CB4 */

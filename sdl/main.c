@@ -19,6 +19,7 @@
 #include "../source/text.h"
 #include "../source/globals.h"
 #include "controller.h"
+#include "overlay_menu.h"
 #ifndef SDLPOP2_DATADIR
 #define SDLPOP2_DATADIR ""
 #endif
@@ -51,7 +52,8 @@ static void open_audio(const char *dir)
 	sound_start_hook = on_start; sound_stop_hook = on_stop;
 	SDL_PauseAudioDevice(adev, 0);
 }
-static void platform_sound_volume(int v) { audio_volume(v >= 15 ? S.volume : v * S.volume / 15); }   /* (194C:3380: the game's 15 = on, 0 = off; Alt+S) */
+static int game_volume = 15;   /* the game's own: 15 sound on, 0 off */
+static void platform_sound_volume(int v) { game_volume = v; audio_volume(v >= 15 ? S.volume : v * S.volume / 15); }   /* (194C:3380: the game's 15 = on, 0 = off; Alt+S) */
 
 /* ---- the picture, with the frontend's overlay (the info screen, messages) drawn with the shell's text library into
  * a port of its own (1 text, 2 a dark box): the game's screen and palette are not touched ---- */
@@ -70,7 +72,7 @@ static void overlay_draw(void)
 			"SDLPoP2: the keys (F1 or Esc: back to the game)", "",
 			"Arrows, Home PgUp End PgDn: move",
 			"Shift: action   Ctrl: draw the sword / cast",
-			"Esc: pause   Space: the time left",
+			"Esc: the menu (pause)   Space: the time left",
 			"Alt+A: restart the level   Alt+R: to the title",
 			"Alt+G: save the game   Alt+L: restore a game",
 			"Alt+O: options   Alt+H: hall of fame",
@@ -80,7 +82,7 @@ static void overlay_draw(void)
 			"F6: quicksave   F9: quickload",
 			"Alt+Enter: fullscreen   (SDLPoP2.ini: settings)",
 			"Pad (default): D-pad / stick, X Shift, B Ctrl,",
-			"Y up, A down, Start Esc, Back Alt+A, LB/RB F6/F9",
+			"Y up, A down, Start menu, Back Alt+A, LB/RB F6/F9",
 		};
 		int n = (int)(sizeof lines / sizeof lines[0]) - (controller_count() ? 0 : 2);   /* (the controller's lines when one is connected) */
 		qrect box = { 14, 10, (int16_t)(14 + 14 + 11 * n > 199 ? 199 : 14 + 14 + 11 * n), 310 };
@@ -111,6 +113,7 @@ static void present(void)
 		if (overlay_used && overlay->bits[i]) c = overlay->bits[i] == 1 ? 0xFFFFFFFFu : 0xFF000000u | ((c >> 2) & 0x3F3F3Fu);
 		argb[i] = c;
 	}
+	overlay_menu_compose(argb);   /* (the in-game menu, when it shows) */
 	SDL_UpdateTexture(tex, NULL, argb, SCREEN_W * 4);
 	SDL_RenderClear(ren);
 	if (tex2x) {   /* fuzzy: nearest-neighbour to twice the size, then smooth to the window */
@@ -120,10 +123,34 @@ static void present(void)
 	SDL_RenderPresent(ren);
 }
 
+/* the logical size (4:3 or square pixels), integer scaling and the scaling method's textures (at the start, and when the
+ * overlay menu changes them) */
+static int setup_video(void)
+{
+	int lw = SCREEN_W, lh = S.use_correct_aspect_ratio ? SCREEN_H * 6 / 5 : SCREEN_H;
+	SDL_RenderSetLogicalSize(ren, lw, lh);
+#if SDL_VERSION_ATLEAST(2, 0, 5)
+	SDL_RenderSetIntegerScale(ren, S.use_integer_scaling ? SDL_TRUE : SDL_FALSE);
+#endif
+	if (tex) SDL_DestroyTexture(tex);
+	if (tex2x) SDL_DestroyTexture(tex2x);
+	tex = tex2x = NULL;
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, S.scaling_type == SCALING_BLURRY ? "linear" : "nearest");
+	tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_W, SCREEN_H);
+	if (!tex) { fprintf(stderr, "sdlpop2: cannot create the screen texture: %s\n", SDL_GetError()); return 0; }
+	if (S.scaling_type == SCALING_FUZZY) {
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+		tex2x = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, SCREEN_W * 2, SCREEN_H * 2);
+		if (!tex2x) fprintf(stderr, "sdlpop2: no render target (%s): sharp scaling\n", SDL_GetError());
+	}
+	return 1;
+}
+
 /* ---- keys: SDL scancodes to the PC scan codes the game reads (key_* remapped) ---- */
 static uint8_t keymap[SDL_NUM_SCANCODES], keyaction[SDL_NUM_SCANCODES];
 static void build_keymap(void)
 {
+	memset(keyaction, 0, sizeof keyaction);
 	for (int i = 0; i < SDL_NUM_SCANCODES; i++) keymap[i] = (uint8_t)shell_pc_scancode(i);
 	for (int k = 0; k < KEY_COUNT; k++) {
 		SDL_Scancode sc = SDL_GetScancodeFromName(S.keys[k]);
@@ -166,6 +193,43 @@ static void replay_path(char *out, size_t n, const char *name, int reading)
 	if (plain) { if (!reading) plat_mkdir(S.replays_folder); snprintf(out, n, "%s/%s%s", S.replays_folder, name, ext ? "" : ".p2r"); }
 	else snprintf(out, n, "%s%s", name, ext ? "" : ".p2r");
 }
+/* SDLPoP2.cfg, the overlay menu's settings: next to the ini used (the current directory when none or the installed one) */
+static void cfg_location(char *out, size_t n, const char *ini_used)
+{
+	const char *slash = strrchr(ini_used, '/'), *bslash = strrchr(ini_used, '\\');
+	if (bslash && (!slash || bslash > slash)) slash = bslash;
+	int installed = SDLPOP2_DATADIR[0] && !strncmp(ini_used, SDLPOP2_DATADIR, strlen(SDLPOP2_DATADIR));
+	if (!ini_used[0] || installed || !slash) snprintf(out, n, "SDLPoP2.cfg");
+	else snprintf(out, n, "%.*sSDLPoP2.cfg", (int)(slash - ini_used + 1), ini_used);
+}
+/* the overlay menu changed settings: apply them (OVERLAY_MENU_APPLY_*) */
+static int menu_music, menu_sounds, menu_controller;
+static void menu_apply(int what)
+{
+	if (what & OVERLAY_MENU_APPLY_FULLSCREEN) SDL_SetWindowFullscreen(win, S.start_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	if (what & OVERLAY_MENU_APPLY_VIDEO) setup_video();
+	if ((what & OVERLAY_MENU_APPLY_AUDIO) && adev) {
+		SDL_LockAudioDevice(adev);
+		platform_sound_volume(game_volume);
+		if ((menu_music && !S.enable_music) || (menu_sounds && !S.enable_sounds)) audio_stop(0);   /* (turned off: what plays stops) */
+		SDL_UnlockAudioDevice(adev);
+	}
+	menu_music = S.enable_music; menu_sounds = S.enable_sounds;
+	if (what & OVERLAY_MENU_APPLY_KEYS) build_keymap();
+	if (what & OVERLAY_MENU_APPLY_CONTROLLER) {
+		if (menu_controller != S.enable_controller) { controller_quit(); controller_init(&S, 0); menu_controller = S.enable_controller; }
+		controller_settings(&S);
+		controller_set_pause_menu(S.enable_pause_menu);
+	}
+}
+/* a key typed with Alt held (the overlay menu's RESTART LEVEL / RESTART GAME: PoP2's Alt+A / Alt+R) */
+static void type_alt_key(shell_input *in, int scan, int ascii)
+{
+	int alt = in->down[0x38];
+	shell_input_key(in, 0x38, 1, 0); shell_input_key(in, scan, 1, ascii); shell_input_key(in, scan, 0, 0);
+	if (!alt) shell_input_key(in, 0x38, 0, 0);
+}
+
 static void usage(const char *prog)
 {
 	fprintf(stderr, "usage: %s [--ini PATH] [--record NAME | --replay NAME] GAME_DIR [DOS COMMAND LINE WORDS, e.g. yippeeyahoo LEVEL3]\n", prog);
@@ -187,6 +251,8 @@ int main(int argc, char **argv)
 	int ini_ok = load_ini(ini, ini_used, sizeof ini_used);
 	if (ini_ok < 0) { fprintf(stderr, "sdlpop2: cannot read %s\n", ini_used); return 2; }
 	if (ini_ok) { pop2_settings_game = &S; fprintf(stderr, "sdlpop2: settings from %s\n", ini_used); }
+	char cfg_path[1024]; cfg_location(cfg_path, sizeof cfg_path, ini_ok ? ini_used : "");
+	if (overlay_menu_load_cfg(&S, cfg_path, ini_ok ? ini_used : NULL, warn_ini)) { pop2_settings_game = &S; fprintf(stderr, "sdlpop2: the in-game menu's settings from %s\n", cfg_path); }
 	if ((rec_name || play_name) && !S.enable_replay) { fprintf(stderr, "sdlpop2: replays are off (SDLPoP2.ini enable_replay)\n"); return 2; }
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) { fprintf(stderr, "sdlpop2: SDL: %s\n", SDL_GetError()); return 1; }
@@ -221,38 +287,49 @@ int main(int argc, char **argv)
 		fprintf(stderr, "sdlpop2: recording to %s\n", path);
 	}
 
-	/* the window: 4:3 (320 x 200 drawn 1.2 times taller, as mode 13h on a monitor) or square pixels */
+	/* the window: 4:3 (320 x 200 drawn 1.2 times taller, as mode 13h on a monitor) or square pixels (setup_video) */
 	int lw = SCREEN_W, lh = S.use_correct_aspect_ratio ? SCREEN_H * 6 / 5 : SCREEN_H;
 	int ww = S.window_width ? S.window_width : lw * 3, wh = S.window_height ? S.window_height : lh * 3;
 	win = SDL_CreateWindow("SDLPoP2", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, ww, wh,
 	                       SDL_WINDOW_RESIZABLE | (S.start_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
 	if (!win) { fprintf(stderr, "sdlpop2: cannot open a window: %s\n", SDL_GetError()); SDL_Quit(); return 1; }
-	ren = SDL_CreateRenderer(win, -1, S.scaling_type == SCALING_FUZZY ? SDL_RENDERER_TARGETTEXTURE : 0);
+	ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_TARGETTEXTURE);   /* (fuzzy scaling's; the overlay menu can change the method) */
 	if (!ren) ren = SDL_CreateRenderer(win, -1, 0);
 	if (!ren) { fprintf(stderr, "sdlpop2: cannot create a renderer: %s\n", SDL_GetError()); SDL_Quit(); return 1; }
-	SDL_RenderSetLogicalSize(ren, lw, lh);
-#if SDL_VERSION_ATLEAST(2, 0, 5)
-	if (S.use_integer_scaling) SDL_RenderSetIntegerScale(ren, SDL_TRUE);
-#endif
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, S.scaling_type == SCALING_BLURRY ? "linear" : "nearest");
-	tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, SCREEN_W, SCREEN_H);
-	if (!tex) { fprintf(stderr, "sdlpop2: cannot create the screen texture: %s\n", SDL_GetError()); SDL_Quit(); return 1; }
-	if (S.scaling_type == SCALING_FUZZY) {
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-		tex2x = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, SCREEN_W * 2, SCREEN_H * 2);
-		if (!tex2x) fprintf(stderr, "sdlpop2: no render target (%s): sharp scaling\n", SDL_GetError());
-	}
+	if (!setup_video()) { SDL_Quit(); return 1; }
 	build_keymap();
 	open_audio(dir);
 	controller_init(&S, 0);
+	controller_set_pause_menu(S.enable_pause_menu);
+	{   /* SDLPoP's in-game menu (sdl/overlay_menu.c) */
+		overlay_menu_host host = { &S, win, ren, menu_apply, "" };
+		snprintf(host.cfg_path, sizeof host.cfg_path, "%s", cfg_path);
+		overlay_menu_init(&host);
+		menu_music = S.enable_music; menu_sounds = S.enable_sounds; menu_controller = S.enable_controller;
+	}
 
 	static shell_input in; int replaying = play_name != NULL, action = REPLAY_NONE;
 	Uint64 next = SDL_GetPerformanceCounter(), hz = SDL_GetPerformanceFrequency();
 	for (;;) {
 		SDL_Event e;
+		int was_open = overlay_menu_is_open();
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) goto out;
+			if (overlay_menu_is_open()) {   /* the in-game menu: the keys and the mouse are its own */
+				if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
+					SDL_Scancode sc = e.key.keysym.scancode; int down = e.type == SDL_KEYDOWN;
+					if (sc == SDL_SCANCODE_RETURN && (e.key.keysym.mod & KMOD_ALT)) {
+						if (down && !e.key.repeat) SDL_SetWindowFullscreen(win, (SDL_GetWindowFlags(win) & SDL_WINDOW_FULLSCREEN_DESKTOP) ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+						continue;
+					}
+					if (!replaying) { int n = in.ntyped; shell_input_key(&in, keymap[sc], down, 0); in.ntyped = n; }   /* (the keys held stay the keyboard's; nothing is typed) */
+				}
+				if (!overlay_menu_event(&e)) controller_event(&e);
+				continue;
+			}
 			if (controller_event(&e)) continue;
+			int can_open = shell_mode() == SH_PLAY && !info_shown;   /* (the menu: while playing, as SDLPoP's) */
+			if (e.type == SDL_MOUSEBUTTONDOWN) { if (overlay_menu_open_event(&e, can_open) == 1) overlay_menu_open(rec.f != NULL, replaying); continue; }
 			if (e.type != SDL_KEYDOWN && e.type != SDL_KEYUP) continue;
 			SDL_Scancode sc = e.key.keysym.scancode; int down = e.type == SDL_KEYDOWN;
 			/* the frontend's own keys: never passed to the game, nor recorded */
@@ -266,17 +343,40 @@ int main(int argc, char **argv)
 				if (down && !e.key.repeat && !replaying) action = sc == SDL_SCANCODE_F6 ? REPLAY_QUICKSAVE : REPLAY_QUICKLOAD;
 				continue;
 			}
+			{   /* Esc (enable_pause_menu) / Backspace: the in-game menu */
+				int o = overlay_menu_open_event(&e, can_open);
+				if (o == 1) { overlay_menu_open(rec.f != NULL, replaying); continue; }
+				if (o == 2) continue;
+			}
 			if (replaying || info_shown) continue;   /* (a replay plays its own keys) */
 			shell_input_key(&in, keymap[sc], down, down && !keyaction[sc] ? ascii_of(e.key.keysym.sym, e.key.keysym.mod) : 0);
 		}
-		{   /* the controllers: the keys they hold and type into the frame's input, and the frontend's actions */
-			int c = controller_frame(&in, shell_mode(), !replaying && !info_shown);
+		if (overlay_menu_is_open())
+			controller_frame(&in, shell_mode(), 0);   /* (the menu reads them: nothing to the game, the keys they held are released) */
+		else {   /* the controllers: the keys they hold and type into the frame's input, and the frontend's actions */
+			int c = controller_frame(&in, shell_mode(), !replaying && !info_shown), info_before = info_shown;
 			if (info_shown && (c & (CONTROLLER_INFO | CONTROLLER_CLOSE))) info_shown = 0;
 			else if ((c & CONTROLLER_INFO) && S.enable_info_screen) info_shown = 1;
 			if ((c & (CONTROLLER_QUICKSAVE | CONTROLLER_QUICKLOAD)) && S.enable_quicksave && !replaying)
 				action = (c & CONTROLLER_QUICKSAVE) ? REPLAY_QUICKSAVE : REPLAY_QUICKLOAD;
+			if ((c & CONTROLLER_MENU) && shell_mode() == SH_PLAY && !info_before) overlay_menu_open(rec.f != NULL, replaying);   /* button_menu */
 		}
-		if (!info_shown) {   /* (while the info screen shows, the game waits) */
+		if (overlay_menu_is_open()) {   /* the in-game menu: the game does not step (its timers and its sound wait) */
+			if (!was_open && adev) SDL_PauseAudioDevice(adev, 1);
+			SDL_Scancode key = SDL_SCANCODE_UNKNOWN; uint16_t mod = 0;
+			switch (overlay_menu_frame(&key, &mod)) {
+			case OVERLAY_MENU_QUICKSAVE: action = REPLAY_QUICKSAVE; break;
+			case OVERLAY_MENU_QUICKLOAD: action = REPLAY_QUICKLOAD; break;
+			case OVERLAY_MENU_RESTART_LEVEL: type_alt_key(&in, 0x1E, 'a'); break;   /* Alt+A */
+			case OVERLAY_MENU_RESTART_GAME: type_alt_key(&in, 0x13, 'r'); break;    /* Alt+R */
+			case OVERLAY_MENU_QUIT: goto out;
+			case OVERLAY_MENU_KEY:   /* a key with Alt or Ctrl: the game's (held as the keyboard holds it) */
+				if (!replaying) shell_input_key(&in, keymap[key], 1, keyaction[key] ? 0 : ascii_of(SDL_GetKeyFromScancode(key), mod));
+				break;
+			}
+			if (!overlay_menu_is_open() && adev) SDL_PauseAudioDevice(adev, 0);
+		}
+		if (!info_shown && !overlay_menu_is_open()) {   /* (while the info screen or the menu shows, the game waits) */
 			if (replaying && !replay_frame(&play, &in, &action)) {
 				message(replay_verify(&play) ? "REPLAY VERIFIED" : "REPLAY DIFFERS FROM THE RECORDING");
 				replay_close(&play); replaying = 0; memset(&in, 0, sizeof in); action = REPLAY_NONE;   /* (then the keyboard again) */
@@ -311,6 +411,7 @@ int main(int argc, char **argv)
 		if (next > now) SDL_Delay((Uint32)((next - now) * 1000 / hz)); else next = now;
 	}
 out:
+	overlay_menu_close();   /* (the menu's settings saved, as when it closes) */
 	if (rec.f) { replay_record_end(&rec); fprintf(stderr, "sdlpop2: recording saved to %s\n", path); }
 	if (files_tmp[0]) {
 		static const char *const names[3] = { "PRINCE.OPT", "PRINCE.HOF", "PRINCE.SAV" }; char p[600];

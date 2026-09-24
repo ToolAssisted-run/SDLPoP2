@@ -49,7 +49,7 @@ The SDL frontend reads `SDLPoP2.ini` (modelled on SDLPoP's `SDLPoP.ini`): `--ini
 current directory, next to the binary (the build copies it to `build/sdl/`), or the installed `share/sdlpop2/SDLPoP2.ini`.
 Every option is documented in the file, `default` is accepted everywhere, unknown options are reported. Every default is
 the original game: `[General]` (window, 4:3 aspect, integer scaling, sharp / fuzzy / blurry scaling, music, sounds,
-volume, the sound device, the intro, the story scenes, skipping the title, the control keys),
+volume, the sound device, the intro, the story scenes, skipping the title, the in-game menu, the control keys),
 `[AdditionalFeatures]` (F6 / F9 quicksave with SDLPoP's one-minute penalty, replays, the random seed, the F1 key
 summary), `[Controller]` (game controllers: on / off, rumble, the stick's dead zone and horizontal-only mode, extra
 mappings, the buttons), `[CustomGameplay]` (starting time and hit points, ticks per minute, the hit point cap, Alt+N's minutes, the
@@ -66,11 +66,29 @@ video frame's input) into `replays/NAME.p2r`; `sdlpop2 --replay NAME GAME_DIR` p
 screen (`source/replay.h`). `meson test -C build --suite settings` (with `-DgameDir`) checks that the ini's defaults are
 the game's and that a scripted session records and replays identically.
 
+### Overlay menu
+The in-game menu is [SDLPoP](https://github.com/NagyD/SDLPoP)'s, transcribed from its `src/menu.c` (commit 3c5add5fb7f8)
+into `sdl/overlay_menu.c` (GPL-3.0-or-later, Dávid Nagy's copyright): the same pause menu (RESUME, QUICKSAVE, QUICKLOAD,
+RESTART LEVEL, SETTINGS, RESTART GAME, QUIT GAME) over the dimmed game, the same settings screen (GENERAL, GAMEPLAY,
+VISUALS, MODS with "Customize level..." and, made like it, "Customize guard skill...", CONTROLS; toggles, numbers,
+the help line, "Restore defaults...", the key redefinition and the confirmations), its font and colours, and its
+keyboard, mouse and controller navigation. Esc opens it while playing (`enable_pause_menu`, SDLPoP's default: on; off,
+Esc is the game's own pause), as do Backspace, a click and the controller's `button_menu` (Start). While it shows, the
+game is frozen (not stepped: no ticks, no timers, the sound paused); it draws in a layer of its own over the game's
+picture, which it does not touch. QUICKSAVE / QUICKLOAD are F6 / F9 (with `enable_quicksave`), RESTART LEVEL /
+RESTART GAME the game's Alt+A / Alt+R, QUIT GAME ends the program (a recording is saved). Its settings are
+SDLPoP2.ini's, applied at once; as SDLPoP does with `SDLPoP.cfg`, it saves them when it closes to `SDLPoP2.cfg` next to
+the ini (in the ini's syntax), read after the ini unless the ini is newer. The settings that change the game (those a
+replay holds) cannot be changed while a replay is recorded or played back, and a replay being played back offers no
+quicksave or restart; recordings made with the menu replay exactly. There is no setting for the copy protection.
+`meson test -C build --suite menu` (with `-DgameDir`) drives it headlessly (keyboard, mouse, a virtual controller).
+
 Game controllers (`sdl/controller.c`, SDL's game controller database, hot-plugging; every connected controller drives the
 game) give the game the keyboard's keys (`shell_input_key`: the arrows held, Shift, Ctrl, Esc, Alt+A, space), so the game
 logic, replays and quicksaves are unchanged; the DOS game's own joystick mode (Alt+J) still reports "Joystick Not
 Found". Default buttons (SDLPoP's layout, with PoP2's Ctrl on B): D-pad or left stick move (a diagonal = Home / PgUp /
-End / PgDn), Y up, A down, X or a trigger Shift, B Ctrl, Start Esc (again: the pause ends), Back Alt+A (restart the level),
+End / PgDn), Y up, A down, X or a trigger Shift, B Ctrl, Start the in-game menu (Esc without `enable_pause_menu`; in
+the game's pause: the pause ends), Back Alt+A (restart the level),
 LB / RB quicksave / quickload, the right stick pressed space (the time left). In the menus A = Enter, B = Esc, X = Tab,
 Y types the name "Prince" (the name fields), and on the title, in scenes and the demo any button is the "any key". The
 prince losing hit points rumbles the controller (Kid +0x12 read by the frontend after each frame). `meson test -C build
@@ -102,8 +120,9 @@ with or endorsed by the game's rights holders, who own the game, its code, data 
 claim no ownership of it, and no game data is included (you need your own copy). Details: `NOTICE`.
 
 ## Credits
-- [SDLPoP](https://github.com/NagyD/SDLPoP) by Dávid Nagy and its contributors: this project is modelled on it, and
-  `SDLPoP2.ini` follows its `SDLPoP.ini` (GPL-3.0-or-later).
+- [SDLPoP](https://github.com/NagyD/SDLPoP) by Dávid Nagy and its contributors: this project is modelled on it,
+  `SDLPoP2.ini` follows its `SDLPoP.ini`, and the in-game menu (`sdl/overlay_menu.c`) is its `src/menu.c`
+  (GPL-3.0-or-later).
 - [Nuked OPL3](https://github.com/nukeykt/Nuked-OPL3) by Nuke.YKT: the OPL2/OPL3 emulator in `source/audio_opl3.*`
   (LGPL-2.1-or-later).
 - The original game: *Prince of Persia 2: The Shadow and the Flame* (Brøderbund, 1993), designed by Jordan Mechner.

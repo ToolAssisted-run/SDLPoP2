@@ -21,6 +21,8 @@ original game.
 Third-party code
 ----------------
 - SDLPoP (https://github.com/NagyD/SDLPoP), Copyright (C) 2013-2025 Dávid Nagy and the SDLPoP contributors,
-  GPL-3.0-or-later: SDLPoP2 is modelled on SDLPoP, and SDLPoP2.ini follows SDLPoP's SDLPoP.ini.
+  GPL-3.0-or-later: SDLPoP2 is modelled on SDLPoP, and SDLPoP2.ini follows SDLPoP's SDLPoP.ini. sdl/overlay_menu.c
+  (the in-game menu, with SDLPoP's small font, whose letters come from Yuji Oshimoto's freeware font 04b_03) is
+  transcribed and adapted from SDLPoP's src/menu.c (commit 3c5add5fb7f8).
 - Nuked OPL3 1.8 (https://github.com/nukeykt/Nuked-OPL3), Copyright (C) 2013-2020 Nuke.YKT,
   LGPL-2.1-or-later (LICENSES/LGPL-2.1.txt): source/audio_opl3.c and source/audio_opl3.h.

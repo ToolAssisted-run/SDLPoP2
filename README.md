@@ -122,6 +122,18 @@ SDLPoP2's own (not in the DOS game; on keys the game's controls leave free):
 | `T` | teleport the prince into the room shown, at the same place in it |
 | `A` held + arrows | fly: the prince stays put (no fall, no physics), the arrows move him anywhere, across rooms; let go and he stands on a floor or falls |
 
+<p>
+<img src="docs/screenshots/cheat-god.png" width="32%" alt="God mode: a guard's sword never lands">
+<img src="docs/screenshots/cheat-shadow.png" width="32%" alt="H: the prince's shadow beside his body (level 1)">
+<img src="docs/screenshots/cheat-flame.png" width="32%" alt="B: the flame (level 14)">
+<img src="docs/screenshots/cheat-look.png" width="32%" alt="Alt+Left: looking into room 2 while the prince stays in his room">
+<img src="docs/screenshots/cheat-fly.png" width="32%" alt="A held with the arrows: the prince flying over the rooftops">
+<img src="docs/screenshots/menu-cheats.png" width="32%" alt="The overlay menu's CHEATS page">
+</p>
+
+God mode against a guard's sword; the shadow beside the prince's body (level 1); the flame (level 14); looking into
+room 2 (the prince stays in his own room, unseen); flying over the rooftops; the CHEATS page.
+
 The game knows three sword states (none, the short sword, the full sword); the level-14 spirit's fireball is its cast
 (Ctrl in rooms 7 and 8), not a sword. Like the DOS cheats, these are game state: a quicksave keeps them, a replay
 records them.

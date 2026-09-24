@@ -1,0 +1,63 @@
+name: CI
+
+# The gate: every push to master (and every pull request) builds both platforms and runs what needs no game data. The
+# game's files are not public, so the suites that play the game (core, settings, cheats, menu, oracle) run where
+# they are (meson setup -DgameDir=... [-DoracleTests=true]). Release (release.yml) publishes only commits that
+# passed here. Daily as well, to catch environment drift (runner images, toolchains) when nothing is committed.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  linux:
+    # Ubuntu 22.04 (glibc 2.35): the executable runs on that and newer distributions. SDL2 is built in from the wrap
+    # (static); it loads X11 / Wayland / ALSA / PulseAudio at run time, so the executable needs only the C library.
+    name: linux (x86-64)
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends build-essential pkg-config python3-pip \
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libxkbcommon-dev \
+          libwayland-dev wayland-protocols libdecor-0-dev libegl-dev libgl-dev libgles-dev \
+          libasound2-dev libpulse-dev libdbus-1-dev libudev-dev
+        # (22.04's meson is too old for this project)
+        python3 -m pip install --user meson ninja
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+    - name: Build the bundle
+      run: ./tools/build-bundle.sh --platform linux --out build/bundle-linux
+    - name: Tests (no game data needed)
+      run: meson test -C build-bundle-linux --suite controller --print-errorlogs
+    - uses: actions/upload-artifact@v4
+      with:
+        name: sdlpop2-linux-x86_64
+        path: build/bundle-linux/
+
+  windows:
+    # Cross-compiled on Linux with mingw-w64 (cross/mingw-w64.ini, static; SDL2 from the wrap)
+    name: windows (x86-64)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends meson ninja-build pkg-config mingw-w64
+    - name: Build the bundle
+      run: ./tools/build-bundle.sh --platform windows --out build/bundle-windows
+    - uses: actions/upload-artifact@v4
+      with:
+        name: sdlpop2-windows-x86_64
+        path: build/bundle-windows/

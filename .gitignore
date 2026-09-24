@@ -13,3 +13,4 @@ extern/*/
 extern/packagecache/
 build-linux/
 ci-rehearse/
+build-bundle-*/

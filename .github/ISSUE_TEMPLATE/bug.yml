@@ -1,0 +1,57 @@
+name: Bug report
+description: Something works differently from the DOS game, crashes, or does not start.
+labels: [ bug ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Every bug is welcome, big or small. SDLPoP2 aims to behave exactly as Prince of Persia 2
+        (DOS 1.0) does, so "the original does it differently" is a bug too.
+        Please do not attach the game's own files (they are not ours to share).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead (what the DOS game does, if you know).
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to get there
+      description: Steps to reproduce it. Shift+R (with cheats on) shows the room number.
+      placeholder: |
+        1. Start with --level 4
+        2. Walk to room 12 and jump over the gap
+        3. ...
+  - type: input
+    id: where
+    attributes:
+      label: Level and room
+      placeholder: level 4, room 12
+  - type: textarea
+    id: replay
+    attributes:
+      label: Replay (best of all)
+      description: |
+        A recording replays the exact same game here. Start with `--record NAME`, make it happen, quit, and attach
+        `replays/NAME.p2r` (zip it first: GitHub accepts .zip).
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: The download's name (it carries the commit, e.g. sdlpop2-windows-x86_64-2b2add68.zip) or BUILD-*.txt's commit.
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: System
+      options: [ Windows, Linux, other ]
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, settings you changed (SDLPoP2.ini / the menu), cheats in use, the error message if it did not start.

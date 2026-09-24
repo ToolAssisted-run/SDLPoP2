@@ -1,0 +1,200 @@
+name: Release
+
+# What users download, built only from what CI passed (as Chimera's releases).
+#
+#   dev      a ROLLING prerelease, replaced on every green push to master: one link that is always the newest. The
+#            assets carry the short commit in their names, so a downloaded file still says what it is.
+#   nightly  an IMMUTABLE dated prerelease (nightly-YYYY-MM-DD), once a day and only when master moved. Not for
+#            freshness (dev has that) but permanence: a replay (.p2r) plays back on the build that recorded it, so
+#            nightlies are never deleted.
+#
+# The dev release is triggered by the CI workflow FINISHING SUCCESSFULLY and builds that same commit; the scheduled
+# nightly checks that CI passed for the commit it builds.
+
+on:
+  workflow_run:
+    workflows: [ CI ]
+    types: [ completed ]
+    branches: [ master ]
+  schedule:
+    # 05:00 UTC, an hour after CI's own daily run, so it releases a gated commit
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: 'dev (rolling) or nightly (dated)'
+        required: true
+        default: dev
+        type: choice
+        options: [ dev, nightly ]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+
+  what:
+    # A push-triggered run publishes only when CI was green; a scheduled or manual run has no CI run attached and is
+    # gated by the commit's own CI result below.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    name: what is being released
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.what.outputs.sha }}
+      short: ${{ steps.what.outputs.short }}
+      kind: ${{ steps.what.outputs.kind }}
+      date: ${{ steps.what.outputs.date }}
+      skip: ${{ steps.moved.outputs.skip }}
+    steps:
+    - name: The commit and the kind
+      id: what
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_run" ]; then
+          sha="${{ github.event.workflow_run.head_sha }}"; kind=dev
+        else
+          sha="${{ github.sha }}"; kind="${{ github.event.inputs.kind || 'nightly' }}"
+        fi
+        { echo "sha=$sha"; echo "short=$(echo "$sha" | cut -c1-8)"; echo "kind=$kind"; echo "date=$(date -u +%Y-%m-%d)"; } >> "$GITHUB_OUTPUT"
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ steps.what.outputs.sha }}
+        fetch-depth: 0
+    - name: Has master moved since the last nightly?
+      id: moved
+      run: |
+        skip=false
+        if [ "${{ github.event_name }}" = "schedule" ]; then
+          # a nightly of an unchanged commit is a second copy of yesterday's
+          last=$(git tag -l 'nightly-*' --sort=-creatordate | head -1)
+          if [ -n "$last" ] && [ "$(git rev-list -n1 "$last")" = "$(git rev-parse HEAD)" ]; then
+            skip=true; echo "master has not moved since $last; nothing to release"
+          fi
+        fi
+        echo "skip=$skip" >> "$GITHUB_OUTPUT"
+    - name: Was this commit gated?
+      if: github.event_name != 'workflow_run' && steps.moved.outputs.skip != 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # a scheduled or manual release publishes only a commit CI has passed
+        conclusion=$(gh run list --workflow CI --branch master --limit 30 --json headSha,conclusion \
+          --jq "[.[] | select(.headSha == \"$(git rev-parse HEAD)\")] | first | .conclusion")
+        if [ "$conclusion" != "success" ]; then
+          echo "CI has not passed for $(git rev-parse --short HEAD) (conclusion: ${conclusion:-none})" >&2
+          exit 1
+        fi
+
+  linux:
+    needs: what
+    if: needs.what.outputs.skip != 'true'
+    name: bundle (linux)
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.what.outputs.sha }}
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends build-essential pkg-config python3-pip \
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libxkbcommon-dev \
+          libwayland-dev wayland-protocols libdecor-0-dev libegl-dev libgl-dev libgles-dev \
+          libasound2-dev libpulse-dev libdbus-1-dev libudev-dev
+        python3 -m pip install --user meson ninja
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+    - name: Build the bundle
+      run: ./tools/build-bundle.sh --platform linux --out build/bundle
+    - name: Pack
+      run: |
+        mkdir -p build/release
+        ( cd build/bundle && tar czf "../release/sdlpop2-linux-x86_64-${{ needs.what.outputs.short }}.tar.gz" . )
+        cp build/bundle/BUILD.txt build/release/BUILD-linux.txt
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-linux
+        path: build/release/
+
+  windows:
+    needs: what
+    if: needs.what.outputs.skip != 'true'
+    name: bundle (windows)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.what.outputs.sha }}
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends meson ninja-build pkg-config mingw-w64 zip
+    - name: Build the bundle
+      run: ./tools/build-bundle.sh --platform windows --out build/bundle
+    - name: Pack
+      run: |
+        mkdir -p build/release
+        ( cd build/bundle && zip -qr "../release/sdlpop2-windows-x86_64-${{ needs.what.outputs.short }}.zip" . )
+        cp build/bundle/BUILD.txt build/release/BUILD-windows.txt
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-windows
+        path: build/release/
+
+  publish:
+    needs: [ what, linux, windows ]
+    name: publish (${{ needs.what.outputs.kind }})
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.what.outputs.sha }}
+    - uses: actions/download-artifact@v4
+      with:
+        path: build/release
+        merge-multiple: true
+    - name: Release notes
+      run: |
+        short="${{ needs.what.outputs.short }}"
+        {
+          echo "Built from \`$short\` - $(git log -1 --format=%s)"
+          echo
+          echo "| what | file |"
+          echo "| --- | --- |"
+          echo "| Windows x86-64 | \`sdlpop2-windows-x86_64-$short.zip\` |"
+          echo "| Linux x86-64 (glibc 2.35+) | \`sdlpop2-linux-x86_64-$short.tar.gz\` |"
+          echo
+          echo "Unpack into the folder with your copy of the game (Prince of Persia 2, DOS 1.0; see the README's"
+          echo "\"Getting the game\") and start \`sdlpop2.exe\` (Windows) or \`./sdlpop2\` (Linux). The game's files are"
+          echo "not included. \`BUILD-*.txt\` name the exact commit and toolchain of each."
+          echo
+          echo "Windows will warn that the executable is unsigned and from an unknown publisher: it is not signed."
+          echo
+          echo "Bugs, glitches and ideas: https://github.com/${{ github.repository }}/issues"
+        } > build/release/NOTES.md
+        ls -la build/release
+    - name: Publish the rolling dev release
+      if: needs.what.outputs.kind == 'dev'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # one tag, moved through the releases API (never `git push`: a workflow's token may not push a tag at a commit
+        # whose .github/workflows differ from the default branch's)
+        gh release delete dev --yes --cleanup-tag 2>/dev/null || true
+        gh release create dev --target "${{ needs.what.outputs.sha }}" \
+          --title "Development build ${{ needs.what.outputs.short }}" \
+          --notes-file build/release/NOTES.md --prerelease
+        gh release upload dev build/release/sdlpop2-* build/release/BUILD-*.txt --clobber
+    - name: Publish the nightly
+      if: needs.what.outputs.kind == 'nightly'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        tag="nightly-${{ needs.what.outputs.date }}"
+        gh release view "$tag" >/dev/null 2>&1 && { echo "$tag already exists"; exit 0; }
+        gh release create "$tag" --target "${{ needs.what.outputs.sha }}" \
+          --title "Nightly ${{ needs.what.outputs.date }} (${{ needs.what.outputs.short }})" \
+          --notes-file build/release/NOTES.md --prerelease
+        gh release upload "$tag" build/release/sdlpop2-* build/release/BUILD-*.txt --clobber

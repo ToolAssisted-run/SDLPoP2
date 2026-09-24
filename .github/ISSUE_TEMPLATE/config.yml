@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Getting the game
+    url: https://github.com/ToolAssisted-run/SDLPoP2#getting-the-game
+    about: SDLPoP2 needs your own copy of Prince of Persia 2 (DOS 1.0); where to get one legally.

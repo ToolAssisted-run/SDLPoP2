@@ -39,14 +39,19 @@ writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has every
 </p>
 
 ## How to play
-1. Download the newest build for your system: [Windows](https://github.com/ToolAssisted-run/SDLPoP2/releases/download/dev/sdlpop2-windows-x86_64.zip) or
-   [Linux](https://github.com/ToolAssisted-run/SDLPoP2/releases/download/dev/sdlpop2-linux-x86_64.tar.gz) (x86-64; built from the newest commit, on the
-   [dev release](https://github.com/ToolAssisted-run/SDLPoP2/releases/tag/dev)).
+1. Download the build for your system (`sdlpop2-windows-x86_64-….zip` or `sdlpop2-linux-x86_64-….tar.gz`, x86-64)
+   from the [**latest development build**](https://github.com/ToolAssisted-run/SDLPoP2/releases/tag/dev) (rebuilt on
+   every change that passes CI) or a [**nightly build**](https://github.com/ToolAssisted-run/SDLPoP2/releases) (dated,
+   kept forever: a replay plays back on the build that recorded it).
 2. Unpack it into the folder that has your copy of the game's files (`PRINCE.EXE`, `PRINCE.DAT`, ...; see
    [Getting the game](#getting-the-game)).
 3. Start it: double-click `sdlpop2.exe` (Windows), or run `./sdlpop2` in that folder (Linux).
 
 The keys are below. Esc, Backspace, a mouse click or a controller's Start button opens the menu.
+
+Found a bug, a glitch, or have an idea? All of them are welcome on the
+[issues page](https://github.com/ToolAssisted-run/SDLPoP2/issues) (there are templates for bugs, graphics/sound
+glitches and feature requests; a replay made with `--record` shows us exactly what you saw).
 
 ### Keyboard (the original game's)
 | | |
@@ -169,9 +174,12 @@ wrap, built in; `sdlpop2.exe` needs only system DLLs):
 
     meson setup build-windows --cross-file cross/mingw-w64.ini [--cross-file cross/wine.ini]
     meson compile -C build-windows                 # build-windows/sdl/sdlpop2.exe
-With `cross/wine.ini`, `meson test` runs the Windows test programs under [Wine](https://www.winehq.org). The CI
-(`.github/workflows/build.yml`) builds both, runs the tests that need no game data, and publishes them: every push to
-master as the rolling `dev` prerelease, and `v*` tags as releases. The released Linux executable is self-contained
+With `cross/wine.ini`, `meson test` runs the Windows test programs under [Wine](https://www.winehq.org). `tools/build-bundle.sh --platform linux|windows --out DIR` builds what a user downloads
+(the executable, the ini, the licenses and BUILD.txt, flat). CI (`.github/workflows/ci.yml`, every push to master,
+pull requests and daily) builds both and runs the tests that need no game data; `.github/workflows/release.yml`
+publishes only what CI passed, as Chimera does: the rolling `dev` prerelease on every green push, and once a day,
+when master moved, an immutable `nightly-YYYY-MM-DD` (never deleted). `tools/ci-rehearse.sh` runs the CI jobs
+locally in Docker. The released Linux executable is self-contained
 too: `meson setup build --force-fallback-for=sdl2` builds SDL2 in from the wrap, and SDL loads X11 / Wayland / ALSA /
 PulseAudio at run time, so only the C library is needed (glibc 2.35 or newer: built on Ubuntu 22.04).
 

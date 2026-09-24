@@ -6,7 +6,7 @@ typedef struct tile_mod { uint8_t tile; uint32_t mod; } tile_mod;   /* a tile by
 /* what 0FB3 passes a tile type's drawer (a pointer to 8 bytes on its stack) */
 typedef struct __attribute__((packed)) tile_args { uint8_t layer; int8_t col, row; uint8_t tile; uint32_t mod; } tile_args;
 typedef void (*tile_drawer)(tile_args *a);
-typedef struct kind_drawers { tile_drawer by_tile[0x2C]; tile_drawer special; } kind_drawers;   /* DS:[0x6188] and DS:618A */
+typedef struct kind_drawers { tile_drawer by_tile[0x2D]; tile_drawer special; } kind_drawers;   /* DS:[0x6188] and DS:618A */
 
 extern tile_mod left_col[3], right_col[3], row_above[11], row_below[11], cur_tile, left_tile, right_tile;
 extern int8_t draw_row, draw_col;
@@ -57,8 +57,11 @@ void render_desc_save_under(void);    /* 0CD6:06B4 */
 void render_desc_entry_saved(uint16_t id, const int16_t *rect);   /* 0FB3:0CBA */
 void render_desc_set(const uint8_t *raw, int len);   /* (tests: the game's copy) */
 void render_desc_after_redraw(void);  /* 0CD6:0792(0) */
-void render_desc_restore_obj(uint8_t image);   /* 0CD6:0684 */
+int render_desc_restore_obj(uint8_t image);   /* 0CD6:0684 (the slot, -1 none) */
+void desc_grab_rect(int16_t *r);   /* 33FD:030E (rooftops) */
+void desc_obj_to_tile(uint8_t *o, int8_t col, int8_t row);   /* 0CD6:0108 */
 void render_desc_objects(uint8_t layer);   /* 0FB3:0624 */
+void render_lever5_tile12(tile_args *a); void render_lever5_tile1b(tile_args *a); void render_water_tile2c(tile_args *a);   /* render_ovl37f0.c (37F0:012A / 06EE / 0610) */
 extern uint16_t word_2ba6;
 void draw_object(int i, uint8_t layer);   /* 0FB3:0712 */
 uint8_t *desc_obj(int i);

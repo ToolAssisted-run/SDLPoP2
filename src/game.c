@@ -95,7 +95,7 @@ static void toggle_upside_down(void) { word_5d38 = word_5d38 ? 0 : 0x438; play_s
 __attribute__((weak)) void hook_draw(int whole) { (void)whole; }
 __attribute__((weak)) void hook_hp_bars(void) {}
 __attribute__((weak)) void hook_first_room(int stage) { (void)stage; }
-static void redraw_all(void) { word_5cee = 0; if (!word_2b92) { hook_draw(1); kind5_room_palette(drawn_room);   /* 0CD6:003A */ draw_mobs_state(); kid_sprite_state(); draw_chars_state(); } word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
+static void redraw_all(void) { word_5cee = 0; if (!word_2b92) { hook_draw(1); kind5_room_palette(drawn_room);   /* 0CD6:003A */ draw_mobs_state(); kid_sprite_state(); draw_chars_state(); lever5_draw_state(); } word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
 /* 0FB3:259C (the hit points shown again after a flip redraw), its state part: the prince's opponent into Opp
  * (0AFF:080A: loadkid, then Opp = chars[i]) and 0FB3:25D4's load_char of that character */
 static void hp_display_state(void)
@@ -113,7 +113,7 @@ int frame_end(void)
 	if (word_2b90) { redraw_all(); word_2b90 = 0; }
 	else if (word_5cee) { drawn_room = next_room; redraw_all(); }
 	else if (word_5cce) { word_5cce = 0; room_load(drawn_room); redraw_all(); hp_display_state(); }   /* 0CD6:02BE, 169B:0430, 0FB3:259C */
-	else { hook_draw(0); draw_mobs_state(); kid_sprite_state(); draw_chars_state(); if (word_5d38) { if (word_5d38 == 1) toggle_upside_down(); else if (Kid.alive < 0) word_5d38--; } }
+	else { hook_draw(0); draw_mobs_state(); kid_sprite_state(); draw_chars_state(); lever5_draw_state(); if (word_5d38) { if (word_5d38 == 1) toggle_upside_down(); else if (Kid.alive < 0) word_5d38--; } }
 	ambient_sound();   /* 1611:04D0 / 1611:03CC(DS:2B98): the level's ambient sounds pick random variants when none is playing */
 	if (word_5cda == 1) {
 		if (word_5cdc == 0x24 || word_5cdc == 0x258) { byte_6b6c = 0; return -1; }   /* the countdown after a death ran out */

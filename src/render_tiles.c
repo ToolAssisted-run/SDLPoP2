@@ -207,7 +207,7 @@ void draw_tile_0a(tile_args *a)
 }
 
 /* ---- the tile pass ---- */
-static void call_drawer(tile_args *a) {  if (tile_drawers && a->tile < 0x2C && tile_drawers->by_tile[a->tile]) tile_drawers->by_tile[a->tile](a); }
+static void call_drawer(tile_args *a) {  if (tile_drawers && a->tile < 0x2D && tile_drawers->by_tile[a->tile]) tile_drawers->by_tile[a->tile](a); }
 static int wall7(uint8_t t) { return t != 7 && tile_is_wall_kind(t); }
 /* 0FB3:0594: which of the four pieces 03DC starts with */
 static int first_piece(void)

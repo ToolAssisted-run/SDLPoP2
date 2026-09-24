@@ -15,6 +15,12 @@
 #include <string.h>
 #include <dirent.h>
 #include "../src/nis.h"
+#ifdef NIS_ENGINE   /* (built with every src/*.c: transitions 2 and 3 draw their game room through the shell's 0AAC:0376) */
+#include "../src/core.h"
+#include "../src/shell.h"
+void shell_nis_room(int lv, int room, uint8_t *pixels, int rowbytes);
+static void room_hook(int lv, int room, uint8_t *pixels, int rowbytes, void *u) { (void)u; shell_nis_room(lv, room, pixels, rowbytes); }
+#endif
 
 #define MAXE 20000
 typedef struct { int ev; long frame; } cp;
@@ -114,6 +120,12 @@ int main(int argc, char **argv)
 	int scene = !strcmp(argv[2], "intro") ? NIS_INTRO : atoi(argv[2]), window = argc > 5 ? atoi(argv[5]) : 4, nth = argc > 6 ? atoi(argv[6]) : 0;
 	load_events(argv[3], scene, nth); intro_mode = scene == NIS_INTRO;
 	if (o_start < 0) { fprintf(stderr, "no play_scene %d in %s\n", scene, argv[3]); return 1; }
+#ifdef NIS_ENGINE
+	if (!pop2_init(argv[1])) { fprintf(stderr, "pop2_init failed\n"); return 2; }
+	pop2_reset_state();
+	{ extern uint16_t word_2ba6; word_2ba6 = 1; }   /* (0AAC:0274 sets DS:2BA6 before a scene: the extra pieces are off) */
+	nis_set_room_hook(room_hook, NULL);
+#endif
 	/* pass 1: our checkpoints */
 	nis_set_event_callback(on_event, NULL);
 	nis_open(argv[1], scene);

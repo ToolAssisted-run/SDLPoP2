@@ -204,6 +204,15 @@ static void d_floor(tile_args *a)
 	case 5: A_BACK_B(1, (int16_t)(di + 0x16), a->col, a->row, 0xA, 0); part_06e4(a); break;
 	}
 }
+/* 37F0:0000 (OVL14, level 8 room 9, through 2A31:0E43): the teeth are the room description's object 7, put in the
+ * foreground (layer 1 for the call) within the clip */
+static void ovl14_teeth(void)
+{
+	if (desc_count() <= 7) return;
+	uint8_t *o = desc_obj(7); o[5] = 1;
+	draw_object(7, 1);
+	o[5] = 0;
+}
 /* 34A3:0986: the chomper's teeth (image 0x37), y from the modifier bits 2..7 (at most 0x32); also the kind's special
  * drawer (DS:618A); level 8's room 9 has its own (the 37F0 overlay through 2A31:0E43) */
 static void d_0986(tile_args *a)
@@ -215,7 +224,7 @@ static void d_0986(tile_args *a)
 		piece_word(0x420, (int16_t)(-(v + 4)));
 		adder add = a->layer == 2 ? A_FORE_B : a->layer == 5 ? A_BACK_B : NULL;
 		if (add) {
-			if (drawn_room == 9 && level_number == 8) { if (a->layer == 2) note_missing("DRAW_2A31_0E43"); }
+			if (drawn_room == 9 && level_number == 8) { if (a->layer == 2) ovl14_teeth(); }
 			else add(0x37, NOID, a->col, a->row, 0xA, 0);
 		}
 	}

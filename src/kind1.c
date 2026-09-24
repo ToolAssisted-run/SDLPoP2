@@ -1,6 +1,6 @@
 /* Level kind 1 (level 2), OVL03 at 33FD: the six-tile puzzle of room 1 (tiles 0x1E at positions 12..17; stepping
  * on the right one, DS:2B6A, twice in a row opens the gate at position 10), the gate that only opens, and the
- * kind tick (DS:0658). Palette flashes, sprite lists and redraws are left out.
+ * kind tick (DS:0658). The drawing's parts (redraw requests, palette rotations) go to weak hooks (the renderer's).
  * Transcribed from the disassembly. */
 #include <stddef.h>
 #include "types.h"
@@ -19,8 +19,14 @@ static trob_type *nth_trob(uint8_t tile, int n)
 	for (int i = 0; i < (int16_t)trob_count; i++) if (trobs[i].tile == tile && trobs[i].state != 0xFF && ++k == n) return &trobs[i];
 	return NULL;
 }
-/* 33FD:0000: the puzzle chime */
-static void chime(void) { sound_1611_01a8(0xFB); }
+/* the drawing's part of this tick code (the renderer's: render_kind_desc.c through shell.c; no-ops in the core) */
+__attribute__((weak)) void hook_desert_gate(int8_t tilepos) { (void)tilepos; }
+__attribute__((weak)) void hook_desert_wave(int8_t tilepos) { (void)tilepos; }
+__attribute__((weak)) void hook_pal_rotate(int start, int count) { (void)start; (void)count; }
+__attribute__((weak)) void hook_desert_tile1e(void) { }
+__attribute__((weak)) void hook_desert_press(int col) { (void)col; }
+/* 33FD:0000: the puzzle chime (with MIDI music, DS:2085 bit 1) */
+static void chime(void) { if (sound_caps & 2) sound_1611_01a8(0xFB); }
 /* 33FD:0620: open the gate */
 static void open_gate(uint8_t room, int8_t tp)
 {
@@ -45,6 +51,7 @@ void anim_tile1e(void)
 			if (st == 3 && !nth_trob(0x1E, 2)) chime();
 			cur_trob.state = 0xFF;
 		} else anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)((m & 0xFFF0) | (uint16_t)(st + si - 2));
+		if ((int8_t)cur_trob.state > 0) hook_desert_tile1e();   /* 33FD:08BE: redraw requests */
 		return;
 	}
 	if (Kid.f19 != 0x1B && Kid.alive < 0) anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)((m & 0xFE0F) | ((dx - 1) << 4));
@@ -58,7 +65,7 @@ int tile1e_start(uint8_t room, int8_t tp, uint8_t mode)
 		if (si != 0) { play_sound(0x2B); r = 1; }
 		else { r = get_trob(tp, room) != NULL; if (di & 0x1F0) *a = di & 0xFE0F; }
 	} else { r = 0; if (mode == 3 && tp % 10 == 7 && !nth_trob(0x1E, 1)) chime(); }
-	if (r) add_trob(0x1E, mode, tp, room);
+	if (r) { add_trob(0x1E, mode, tp, room); if (mode == 1) hook_desert_press(tp % 10); }   /* 33FD:0904 */
 	return r;
 }
 /* 33FD:099E: step on the tile at room 1 position tp */
@@ -77,13 +84,24 @@ void ovl_349be(void)
 	if (puzzle_last != -1 && puzzle_last >= 2 && puzzle_last <= 7) step_tile(puzzle_last + 10);
 	step_tile(Char.curr_col + 10);
 }
-/* 33FD:0538: tile 4 (gate) animation: opens to 0x14 and stops */
+/* 33FD:0538: tile 4 (the raft's gate) animation: opens to 0x14 and stops (then sound 7 is stopped); each step the
+ * description's object 2 is uncovered 2 more pixels to the left and redrawn (hook_desert_gate) */
 void anim_gate_kind1(void)
 {
 	int di = (uint16_t)anim_mod & 0x1F;
-	if (di == 0x14) cur_trob.state = 0xFF;
+	if (di == 0x14) { cur_trob.state = 0xFF; sound_194c_83d2(0x2717); }
 	else { di++; if (!sound_playing(0x273D)) play_sound(7); }
 	anim_mod = (anim_mod & ~0x1Fu) | (uint16_t)di;
+	hook_desert_gate((int8_t)cur_trob.tilepos);
+}
+/* 33FD:0658 / 06E4: tiles 0x1C / 0x1D (the waves) cycle 0..7 while visible (1375:04CE), their description object
+ * redrawn (hook_desert_wave) */
+void anim_wave_kind1(void)
+{
+	if (!anim_visible_pub()) return;
+	uint16_t v = (uint16_t)anim_mod & 0xF; v = v == 7 ? 0 : v + 1;
+	anim_mod = (anim_mod & ~0xFu) | v;
+	hook_desert_wave((int8_t)cur_trob.tilepos);
 }
 /* the background id of the room description at DS:01AC (roomhooks.c) */
 int room_background_id(void) { return room_bg - 1; }   /* DS:01AC -> +1 */
@@ -131,8 +149,25 @@ static void kind1_kid(void)
 	}
 	Kid = Char;
 }
+/* 33FD:011A: outside room 1, every third tick while on time (DS:2BA4 0): the palette's colors 0xB0..0xBC, 0xC4..0xC7
+ * and 0xBF..0xC3 rotate (2699:0048: the renderer's) */
+static void kind1_palette(void)
+{
+	if (word_2ba4 != 0 || drawn_room == 1 || tick % 3 != 0) return;
+	hook_pal_rotate(0xB0, 0xD); hook_pal_rotate(0xC4, 4); hook_pal_rotate(0xBF, 5);
+}
 /* 33FD:0170 (DS:0658) */
 void kind1_tick(void)
 {
-	kind1_kid(); puzzle_check();   /* 33FD:011A palette flashes and the rest of 0170 (sounds) left out */
+	kind1_palette(); kind1_kid(); puzzle_check();
+	/* the sounds: outside room 1 sound 0x26 (the wind) goes on and music 0x10B stops; in room 1 the wind stops while
+	 * 0x10B plays, else the chime plays once nothing else does (the prince alive, not in state 7, the ambient piece
+	 * DS:2B9A over, no puzzle tile moving, the gate shut: 33FD:0618) */
+	if (drawn_room != 1) {
+		if (!sound_playing(0x2736)) play_sound(0x26);
+		if (sound_playing(0x280B)) sound_194c_83d2(0x280B);
+	} else if (sound_playing(0x280B)) {
+		if (sound_playing(0x2736)) sound_194c_83d2(0x2736);
+	} else if (Kid.f24 != 7 && Kid.alive < 0 && !sound_playing((uint16_t)(*(uint16_t *)tiles0 + 0x2710)) && !nth_trob(0x1E, 1)
+	           && !(*attr16(1, 10) & 0x1F)) chime();
 }

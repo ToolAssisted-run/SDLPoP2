@@ -147,7 +147,7 @@ void render_room_enter_palette(int bg)
 		render_pal_load(2, 0xC0, 0x40, 3500); render_pal_load(0, 0x10, 0xF0, 1000); render_pal_load(7, 0x10, 0x20, 25001);
 		if (drawn_room == 7 || drawn_room == 8) render_pal_load(0, 0x10, 0xE0, 3000);
 		break;
-	case 0: render_pal_load(0, 0x20, 0x10, 25303); break;   /* 37F0:0000 -> 0436 (OVL11, level 5's lever room): 0x20 colors at 0x10 */
+	case 0: render_pal_load(0, 0x20, 0x10, 25303); render_lever5_set_saved(0); break;   /* 37F0:0000 -> 0406 (the block, zeroed) / 0436 (OVL11, level 5's lever room): 0x20 colors at 0x10 */
 	case 0x21: if (level_number == 5 && drawn_room == 0xA) render_pal_load(1, 0xA0, 0x40, 3500); break;   /* 37F0:0426 (OVL12) */
 	case 0x20: {                                             /* 37F0:0510 (OVL13): after its images, 5DD / 5F0 */
 		const uint8_t *d = render_desc_raw();

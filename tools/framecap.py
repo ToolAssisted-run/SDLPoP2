@@ -24,7 +24,7 @@ extra = open(sys.argv[5]).read() if len(sys.argv) > 5 else ''
 O = os.path.expanduser('~/pop2dec/oracle'); F = O + '/frames'; os.makedirs(F, exist_ok=True)
 lines = [l for l in open(src) if l.startswith(('key ', 'probepoke ', 'poke '))]
 last = end or max([int(l.split()[1]) for l in lines if l.startswith('key ')] + [2000])
-lines = [l for l in lines if int(l.split()[1]) <= last] if end else lines
+lines = [l for l in lines if not l.startswith(('key ', 'poke ')) or int(l.split()[1]) <= last] if end else lines   # (probepoke lines are by tick)
 with open(f'{O}/{name}.script', 'w') as f:
     f.writelines(lines)
     f.write('probe 169B 0A98 pre_lo DS0000 2900\nprobe 169B 0A98 pre_ds DS2900 4300\nprobe 169B 0A98 pre_heap DS9800 2000\nprobe 169B 0A98 pre_buf 4CF22 F000\n')

@@ -125,6 +125,31 @@ void draw_hook_33fd_0478(void)
 	memcpy(draw_clip, save, sizeof save);
 }
 
+/* ---- level 13's room 4 (OVL13 at 37F0) ---- */
+/* 37F0:05FC (0993:07F8, the prince on frames 0x132..0x13E; in room 4 of level 13): the sword frame's entry (the sword
+ * table DS:[6110], cur_frame's sword) names a description object (image + 0x17) placed at its offsets from obj_x /
+ * obj_y (0AFF:0390) and drawn in the background, clipped to its own rect; DS:60FA.. kept around it (0AFF:1C0A / 1C1C) */
+void draw_hook_37f0_05fc(void)
+{
+	if (Char.room != 4 || level_number != 13) return;
+	spr_vars sv0 = sv; int16_t ox = obj_x, oy = obj_y, oid = obj_id; uint8_t och = obj_chtab;
+	int16_t save[4]; memcpy(save, draw_clip, sizeof save);
+	const uint8_t *e = sword_table + cur_frame.sword * 4;
+	int k = (uint8_t)(e[0] + 0x17);
+	if (k < desc_count()) {
+		uint8_t *o = desc_obj(k);
+		int16_t dx = (int8_t)e[2]; if (sv.dir != 0) dx = (int16_t)-dx;
+		obj_x = (int16_t)(obj_x + dx);
+		int16_t x = obj_x, y = (int16_t)((int8_t)e[3] + obj_y);
+		o[3] = (uint8_t)x; o[4] = (uint8_t)(x >> 8); o[1] = (uint8_t)y; o[2] = (uint8_t)(y >> 8);
+		desc_obj_image_rect(o);   /* 194C:13B3 */
+		for (int q = 0; q < 4; q++) draw_clip[q] = (int16_t)(o[0xB + 2 * q] | o[0xC + 2 * q] << 8);
+		o[5] = 0; draw_object(k, 0); o[5] = 0xB;
+	}
+	memcpy(draw_clip, save, sizeof save);
+	sv = sv0; obj_x = ox; obj_y = oy; obj_id = oid; obj_chtab = och;
+}
+
 /* ---- the final level (kind 6, OVL08 at 33FD) ---- */
 /* 33FD:0330 (0AFF:15AE's kind 6 part): in room 3, row 1, a dead frame: the sprite cut at y 0x77 */
 void draw_hook_33fd_0330(void)

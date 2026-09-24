@@ -11,6 +11,7 @@
 #include "dat.h"
 #include "render.h"
 #include "render_tiles.h"
+#include "render_frame.h"
 extern int8_t draw_row, draw_col;
 extern uint16_t redraw_all_flag;
 const char *level_kind_dat(void);
@@ -72,15 +73,18 @@ static const image_t *decode_res(const char *datname, int res)
 
 /* images registered into an image set outside its own ids (a room description's images: 26BC:073C) */
 #define EXTRA_MAX 128
-static struct { int chtab, id, res; char dat[32]; } extra[EXTRA_MAX]; static int n_extra;
+static struct { int chtab, id, res; char dat[32]; uint16_t mask; } extra[EXTRA_MAX]; static int n_extra;   /* mask: the conversion mask of the image's load (0: the file's) */
 void render_register_image(int n, int id, const char *dat, int res)
 {
 	if (!dat) return;
-	for (int i = 0; i < n_extra; i++) if (extra[i].chtab == n && extra[i].id == id) { extra[i].res = res; snprintf(extra[i].dat, sizeof extra[i].dat, "%s", dat); return; }
+	for (int i = 0; i < n_extra; i++) if (extra[i].chtab == n && extra[i].id == id) { extra[i].res = res; extra[i].mask = 0; snprintf(extra[i].dat, sizeof extra[i].dat, "%s", dat); return; }
 	if (n_extra == EXTRA_MAX) return;
-	extra[n_extra].chtab = n; extra[n_extra].id = id; extra[n_extra].res = res;
+	extra[n_extra].chtab = n; extra[n_extra].id = id; extra[n_extra].res = res; extra[n_extra].mask = 0;
 	snprintf(extra[n_extra].dat, sizeof extra[n_extra].dat, "%s", dat); n_extra++;
 }
+/* a registered image loaded with another mask than its file's (26BC:040A with a shape list's copy: 37F0:0510) */
+void render_image_set_mask(int n, int id, uint16_t mask) { for (int i = 0; i < n_extra; i++) if (extra[i].chtab == n && extra[i].id == id) extra[i].mask = mask; }
+static uint16_t image_mask(int n, int id) { for (int i = 0; i < n_extra; i++) if (extra[i].chtab == n && extra[i].id == id) return extra[i].mask; return 0; }
 void render_set_chtab(int n, const char *dat, uint16_t first, uint8_t pal_base) { (void)n; (void)dat; (void)first; (void)pal_base; }   /* (the sets follow the game state: render_image_res) */
 
 /* DS:0672: the guard file of each level type (type 4 has none) */
@@ -305,12 +309,13 @@ void render_add_dirty(const int16_t *r)
  * 0993:04F0 saves the screen under a sprite before it is drawn (194C:5194: a bitmap of the rectangle); 0993:0684
  * (0FB3:13C2, before the tables) puts back the saved screens the next frame, last first. */
 saved_bg saved_bgs[SAVED_MAX]; uint16_t saved_count;
-static void port_copy(uint8_t *dst, const int16_t *r, int to_screen, uint8_t *bits)
+static void port_copy(uint8_t *dst, const int16_t *r, int to_screen, uint8_t *bits, const int16_t *bounds)
 {
-	int w = r[3] - r[1];
+	int w = bounds[3] - bounds[1];
 	for (int y = r[0]; y < r[2]; y++) for (int x = r[1]; x < r[3]; x++) {
 		if (y < 0 || y >= 192 || x < 0 || x >= 320) continue;   /* (CopyBits clips to the port) */
-		uint8_t *b = &bits[(y - r[0]) * w + (x - r[1])];
+		if (y < bounds[0] || y >= bounds[2] || x < bounds[1] || x >= bounds[3]) continue;   /* (and to the saved port's bounds) */
+		uint8_t *b = &bits[(y - bounds[0]) * w + (x - bounds[1])];
 		if (to_screen) PUT(y * SCREEN_W + x, *b); else *b = dst[y * SCREEN_W + x];
 	}
 }
@@ -321,9 +326,9 @@ void render_save_under(int16_t left, int16_t right, int16_t top, int16_t height,
 	int16_t r[4] = {top, left, (int16_t)(top + height), right};
 	if (r[2] <= r[0] || r[3] <= r[1]) return;   /* 194C:4D50 EmptyRect */
 	saved_bg *b = &saved_bgs[saved_count];
-	memcpy(b->rect, r, sizeof r);
+	memcpy(b->rect, r, sizeof r); memcpy(b->bounds, r, sizeof r);
 	b->bits = realloc(b->bits, (size_t)(r[2] - r[0]) * (r[3] - r[1]));
-	port_copy(offscreen, r, 0, b->bits);   /* 194C:5194 */
+	port_copy(offscreen, r, 0, b->bits, b->bounds);   /* 194C:5194 */
 	b->id = id; b->kind = kind; b->flag = (kind == 2 || kind == 3);
 	saved_count++;
 }
@@ -337,7 +342,7 @@ void render_restore_saved(void)
 		keep[i] = b->flag;
 		if (b->flag) continue;
 		if (!redraw_all_flag) { int16_t r[4]; memcpy(r, b->rect, sizeof r); render_add_dirty(r); }   /* 0FB3:143E */
-		port_copy(offscreen, b->rect, 1, b->bits);   /* 2699:0184 / 194C:5164 */
+		port_copy(offscreen, b->rect, 1, b->bits, b->bounds);   /* 2699:0184 / 194C:5164: CopyBits over its rect +0x10 */
 		if (b->kind == 2) { b->flag = 1; keep[i] = 1; }
 	}
 	int n = 0;
@@ -360,10 +365,11 @@ void render_draw_entry(const draw_entry *e)
 	const image_t *im;
 	rows_mask = 0xFFF0;
 	if (e->chtab == 4 && render_desc_loaded() && render_image_is_desc(e->id)) render_desc_entry_saved(e->id, &e->top);   /* 0FB3:0CBA */
+	if (e->chtab == 4 && e->id >= 0x62D7 && e->id <= 0x62E2) render_lever5_entry();   /* 0FB3:0D28 -> 37F0:01E6 */
 	if (e->id >= 0x6370 && e->id <= 0x6372) { im = decode_res("PRINCE.DAT", e->id); rows_mask = 0xFFFE; }   /* 0FB3:21AC: SHAP 0x6370.. (PRINCE.DAT) converted with the mask 0xFFFE */
-	else im = render_image(e->chtab, e->id);
-	if (!im) return;
-	int16_t r[4]; if (!sect_rect(r, &e->top, (const int16_t[4]){0, 0, 192, 320})) return;   /* 194C:4C34 */
+	else { im = render_image(e->chtab, e->id); if (e->chtab == 4 && image_mask(4, e->id)) rows_mask = image_mask(4, e->id); }
+	if (!im) { rows_mask = 0xFFF0; return; }
+	int16_t r[4]; if (!sect_rect(r, &e->top, (const int16_t[4]){0, 0, 192, 320})) { rows_mask = 0xFFF0; return; }   /* 194C:4C34 */
 	memcpy(clip, r, sizeof clip);
 	draw_image(im, type, e->x, e->y, e->mode, mask, e->mirror);
 	rows_mask = 0xFFF0;
@@ -379,8 +385,12 @@ void render_draw_sprite(const sprite_entry *s)
 	uint8_t save = render_kid_colors;
 	if (s->chtab == 2 && s->mask) { uint8_t hi = 0; for (uint16_t m = s->mask >> 1; m; m >>= 1) hi += 0x10; render_kid_colors = hi; }   /* 0FB3:2C9C */
 	int k = (int)(s - sprite_table); if (k >= 0 && k < SPRITE_MAX && s->chtab == 3) render_guard_type = sprite_guard[k];
-	const image_t *im = render_image(s->chtab, s->id + 1);
+	const image_t *im;
+	if (s->chtab == 4 && s->id >= 0x62D7 && s->id <= 0x62E2) im = render_image(4, s->id);   /* 0FB3:0F04 -> 37F0:03AC(id - 0x62D7) */
+	else if (s->chtab == 4 && level_number == 5 && drawn_room == 0xA && s->id < render_desc_count_raw()) im = render_image(4, render_desc_image_id(s->id));   /* 0FB3:0F2E -> 0CD6:01EC */
+	else im = render_image(s->chtab, s->id + 1);
 	render_guard_type = 0xFF;
+	if (s->chtab == 4 && image_mask(4, s->chtab == 4 && s->id >= 0x62D7 && s->id <= 0x62E2 ? s->id : -1)) rows_mask = image_mask(4, s->id);
 	kid_image_n = s->chtab == 2 ? s->id + 1 : 0;
 	if (im) {
 		int x = s->x; if (s->mirror) x -= im->width;
@@ -394,7 +404,7 @@ void render_draw_sprite(const sprite_entry *s)
 			clip[0] = 0; clip[1] = 0; clip[2] = 192; clip[3] = 320;
 		}
 	}
-	render_kid_colors = save; kid_image_n = 0;
+	render_kid_colors = save; kid_image_n = 0; rows_mask = 0xFFF0;
 }
 void render_draw_table(int n)
 {

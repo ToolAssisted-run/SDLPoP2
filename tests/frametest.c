@@ -46,6 +46,10 @@ static void load_state(const uint8_t *ds, const uint8_t *heap)
 	level_roomlinks = (uint8_t *)&level + 0x17BC; level_number = ((uint8_t *)&level)[0x1847]; level_kind = ds[0x43FD - 0x2900];
 	glue_select_guard_dat(level.type);
 	for (int i = 0; i < 4; i++) screen_rect[i] = (int16_t)ds_word(0x097E + 2 * i);
+	{   /* level 5 room 3's heap block DS:2B76 (37F0 OVL11): +0x3C, +0x3E, +0x40 */
+		uint16_t b = (uint16_t)(ds[0x2B76 - 0x2900] | ds[0x2B77 - 0x2900] << 8);
+		if (heap && b >= 0x9800 && b + 0x42 <= 0xB800) { const uint8_t *h = heap + b - 0x9800; lever5_flag3c = (uint16_t)(h[0x3C] | h[0x3D] << 8); lever5_flag3e = (uint16_t)(h[0x3E] | h[0x3F] << 8); render_lever5_set_saved(h[0x40] | h[0x41] << 8); }
+	}
 }
 
 static int have_lo;
@@ -297,12 +301,17 @@ int main(int argc, char **argv)
 							uint16_t h = dsw((uint16_t)(0x5FEE + 6 * k)); saved_bg *sb = &saved_bgs[k];
 							sb->id = ds[0x5FF0 + 6 * k - 0x2900]; sb->kind = ds[0x5FF1 + 6 * k - 0x2900]; sb->flag = dsw((uint16_t)(0x5FF2 + 6 * k));
 							for (int q = 0; q < 4; q++) sb->rect[q] = heap && h >= 0x9800 && h + 0x18 < 0xB800 ? (int16_t)(heap[h - 0x9800 + 0x10 + 2 * q] | heap[h - 0x9800 + 0x11 + 2 * q] << 8) : 0;
+							memcpy(sb->bounds, sb->rect, sizeof sb->bounds);
 							int nb = (sb->rect[2] - sb->rect[0]) * (sb->rect[3] - sb->rect[1]); if (nb < 0) nb = 0;
 							sb->bits = realloc(sb->bits, nb + 1); memset(sb->bits, 0, nb + 1);
 						}
 					}
 					else if (dsw(0x5FEC) == saved_count) {   /* the tick's requests on the saved screens (0CD6:0684 from the animations): their flags */
-						for (int k = 0; k < saved_count; k++) if (saved_bgs[k].id == ds[0x5FF0 + 6 * k - 0x2900]) saved_bgs[k].flag = dsw((uint16_t)(0x5FF2 + 6 * k));
+						for (int k = 0; k < saved_count; k++) if (saved_bgs[k].id == ds[0x5FF0 + 6 * k - 0x2900]) {
+							saved_bgs[k].flag = dsw((uint16_t)(0x5FF2 + 6 * k));
+							uint16_t h = dsw((uint16_t)(0x5FEE + 6 * k));   /* (and its rect: 33FD:0B12 narrows one at tick time) */
+							if (heap && h >= 0x9800 && h + 0x18 < 0xB800) for (int q = 0; q < 4; q++) saved_bgs[k].rect[q] = (int16_t)(heap[h - 0x9800 + 0x10 + 2 * q] | heap[h - 0x9800 + 0x11 + 2 * q] << 8);
+						}
 					} else if (verbose) printf("  saved screens: %d, game %d\n", saved_count, dsw(0x5FEC));
 					render_frame_tables(); render_draw_tables();
 				}

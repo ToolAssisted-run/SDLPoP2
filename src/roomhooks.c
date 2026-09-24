@@ -35,7 +35,7 @@ static void room_enter_hook(int16_t bg)
 		break;
 	case 0x16: break;                     /* 347C:01EE (OVL06): palette */
 	case 0x1F: if (Kid.curr_col >= 9) sound_1611_01a8(0x5C); break;   /* 347C:0FB2 (OVL07, temple) */
-	case 0: lever5_enter(); break;        /* 37F0:0000 (OVL11): the heap block DS:2B76 (graphics, flags) */
+	case 0: lever5_enter(); break;        /* 37F0:0000 (OVL11): the heap block DS:2B76 (graphics, flags), music 0x21 */
 	case 0x20: break;                     /* 37F0:0510 (OVL13): graphics set up (heap images at DS:2B76) */
 	case 0x21: water_room_enter(); break;   /* 37F0:0426 (OVL12, level 5 room 10) */
 	default: break;   /* DS:02E2: none */
@@ -48,7 +48,8 @@ static void room_leave_hook(int16_t bg)
 	switch (bg) {
 	case 0x22: break;   /* 37F0:0060: palette */
 	case 0x16: break;   /* 347C:0202 (OVL06): palette (alive, time left) */
-	case 0: case 0x20: break;             /* 37F0:0012 (OVL11) / 37F0:06E0 (OVL13): graphics freed, palette */
+	case 0: lever5_leave(); break;        /* 37F0:0012 (OVL11): graphics freed, sound 0x21 stopped, palette */
+	case 0x20: break;                     /* 37F0:06E0 (OVL13): palette */
 	case 0x21: break;   /* 37F0:0574: palette */
 	default: break;
 	}

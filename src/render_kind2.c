@@ -366,10 +366,23 @@ static void d_1a(tile_args *a)
 	else if ((a->layer == 1 || a->layer == 2 || a->layer == 5) && !dx) d_floor(a);
 }
 
+/* 37F0:0486 (OVL13, level 13's room 4 with description 0x20; tile 0x2B, the flames): layer 0xB with the whole screen
+ * as the clip: modifier bit 7 set, the description object DS:1CC2[m & 0x7F] in the foreground (layer 1 for the
+ * call); else object 0xB + m */
+static void d_2b(tile_args *a)
+{
+	if (a->layer != 0xB) return;
+	int16_t save[4]; memcpy(save, draw_clip, sizeof save); memcpy(draw_clip, screen_rect, sizeof save);
+	uint8_t m = (uint8_t)a->mod;
+	if (m & 0x80) {
+		int i = ds_byte((uint16_t)(0x1CC2 + (m & 0x7F)));
+		if (i < desc_count()) { uint8_t *o = desc_obj(i); o[5] = 1; draw_object(i, 1); o[5] = 0xB; }
+	} else draw_object((uint8_t)(m + 0xB), 0xB);
+	memcpy(draw_clip, save, sizeof save);
+}
 const kind_drawers kind_temple = {{
 	[0x00] = d_00, [0x01] = d_floor, [0x02] = d_02, [0x03] = d_03, [0x04] = d_04, [0x05] = d_05, [0x06] = d_06,
 	[0x08] = d_08, [0x09] = d_09, [0x0A] = draw_tile_0a, [0x0B] = d_0b, [0x0C] = draw_3443_0050, [0x0D] = draw_3443_01d6,
 	[0x0E] = d_0e, [0x10] = d_10, [0x11] = d_11, [0x13] = d_13, [0x14] = d_wall, [0x19] = d_wall, [0x1A] = d_1a,
-	[0x20] = d_20,
-	/* 0x2B: 37F0:0486 (a room overlay, not loaded in the captured RAM dumps) */
+	[0x20] = d_20, [0x2B] = d_2b,   /* 0x2B: 37F0:0486 (OVL13) */
 }, d_075e};   /* DS:618A: 3579:075E */

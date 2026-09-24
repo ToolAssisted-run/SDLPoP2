@@ -285,6 +285,11 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   y 0x37 with the mouth (tile 0x1B, row 0 col 6; attribute nibble >= 3 = open) closed he is caught (y 0x14, f24 0xA,
   seq 0x81), then take_hp(100). Tile 0x1B's animation (0676): trob state 0 opens to 3, else closes to 0. Button
   links to it (1375:1396 -> 0786): 0 closed, 1 open, -1 moving (attr bit 0x800 or other values).
+- The enter hook 37F0:0000 also queues music 0x21; the leave hook 0012 (0622) stops it (194C:83D2(0x2731)) and frees
+  the sounds 0x21..0x24 that are not playing (1611:085C, memory only). Both were missing: with them the sound model's
+  e2e of X5_3 goes from 514 differing ticks to 3 (X5_2 1454 -> 651, F5_16 1191 -> 658).
+- +0x3C keeps counting: the drawing of the prince's type-0xD object (37F0:023A) adds 1 each frame once he is lifted
+  (the animation's frame, 37F0:0360); game.c's drawing state does it (lever5_draw_state). The logic only tests >= 1.
 
 ### 5.7c Level 13's shadow room (OVL13 at 37F0, shadow13.c)
 - Room 4 (background 0x20): the kind-2 tick (347C:0FC4 -> 37F0:0236): walking left on row 1 past x 0xDA kills the
@@ -299,9 +304,24 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   only the answer tile (DS:2B6A) is down and opens the gate at 0x14. The answer is drawn (random(2), random(4)+1) by
   33FD:0380 when a room with background 6 loads (a room hook, 5.12), once (DS:14A0).
 - Room 1 x < 0x82 exits the level; room 3 right edge: random(0x14) sound draws while sound 0x273E is not playing.
+- The kind tick 0170 = 011A (outside room 1, every third tick while DS:2BA4 is 0: palette rotations 2699:0048 of
+  0xB0..0xBC, 0xC4..0xC7, 0xBF..0xC3), 020A, 002A, then sounds: outside room 1 sound 0x26 (the wind) whenever it is
+  not playing and music 0x10B stopped; in room 1, while 0x10B plays, 0x26 stopped; otherwise the chime 33FD:0000
+  (music 0xFB, only with DS:2085 bit 1) once the prince lives, is not in state 7 (Kid+0x24), the ambient piece
+  (DS:2B9A) is over, no puzzle tile moves (1375:25D6) and the gate is shut (33FD:0618). The gate's animation stops
+  sound 7 when it has opened (0x14). These were missing (the sound queue is not in DS:2900..6C00, so e2e could not
+  see them); with them the queue events (probes 1611:01FE / 01BB / 194C:83D2, SQ2_raft) equal the game's tick by tick.
+- Planning the puzzle: the answer is drawn when room 1 is entered, after the level's ambient-music draws, which follow
+  the sound timing: the explorer's cold start (pop2_new_game) drew answer 2 where the oracle drew 1 for the same
+  inputs. P2_raft was planned from a prefix (36 ticks left, 58 idle: all tiles up) with the answer set to the
+  oracle's (1), the explorer's puzzle key and the gate opening as the goal; e2e (warm and cold) is identical to it.
+- 33FD:0380's drawing part (33FD:03CF): with DS:14A0 0 or 1, description objects 15 and 16 of room 1 (background 6)
+  show images first + 0xF + DS:14A0 and first + 0x12 + DS:14A0 (the puzzle's clue: a skull or another face) instead
+  of their own (17 and 20).
 
 ### 5.9 Level 1 (kind 5; OVL02 33FD, kind5.c)
-- The sea (rooms 0x10/0x13): kind tick 0232 = 01CE (palette cycling every third tick, no state) + 03C8 (the prince:
+- The sea (rooms 0x10/0x13): kind tick 0232 = 01CE (palette rotations 0xE6..0xE8, 0xE9..0xEB, 0xEC..0xED every third
+  tick while DS:2BA4 is 0 in drawn rooms 0x13/0x10/0xF; the renderer's, through hook_pal_rotate) + 03C8 (the prince:
   in those rooms or when grabbed, DS:6936 == 0xA) + 0428 (the drawn room's characters in those rooms or grabbed).
   0068: a character below y 0xAC (not f19 0x44/0xF/0x3B, not action 2) is grabbed (0370: DS:6936 = index, DS:6937 =
   1, DS:693A = action 9, DS:6938 = x - 0x82 -+ image_width/2, sound 0x30); the step counts up only while room
@@ -430,7 +450,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - 0x14/0x15 (347C:0226, OVL06): level 9, prince col >= 9 in room 0x10: music 0x5C; col < 5 in room 2, once
   (DS:2BAE): 0x5B. 0x16 (01EE/0202) and 0x17..0x1B palettes/sounds; 0x1C..0x1E see 5.10; 0x1F (347C:0FB2): col >= 9
   music 0x5C.
-- Implemented: all but ids 0, 0x20, 0x21 (37F0 overlays), logged as missing (ROOMHOOK_IN_xx / ROOMHOOK_OUT_xx).
+- Implemented: all (the 37F0 ones' drawing parts in render_ovl37f0.c / render_palette.c / render_desc.c, 5.17).
 - 33FD:03F2 (OVL05, kinds 2/4): tile 0xC blocks while its modifier & 0x1F is 3..15.
 
 ### 5.13 Drawing pass state
@@ -556,15 +576,93 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   169B:0A98 with the saved-screen list chained; one pass off: the purge case above); the screen (VGA dumps every
   3rd frame of one seed, ~13,000 dumps, status line included but for the message text) exact apart from dumps taken
   mid-copy or within two frames of a tick-time write, and captures made before the msgclral probe.
-- Not reconstructed (logged by note_missing): the level 5 / 8 / 13 overlay objects 37F0:023A / 08D2 / 0782 / 044A /
-  05FC and their images 0x62D7..0x62E2, the tick-time palette animations (37F0:032D, 2699:0048 users).
+- The level 5 / 8 / 13 overlay parts and the tick-time palette rotations: 5.17.
 - In the program (shell.c): the core calls weak hooks (game.c hook_draw at 169B:0430 / 0A98 before its state parts,
   hook_hp_bars 0FB3:259C, hook_first_room 169B:03AE's screen steps; glue.c redraw_room 0FB3:29B8, hp_bar_draw /
   hp_bar_clear 25D4; level.c hook_level_loaded; roomhooks.c hook_room_enter / leave) that the shell turns into
   renderer calls with the game state put back after each. The requests the game logic makes at tick time (the tile
   animations 1375:01F4..0416, the overlays' 0F5A / 0E8C) are not in the core: the shell has the renderer redraw
   every tile of the drawn room (and the row above) whose type or modifier changed since the last frame, whole, with
-  the characters over it (render_track_tiles). Checked: tests/run_shell.sh's in-game shots (MENU1, DEATH1) exact.
+  the characters over it (render_track_tiles); the level-kind overlays' own requests (levels 1, 2, 5) come through
+  weak hooks instead (5.17) and those tiles are not tracked. Checked: tests/run_shell.sh's in-game shots (MENU1, DEATH1) exact.
+
+### 5.17 The drawing's parts of tick code; the 37F0 room overlays' drawing (render_kind_desc.c, render_ovl37f0.c)
+- Tick code makes redraw requests (1375:0DC6 / 0F5A ...), changes description objects and saved-screen flags, and
+  rotates the palette; the core reports these through weak hooks (no-ops in the core, shell.c routes them to the
+  renderer; the state they touch is the renderer's): kind1.c hook_desert_gate / wave / tile1e / press, hook_pal_rotate
+  (kinds 1 and 5), anim.c hook_roof_tick (kind 5), lever5.c hook_lever5_mouth / trap, water.c hook_water_wave. The
+  tile tracker (render_track_tiles, 5.16) skips the tile types whose requests are reported (kind 1: 4, 0x1C, 0x1D,
+  0x1E; kind 5: 0x25, 0x26, 0x27; level 5: 0x1B, 0x2C).
+- Level 2 (OVL03): 33FD:0538 (tile 4, the raft's gate) each step: description object 2's rect left - 2 (the raft
+  uncovered), back layers under it at the tile, the one right and the two above (1375:0DC6 with the tile index, +1,
+  -10, -9: the index is DS:6672's own tile position, whatever room it is in), 0CD6:0684 (its saved screen put back);
+  it acts on the drawn room's description DS:[01AC]. 0658 / 06E4 (the waves 0x1C / 0x1D): back layers under object
+  1's rect at the tile. 07CE (0x1E) while moving: 08BE: the rect DS:1498 at the tile (1375:0454 = 17C1:0034 column /
+  00B4 row of the tile in the drawn room's grid + 17C1:016E), back layers at the tile's own index, the one right of it
+  (1375:0536) and below (06A8). 0A18 mode 1 (a tile pressed): 0904 re-arms the saved screens of the clue's six copies
+  (id 0x72) at x = 32 (column + 1): the first two with an edge there, or the one spanning it at y 0x72..0x7F.
+- Level 1 (OVL02, rooftops), the same for its animations: 33FD:0680 (tile 0x25 step): object 0x19 at the tile
+  (0CD6:0108) and again 12 lower / 30 left (0876): the tiles under both requested, unless a grab in progress
+  (030E) meets it; 08C0 (tile 0x26, the ship leaving, step m, in the drawn room): object 19 at x -m and object
+  0x15 + ((m - 1) & 3) at x 1 - m, the tiles under their boxes (one pixel wider) requested, object 19's saved screen
+  put back (0CD6:0684, which returns its slot) and that slot's rect cut at the box's right edge (0B12); 05AC (tile
+  0x27, step m): the tiles under object m + 0x1E. A saved screen is put back over its (possibly cut) rect +0x10 from
+  its own bitmap (2699:0184: CopyBits with that rect as both source and destination), and that rect is the dirty
+  rectangle: the renderer keeps the saved bitmap's bounds apart from the rect (saved_bg.bounds). frametest syncs the
+  rects from the heap each pass: FSX1_1 (level 1, the ship scene, X1_1's plan) 916 passes exact (173 with a differing
+  dirty rectangle before).
+- Palette rotations 2699:0048(start, count, wait 0): colors start..start+count-1 rotated down by one, on the DAC as it
+  is (GetPalette / SetPalette): only OVL02 33FD:01CE and OVL03 33FD:011A call it (a byte search of every overlay).
+- Level 5 room 3 (OVL11, description 0): the caverns' drawer table DS:16B8 points straight at 37F0 for tiles 0x12
+  (012A), 0x1B (06EE) and 0x2C (0610), so the loaded 37F0 overlay decides. 012A: in a whole redraw, before the lift,
+  image 0x62D7 at DS:1C30 / 1C2E as a back entry (mode 0xA). The images 0x62D7 + n (0..9) are 37F0:002A's: image
+  n + 0x12E of a copy of image set 2's shape list header (KID.DAT, first 25002) with the mask | 4 = CAVERNS.DAT SHAP
+  25303 + n converted with mask 6 (colors 0x10 / 0x20: the palette 25303 of the enter hook); 0FB3:0D28 / 0F04 map
+  ids 0x62D7..0x62E2 to them (03AC(id - 0x62D7)), and 0D3B first calls 01E6 (once, block +0x40: the screen under
+  image 0 saved, id 0x65, kind 2). 06EE: object (modifier & 7) + 2 when drawn from its own column (whole-screen clip
+  outside whole redraws). 044A (0993:0870: the prince on frame 0x127 in room 3 once lifted): an object of type 0xD,
+  image DS:1C32[k] + 1 at DS:1C52 / 1C50[k] from his position (-20 mirrored), the fore layer under it requested.
+  023A (0FB3:1D3C, drawing type 0xD): a table-3 sprite (mode 0xA), the first frame object moved down DS:1C46[k],
+  caught: palette 25303 sub-palette +0x3C - 4 at 0x10 (0 <= that < 8), +0x3C + 1, and once +0x40 the slot 0x65 put
+  back (0CD6:0684(1)). k = 0360: (+0x3C / 2) % 9, caught min(+0x3C + 8, 9). Tick time: 04FA's first step requests the
+  tiles under image 0 (053B), the mouth's animation 0676 the tiles under DS:1C78 at the tile (0756).
+- Level 5's water (OVL12, rooms 7 / 10 / 12): 0610 (tile 0x2C, layers 5 and 2): object (modifier & 0xF) + 3 at the tile
+  lowered by the column's wave height DS:1C87[col] (0654 / 0698 move it and its rect and back). 06CE (tick time, from
+  0588 with the new frame v and from 0742 with the attribute & 0xF0): object v + 3's rect so lowered, at the tile's
+  column and one row lower (17C1:016E), one pixel higher: back layers under it. 08D2 (object type 0x8B): a sprite
+  of description object DS:1C90[id & 0xF] + 1 one pixel up (0993:03CC; in room 10 of level 5 chtab-4 sprites whose
+  id is below the description's count are its objects: 0CD6:0224 / 01EC). 0782 (falling object 0xB, a bubble): its
+  position as the drawn room sees it and its tile key; in level 5 room 10: moved by DS:1C9A / 1CAE[step], the
+  floor-depth entries of type 0xB (DS:0826 / 0840) = its object's image height / width + 1, requests, the object.
+  (Bubbles need both swimmers at the plug for 0x3C ticks: no capture has them; transcribed only.)
+- Level 13 room 4 (OVL13, description 0x20): 0486 (the temple's tile 0x2B, layer 0xB, whole-screen clip): modifier bit
+  7: object DS:1CC2[m & 0x7F] in the foreground (layer 1 for the call), else object 0xB + m. The enter hook 0510
+  reloads objects 0xB..0x26 from a copy of the prince's shape list header with the description's first resource and
+  mask 0x4000 (26BC:040A: colors 0xE0.., the palette the hook loads at 0xE0); render_image_set_mask keeps that per
+  image. 05FC (0993:0888, frames 0x132..0x13E; itself tests room 4 and level 13): the sword table's entry (DS:[6110],
+  cur_frame's sword) names description object image + 0x17, placed at its offsets from obj_x / obj_y (0AFF:0390),
+  clipped to its own rect, drawn in the background layer (0 for the call). 05FC is transcribed only (the frames were not
+  reached in a capture: P13_shadow dies on seq 0xE6's frames 7 / 0x32 / 0xB9).
+- Level 8 room 9 (OVL14): the chomper drawer's room-9 case (34A3:0A33 -> 2A31:0E43 -> 37F0:0000): description
+  object 7 drawn in layer 1 for the call (then its layer is 0), within the clip the drawer cut.
+- Verified (tests/frametest.c full mode; new captures FRX5_3, FRX5_2, FRG8_sword, FRP2_raft, FRP13_shadow): FRX5_3
+  (the trap, the lift, caught) 1072 passes exact (408 differing before), FRX5_2 (the water rooms) 1784 exact (49
+  before), FRP2_raft (level 2's puzzle and the raft) 472 exact (44 before: the clue's images). FRG8_sword: exact up to
+  the sword scene; after it the game does not draw the prince's standing sprite (table 3 entry chtab 2 id 14 is in the
+  table, its pixels are not drawn: 1276 px a pass for the rest of the capture), not explained (the memory manager
+  after scene 6's allocations, it seems). FRP13_shadow: tables exact, pixels of the prince's sprite in colors 0x30..
+  instead of 0x10.. (the KID.DAT images' first-load colors, 5.16) in every room, and one pass with two table-3 entries
+  in the other order: not overlay work, open.
+- The shell with the hooks (tests/shelltest.c SHELL_VRAM on a framecap capture with VRAM_STEP and a ds_tick probe;
+  probepoke plans played): P2_raft (level 2: the waves, the puzzle, the raft) 1350 VGA dumps, 1300 exact, 44 within
+  two frames, 6 differ (the room switch: DOS draws the new room ~10 frames later, under the blacked-out palette);
+  before: 66 exact. RGB shots (SHOT_STEP=3, palette rotations included): 900, 800 exact, 79 within two frames, 21
+  differ (the room switch; the DAC rotated at tick time while the pixels are copied at the pass's end; frames whose
+  VGA dumps are exact). X5_3 (level 5 room 3, VGA dumps every 4 frames): 1639 dumps, 951 exact, 32 within two frames
+  (157 before), the game state identical but drawing scratch (SHELL_FOLLOW). X1_1 (level 1, RGB shots every 3 frames:
+  the sea's palette rotations, the ship): 1789 shots, 1219 exact, 451 within four frames, 119 differ (636 / 271 / 880
+  before); the rotations are in phase in every shot; the rest is a tick of timing in the ship scene and, after tick
+  550, the sound model's death wait (the state differs there: e2e takes the capture's answers, the shell does not).
 
 ## 6. The C core (`src/core.h`)
 - `pop2_init(dir)`, `pop2_new_game(level, seed)`, `pop2_frame(&input)` (one tick), `pop2_save/load/hash`,
@@ -586,6 +684,8 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
+- The shell's rendering after the sword scene (level 8: the prince's standing sprite not drawn by the game, 5.17) and
+  the KID.DAT first-load colors in P13_shadow; 37F0:05FC and the bubbles (0782 / 08D2) not seen in a capture;
 - Story scenes;
   sound: packed digital sample lengths (0x20 0x26 0x2F 0x258), draw-time jitter; the prince's drawing-pass hooks; hotkeys besides restart; the stubs still logged by
   note()/note_missing() (see `grep -n 'note(' src/*.c`).
@@ -672,3 +772,17 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   (ruins.c sword_scene: scene 6, the level reloaded in full with DS:2BB8..+0x2EF9 put back, seq 0xE7 in room 9,
   DS:2BB2 = 1, music 0xFF); G8_sword (explorer EXPLORE_STOPSEQ=0xE7, hp 12) 545 ticks identical through and after
   the scene. Program shell (docs/SHELL.md) committed.
+- 2026-09-24: the drawing's parts of tick code through weak hooks (FINDINGS 5.17): level 2's raft, waves and puzzle
+  tiles (33FD:0538 / 0658 / 06E4 / 07CE / 0904), the palette rotations (2699:0048 from OVL02 / OVL03), level 1's
+  0x25 / 0x26 / 0x27 (33FD:0680 / 08C0 / 0B12 / 05AC); saved screens keep their bitmap's bounds apart from their rect.
+  Level 2's puzzle clue images (33FD:03CF), its kind tick's sounds and the gate's stop (SQ2_raft queue events equal);
+  level 5 room 3's music 0x21 (37F0:0000 / 0622). The 37F0 overlays' drawing: OVL11 (the trap, the mouth, the lift and
+  the catch: images 0x62D7.. = CAVERNS.DAT 25303.. with mask 6), OVL12 (the water tile, its waves, the bubbles),
+  OVL13 (tile 0x2B, objects 0xB..0x26 with mask 0x4000, 05FC), OVL14 (the teeth). New captures P2_raft (explorer with
+  the oracle's puzzle answer), SQ2_raft, P13_shadow (e2e identical); frame captures FRP2_raft, FSP2_raft, FRX5_3,
+  FVX5_3, FRX5_2, FRG8_sword, FRP13_shadow, FSX1_1. tests/shelltest.c plays plans and compares VGA dumps / RGB shots;
+  tests/nistest.c -DNIS_ENGINE (nisrun.py) draws transitions 2 and 3's rooms through shell_nis_room: scene 2 670 / 753
+  exact (664 / 747), scene 3 420 / 552 (399 / 482); the room hook's fill (level 14 room 1's sky) now drawn there.
+- 2026-09-24: cheat keys K, g, k, S (0823:0682 / 0768 / 07A6 / 06F0) in the shell; CK1 / CK10 (keys pressed between two
+  ticks: those letters are movement keys too) identical tick for tick. Sound model (run_soundmodel.sh): 83 of 163
+  captures identical as before, differing ticks 8878 -> 6852 (level 5's room-3 music).

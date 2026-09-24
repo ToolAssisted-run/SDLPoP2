@@ -178,6 +178,8 @@ const uint8_t *guard_frame_table(uint8_t charid);   /* platform: FRAM 750 of the
 
 /* kind1.c (level 2, OVL03) */ extern int8_t puzzle_answer, puzzle_last; extern uint8_t byte_14a0; int sound_playing(uint16_t id);
 void anim_tile1e(void); int tile1e_start(uint8_t room, int8_t tp, uint8_t mode); void anim_gate_kind1(void); void kind1_tick(void);
+void anim_wave_kind1(void); void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m);
+void hook_desert_gate(int8_t tilepos); void hook_desert_wave(int8_t tilepos); void hook_desert_tile1e(void); void hook_desert_press(int col); void hook_pal_rotate(int start, int count);   /* the drawing's parts of tick code (weak no-ops; shell.c: the renderer) */
 extern int level_switch; extern uint16_t word_2b96; void game_start(void);   /* level.c 169B:0006 */
 extern int last_scene; extern uint8_t byte_2b68, byte_6937; void kind1_level_init(void); int room_background_id(void);
 void scene_played(int si);   /* level.c */
@@ -218,7 +220,7 @@ void floor_draw_state(void); void trap_draw_state(void);   /* mobs.c */
 #define word_4406 (*(uint16_t *)((uint8_t *)&level + 0x184E))   /* DS:4406 */
 void floor_collapse_pub(void);
 int room_draws_sword_pub(uint8_t room);
-void lever5_enter(void); void anim_tile1b(void); extern uint16_t lever5_flag3c, lever5_flag3e;   /* lever5.c */
+void lever5_enter(void); void lever5_leave(void); void lever5_draw_state(void); void hook_lever5_mouth(void); void hook_lever5_trap(void); void hook_water_wave(int8_t tp, uint8_t v); void anim_tile1b(void); extern uint16_t lever5_flag3c, lever5_flag3e;   /* lever5.c */
 /* sound.c: the sound queue, the ambient sounds and the driver's timing model */
 extern uint16_t word_0882, word_0884; extern uint8_t amb_state[2], sound_caps; extern int sound_ambient_enabled;
 extern int (*sound_query_hook)(int what, uint16_t res, int model); extern uint32_t (*sound_clock_hook)(void);

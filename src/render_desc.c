@@ -54,6 +54,18 @@ void render_desc_load(uint8_t room)
 		else { rc[0] += y; rc[2] += y; rc[1] += x; rc[3] += x; sect(rc, rc, box); put_rect(o, rc); }   /* 194C:50EC, 5266 */
 		wr(o + 7, (int16_t)(first + i));
 	}
+	if (desc[1] == 0 && level_number == 5) render_lever5_images();   /* 37F0:0000 -> 0406 / 002A (OVL11) */
+	/* 37F0:0510 (OVL13, room hook 0x20 on entry: level 13's room 4): objects 0xB..0x26 reloaded from a copy of the
+	 * prince's shape list header with the description's first resource and the mask 0x4000 (colors 0xE0..) */
+	if (desc[1] == 0x20) for (int i = 0xB; i <= 0x26 && i < (int8_t)desc[0]; i++) {
+		uint8_t *o = obj_at(i); render_register_image(4, first + i, level_kind_dat(), first + (int8_t)o[0]); render_image_set_mask(4, first + i, 0x4000);
+	}
+	/* 33FD:03CF (level 2's room hook for background 6, after the load): the puzzle's clue, objects 15 and 16 show
+	 * images first + 0xF + DS:14A0 and first + 0x12 + DS:14A0 (DS:14A0 0 or 1; 2: none) */
+	if (level_kind == 1 && desc[1] == 6 && byte_14a0 != 2 && (int8_t)desc[0] > 16) {
+		render_register_image(4, first + 15, level_kind_dat(), first + (int8_t)byte_14a0 + 0xF);
+		render_register_image(4, first + 16, level_kind_dat(), first + (int8_t)byte_14a0 + 0x12);
+	}
 }
 int render_desc_loaded(void) { return desc_ok; }
 /* the drawn room's description resource as loaded (0CD6:02BE: DS:[0x01AC] before the drawing's changes) */
@@ -81,6 +93,7 @@ static void grab_rect(int16_t *r)
 	if (byte_6937 == 0 || (int8_t)byte_6937 > 7) { for (int k = 0; k < 4; k++) r[k] = (int16_t)ds_word(0x1F12 + 2 * k); return; }
 	r[0] = byte_693a == 1 ? 0xBA : 0xAC; r[1] = (int16_t)(word_6938 - 0x10); r[2] = (int16_t)(r[0] + 1); r[3] = (int16_t)(word_6938 + 0x10);
 }
+void desc_grab_rect(int16_t *r) { grab_rect(r); }
 /* 33FD:0826 (rooms 0x10 and 0x13): objects 6..0xB go behind while a hanging character is being grabbed there */
 static int rooftops_obj_behind2(const uint8_t *o)
 {
@@ -186,10 +199,11 @@ void render_desc_entry_saved(uint16_t id, const int16_t *rect)
 	if (o[0x14] == 1) render_save_under(rect[1], rect[3], rect[0], (int16_t)(rect[2] - rect[0]), (uint8_t)(o[0] + 0x64), o[0x14]);
 }
 /* 0CD6:0684: the saved screen under object i's image is put back next time (its slot's flag cleared) */
-void render_desc_restore_obj(uint8_t image)
+int render_desc_restore_obj(uint8_t image)   /* (the slot's index, -1 none) */
 {
 	int n = 0;
-	for (int k = 0; k < saved_count; k++) if (saved_bgs[k].id == (uint8_t)(image + 0x64) && ++n == 1) { saved_bgs[k].flag = 0; return; }   /* 0993:0646 (the first) */
+	for (int k = 0; k < saved_count; k++) if (saved_bgs[k].id == (uint8_t)(image + 0x64) && ++n == 1) { saved_bgs[k].flag = 0; return k; }   /* 0993:0646 (the first) */
+	return -1;
 }
 
 /* 0CD6:0792(0) (after a whole redraw): the objects of layer 0xB have the back layers under them redrawn next frame
@@ -226,6 +240,7 @@ static void obj_at_tile(uint8_t *o, int8_t col, int8_t row)
 	int16_t dy = (int16_t)((row + 1) * 0x3F), dx = (int16_t)(col << 5);
 	wr(o + 1, (int16_t)(rd(o + 1) + dy)); wr(o + 3, (int16_t)(rd(o + 3) + dx)); desc_obj_offset(o, dx, dy);
 }
+void desc_obj_to_tile(uint8_t *o, int8_t col, int8_t row) { obj_at_tile(o, col, row); }
 /* 0CD6:007A: object i drawn at the tile of `a` in its layer (its position, rect and layer restored after) */
 void desc_draw_obj_at(tile_args *a, int i)
 {

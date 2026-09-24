@@ -55,8 +55,15 @@ static void kind5_chars(void)
 		if (Char.room == 0x13 || Char.room == 0x10 || byte_9276 == (uint8_t)i) { grab_check(); save_char(); }
 	}
 }
-/* 33FD:0232 (DS:0664): 01CE (every third tick in rooms 0x13/0x10/0xF with DS:2BA4 0: palette cycling), 03C8, 0428 */
-void kind5_tick(void) { kind5_kid(); kind5_chars(); }
+/* 33FD:01CE: in rooms 0x13/0x10/0xF (drawn), every third tick while on time (DS:2BA4 0), the sea's colors 0xE6..0xE8,
+ * 0xE9..0xEB and 0xEC..0xED rotate (2699:0048: the renderer's) */
+static void kind5_palette(void)
+{
+	if (word_2ba4 != 0 || (drawn_room != 0x13 && drawn_room != 0x10 && drawn_room != 0xF) || tick % 3 != 0) return;
+	hook_pal_rotate(0xE6, 3); hook_pal_rotate(0xE9, 3); hook_pal_rotate(0xEC, 2);
+}
+/* 33FD:0232 (DS:0664): 01CE, 03C8, 0428 */
+void kind5_tick(void) { kind5_palette(); kind5_kid(); kind5_chars(); }
 /* 33FD:0128 / 0186 (0CD6:003A in the full redraw): the sea rooms' palette; DS:2B68 = 1 in rooms 0x13/0x10/0xF, 0 elsewhere */
 void kind5_room_palette(uint8_t room)
 {

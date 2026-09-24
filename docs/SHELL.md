@@ -90,9 +90,14 @@ Every keystroke first passes 2797:00E2: Ctrl-Q (0x11) and Alt-Q (0x1000) quit th
 
 Messages go to the status line (0FB3:204C) with DS:5CDC = DS:5CDA = 0x18. With the cheat word (0823:0528):
 `+` / `-` minutes, `I` upside down, `R` "Room n", `T` one more hit point (0823:0F16, music 0x65), `W` feather fall
-(0823:13C4), `r` revive a dead prince, F3 the demo player on/off ("PLAYER ON/OFF"). Not kept: `k` (kill the room's
-characters: overlay routines), `K`, `g`, `B`, `S`, F1/F2/F5..F8 and Alt-D (debug displays and dumps), SAYCHEESE/2BA2
-nudges, WATCHMEM.
+(0823:13C4), `r` revive a dead prince, F3 the demo player on/off ("PLAYER ON/OFF"), `K` one hit point less (hp delta
+-1, sound 0x1F, 0823:1008 / 0F38; seq 0x47 at 0), `g` the opponent one more hit point and maximum, `k` every
+character of the drawn room dies (skeletons collapse 366C:1166, charid 10 revive timer 0x1E0 and seq 0x6B, heads
+face away with hp 0 and seq 0x9A, the others seq 0x55), `S` on kinds 2 / 6 (the turn counter at 7 and a turn counted,
+2F86:0078: the spirit leaves with more than 4 hp, else death; palette 2000 at 0x30). Verified: CK1 (level 1: g, K, k,
+T, K) every tick identical, CK10 (level 10: S) identical but a tick's drawing scratch (the letters are movement keys
+too: the captures press them between two ticks). Not kept: `B` (blank / redraw toggle, DS:2B92), F1/F2/F5..F8 and
+Alt-D (the debug displays' flags DS:10CC..10DA, read only by 18C8, and dumps), SAYCHEESE/2BA2 nudges, WATCHMEM.
 
 ## 4. Demos (15DB)
 
@@ -245,6 +250,14 @@ probes).
 In-game shots (MENU1 m985 / m1400, DEATH1 d3700..) compare the picture the renderer (render*.c, not the shell's) draws
 under the status line: their differences are in rows 0..191, the status line itself matches.
 
+Plans (tools/plan2script.py `probepoke ds_tick N` lines: the key table and the BIOS shift flags at the N-th tick)
+are played by shelltest too, and `SHELL_VRAM=CAPTURE.frames` compares the screen with a tools/framecap.py capture's
+VGA dumps (VRAM_STEP) or RGB shots (SHOT_STEP, the palette included) at the same distance after the same tick, and
++-2 frames around (SHELL_CMP=CAPTURE.frames takes the capture's ds_tick records: framecap.py with an extra line
+`probe 169B 05E0 ds_tick 3DB50 4300`; SHELL_CMP_LABEL=pre_ds for captures without them, timing only;
+SHELL_VRAM_OUT=dir writes the differing screens). P2_raft (level 2 with the puzzle solved and the raft, FINDINGS
+5.17): 1300 of 1350 VGA dumps exact, 44 within two frames, 6 differ (the room switch's timing).
+
 `tests/run_shell.sh` reruns all of these (the captures under ~/pop2dec/oracle and ~/pop2dec/oracle/shell).
 
 The core's e2e captures stay identical with the core changes of 10 (tests/run_all.sh's e2e set).
@@ -294,4 +307,5 @@ tick code; `sh_scene` is public for it.
   so frame-exact timelines differ; tick-relative behaviour matches.
 - The joystick (never found here), the debug keys and displays (18C8), SBDIAG, memory/video errors.
 - The scenes' room hook (0AAC:0376, transitions 2 and 3) is the weak `shell_nis_room`: it loads the level, switches
-  to the room, calls the renderer's full redraw and puts the game state back; not compared with the oracle.
+  to the room (its description hook drawing too), calls the renderer's full redraw and puts the game state back;
+  compared with the oracle's C2 / C3 shots (docs/NIS.md): the room exact, the game's load time not modelled.

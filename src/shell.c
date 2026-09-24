@@ -238,8 +238,23 @@ void hook_hp_bars(void) { if (hooks_on) draw(draw_hp_bars); }                   
 void hp_bar_clear(void) { if (hooks_on) draw(draw_opp_clear); }                  /* 0FB3:25D4 with no opponent */
 void hp_bar_draw(uint8_t index, int a, uint8_t hp) { if (!hooks_on) return; hp_args[0] = index; hp_args[1] = (int16_t)a; hp_args[2] = hp; draw(draw_opp_hp); }   /* 0FB3:25D4 */
 void hook_level_loaded(void) { if (hooks_on) render_level_loaded(); }            /* 1286:01F2's image sets and palettes */
-void hook_room_enter(int bg) { if (hooks_on) render_room_enter_palette(bg); }
+static int nis_room_on;   /* (shell_nis_room: the room's hooks draw, 0AAC:0376) */
+void hook_room_enter(int bg) { if (hooks_on || nis_room_on) render_room_enter_palette(bg); }
 void hook_room_leave(int bg) { if (hooks_on) render_room_leave_palette(bg); }
+/* the drawing's parts of tick code (the renderer's state only: no draw() around them) */
+void hook_desert_gate(int8_t tp) { if (hooks_on) render_desert_gate_tick(tp); }   /* 33FD:0576 */
+void hook_desert_wave(int8_t tp) { if (hooks_on) render_desert_wave_tick(tp); }   /* 33FD:067C / 0708 */
+void hook_desert_tile1e(void) { if (hooks_on) render_desert_tile1e_tick(); }      /* 33FD:08BE */
+void hook_desert_press(int col) { if (hooks_on) render_desert_press(col); }       /* 33FD:0904 */
+void hook_lever5_mouth(void) { if (hooks_on) render_lever5_mouth_tick(); }           /* 37F0:0756 */
+void hook_lever5_trap(void) { if (hooks_on) render_lever5_trap_tick(); }             /* 37F0:053B */
+void hook_water_wave(int8_t tp, uint8_t v) { if (hooks_on) render_water_tick(tp, v); }   /* 37F0:06CE */
+void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m)   /* 33FD:0680 / 08C0 / 05AC (level 1) */
+{
+	if (!hooks_on) return;
+	if (tile == 0x25) render_roof25_tick(tp); else if (tile == 0x26) render_roof26_tick(m); else render_roof27_tick(m);
+}
+void hook_pal_rotate(int start, int count) { if (hooks_on) render_pal_rotate(start, count); }   /* 2699:0048 */
 /* 0AAC:00AE: the first room is the picture the story scene before it ended on (no checkpoint (DS:5AB2), not a
  * restart (DS:5CB6); DS:2BB6, a restored game, not kept here): level 6 room 0x1B, level 10 room 0x16, level 14 room
  * 1 (DS:4418 the level's start room), level 8 room 9 (DS:6B6D, the room entered); with a checkpoint: level 8 room 9 */
@@ -287,7 +302,7 @@ __attribute__((weak)) void shell_nis_room(int lv, int room, uint8_t *pixels, int
 	word_2b96 = 0;                                   /* 169B:018E */
 	if (load_level_ex(lv, 1)) {                      /* 1286:02EE / 00A2 / 043A / 03B6 / 0592 */
 		drawn_room = 0; next_room = (uint8_t)room;
-		switch_room();                               /* 0823:0E72(1) */
+		nis_room_on = 1; switch_room(); nis_room_on = 0;   /* 0823:0E72(1): the room's description hook draws too (level 14 room 1's sky, 33FD:145E) */
 		render_redraw_all();                         /* 169B:0430 */
 		for (int y = 0; y < 192; y++) memcpy(pixels + y * rowbytes, screen_buf + y * SCREEN_W, SCREEN_W);
 	}
@@ -391,10 +406,43 @@ static int demo_toggle(void) { demo.mode = demo.mode == 4 ? 0 : 4; return demo.m
 /* ---- the in-game keys (0823:02BE, with 0823:10A0's pause and 0823:0528's cheats) ---- */
 extern int hotkeys_02be_core(void);   /* input.c: the core's version (tests, pop2_frame) */
 static void message(const char *s) { status_message(s); word_5cdc = word_5cda = 0x18; }
-static void cheat_keys(int di)   /* 0823:0528 (the gameplay ones; the debug displays are left out) */
+/* 0823:07A6 ('k'): every character of the drawn room dies: skeletons (level type 2) collapse (366C:1166), charid 10
+ * gets the revive timer 0x1E0 (366C:125E) and seq 0x6B, heads (types 5 / 6) turn to face away from the prince, hp 0,
+ * seq 0x9A; the others seq 0x55 */
+static void cheat_kill_room(void)
+{
+	Char.opp_index = 0xFF; Kid = Char;
+	int n = (int8_t)ROOM_REC(drawn_room)->nchars;
+	for (int i = 0; i < n; i++) {
+		load_char(i);                                   /* 0AFF:1D0E */
+		Char.alive = 0; Char.hp_delta = (int8_t)-(int8_t)Char.f12;
+		if (level.type == 2) skel_collapse();          /* 366C:1166 */
+		else if (Char.charid == 0xA) { set_revive_timer(0x1E0, (uint8_t)i); seqtbl_offset_char(0x6B); Char.f0f = 1; }
+		else if (level.type == 5 || level.type == 6) { Char.direction = (int8_t)~Kid.direction; Char.f12 = 0; seqtbl_offset_char(0x9A); }
+		else seqtbl_offset_char(0x55);
+		save_char();                                    /* 0AFF:1CC2 */
+	}
+	loadkid();
+}
+static void cheat_keys(int di)   /* 0823:0528 (the gameplay ones; the debug displays F1, F2, F5..F8, Alt-D and 'B' are left out) */
 {
 	char t[40];
 	switch (di) {
+	case 0x4B:   /* 'K': one hit point less (dies at 0) */
+		Char.hp_delta = -1; play_sound(0x1F); Kid = Char;
+		apply_hp_deltas(); hp_bars_reload(); loadkid();   /* 0823:1008, 0F38, 0AFF:1D60 */
+		if (Char.f12 == 0) seqtbl_offset_char(0x47);
+		Char.hp_delta = 0; break;
+	case 0x67:   /* 'g': the prince's opponent gets one more hit point (and its maximum) */
+		Kid = Char;
+		if (Char.opp_index != 0xFF) { load_char(Char.opp_index); Char.f13++; Char.hp_delta = 1; save_char(); apply_hp_deltas(); hp_bars_reload(); }
+		loadkid(); break;
+	case 0x6B: cheat_kill_room(); break;   /* 'k' */
+	case 0x53:   /* 'S' (kinds 2 and 6): the turn counter at 7, a turn counted (2F86:0078): the spirit leaves at 8; palette 2000 */
+		if (level_kind != 2 && level_kind != 6) break;
+		word_5cbe = 7; Char.f19 = 5; turn_count();
+		if (hooks_on) render_pal_load(level_kind == 6 ? 1 : 0, 0x10, 0x30, 2000);   /* 0FB3:2B1C */
+		break;
 	case 0x2B: minutes_left++; word_5cdc = word_5cda = 0; word_5cd0 = 1; break;   /* '+' */
 	case 0x2D: if (minutes_left > 1) minutes_left--; word_5cdc = word_5cda = 0; word_5cd0 = 1; break;   /* '-' */
 	case 0x49: toggle_upside_down_pub(); break;   /* 'I' */

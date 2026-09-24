@@ -223,8 +223,8 @@ void draw_objs_at(uint8_t key)
 }
 
 /* ---- the tile pass over the requests ---- */
-static void call_drawer2(tile_args *a) { if (tile_drawers && a->tile < 0x2C && tile_drawers->by_tile[a->tile]) tile_drawers->by_tile[a->tile](a); }
-static int drawer_of(uint8_t tile) { return tile_drawers && tile < 0x2C && tile_drawers->by_tile[tile]; }
+static void call_drawer2(tile_args *a) { if (tile_drawers && a->tile < 0x2D && tile_drawers->by_tile[a->tile]) tile_drawers->by_tile[a->tile](a); }
+static int drawer_of(uint8_t tile) { return tile_drawers && tile < 0x2D && tile_drawers->by_tile[tile]; }
 static int empty_type(uint8_t t) { return t == 0 || t == 9 || t == 0x21 || t == 0x23 || t == 0x1B || t == 0x25; }   /* 0FB3:28D4 */
 static int wall_type_290a(uint8_t t) { return t == 0x14 || t == 2 || t == 7 || t == 0x19 || t == 0x2B; }             /* 0FB3:290A */
 int temple_wall_rect(int8_t row, uint8_t room, int16_t *r);   /* 347C:0238 (render_hooks.c) */
@@ -396,12 +396,20 @@ static void tiles_now(uint8_t *t, uint32_t *m)
 	for (int c = 0; c < 10; c++) { t[30 + c] = room_A ? ROOM_TILES(room_A)[20 + c] : 0; m[30 + c] = room_A ? ROOM_ATTRS(room_A)[20 + c] : 0; }
 }
 static void tiles_seen(void) { tiles_now(seen_tiles, seen_mods); seen_room = drawn_room; seen_above = room_A; seen_ok = 1; }
+/* the tiles whose tick-time requests the core reports through its hooks (shell.c): not tracked */
+static int tick_requests_modelled(uint8_t t)
+{
+	return (level_kind == 1 && (t == 4 || t == 0x1C || t == 0x1D || t == 0x1E))   /* 33FD:0538 / 0658 / 06E4 / 07CE */
+	    || (level_number == 5 && (t == 0x1B || t == 0x2C))                           /* 37F0:0756 / 06CE */
+	    || (level_kind == 5 && (t == 0x25 || t == 0x26 || t == 0x27));               /* 33FD:0680 / 08C0 / 05AC */
+}
 static void mark_changed_tiles(void)
 {
 	uint8_t t[40]; uint32_t m[40]; tiles_now(t, m);
 	if (seen_ok && seen_room == drawn_room && seen_above == room_A)
 		for (int i = 0; i < 40; i++) {
 			if (t[i] == seen_tiles[i] && m[i] == seen_mods[i]) continue;
+			if (t[i] == seen_tiles[i] && tick_requests_modelled(t[i])) continue;
 			int8_t row = i < 30 ? (int8_t)(i / 10) : -1, col = (int8_t)(i < 30 ? i % 10 : i - 30);
 			int16_t r[4]; tile_rect(row, col, r);
 			mark_tile(tile_index_of(row, col)); mark_chars(r, 0xFF);

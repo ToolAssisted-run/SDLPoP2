@@ -159,13 +159,16 @@ void anim_tile2c(void)
 		else if (old != 0) v = 0;
 		else { v = (uint8_t)(r - 1); anim_mod |= v; }
 	}
-	(void)v;   /* 37F0:06CE redraws the description's wave with frame v */
+	hook_water_wave((int8_t)cur_trob.tilepos, v);   /* 37F0:06CE redraws the description's wave with frame v */
 }
+/* the drawing's part of the water's tick code (the renderer's through shell.c; a no-op in the core) */
+__attribute__((weak)) void hook_water_wave(int8_t tp, uint8_t v) { (void)tp; (void)v; }
 /* 37F0:0742 (0823:0B78, tile 0x2C on entry) */
 void anim_start_2c(uint32_t *attrs, int8_t tp, uint8_t room)
 {
 	*(uint16_t *)&attrs[tp] &= 0xFFF0;
 	add_trob(0x2C, 1, tp, room);
+	hook_water_wave(tp, (uint8_t)(attrs[tp] & 0xF0));   /* 37F0:06CE */
 }
 /* 37F0:08F6 (1375:1B10, falling object type 0xB): a bubble grows (small to 4, big to 9 and gone) */
 void bubble_update(void)

@@ -51,6 +51,7 @@ void render_set_chtab(int n, const char *dat, uint16_t first, uint8_t pal_base);
 const image_t *render_image(int chtab, int id);   /* image id (1-based) of a set; cached decode; NULL if missing */
 int render_image_res(int chtab, int id, const char **dat, int *res);
 void render_register_image(int chtab, int id, const char *dat, int res);   /* image `id` of set `chtab` is resource `res` of `dat` */
+void render_image_set_mask(int chtab, int id, uint16_t mask);   /* (a registered image) converted with `mask` */
 extern uint8_t render_guard_type;   /* 0xFF: the guard set is the level type's */
 
 /* 0993:0008 (register arguments al, dx, bx): fill *e from a piece (image id, x, y) at the current tile, cut to the
@@ -69,7 +70,7 @@ extern int16_t *render_owner, render_owner_id;   /* (tests) when set, the entry 
 
 /* the saved backgrounds (DS:5FEC / 5FEE) */
 #define SAVED_MAX 40
-typedef struct saved_bg { int16_t rect[4]; uint8_t id, kind; uint16_t flag; uint8_t *bits; } saved_bg;
+typedef struct saved_bg { int16_t rect[4]; uint8_t id, kind; uint16_t flag; uint8_t *bits; int16_t bounds[4]; } saved_bg;   /* rect: where it is put back (tick code can narrow it: 33FD:0B12); bounds: the saved bitmap (its port) */
 extern saved_bg saved_bgs[SAVED_MAX]; extern uint16_t saved_count;
 void render_save_under(int16_t left, int16_t right, int16_t top, int16_t height, uint8_t id, uint8_t kind);   /* 0993:04F0 */
 void render_restore_saved(void);   /* 0993:0684 */

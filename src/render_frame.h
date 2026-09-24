@@ -71,6 +71,13 @@ void render_pal_restore(void);    /* 0FB3:294C */
 void render_pal_blackout(void);   /* 0FB3:29B8 */
 void render_pal_flash(int n);     /* 0FB3:2A34 */
 void render_pal_rotate(int start, int count);   /* 2699:0048 */
+void render_desert_gate_tick(int8_t tp);   /* 33FD:0576 (level 2, tile 4 at tick time) */
+void render_desert_wave_tick(int8_t tp);   /* 33FD:067C / 0708 (tiles 0x1C / 0x1D) */
+void render_desert_tile1e_tick(void);     /* 33FD:08BE (tile 0x1E moving) */
+void render_desert_press(int col);        /* 33FD:0904 (a puzzle tile pressed) */
+int render_trob_rect(uint16_t tmpl, int16_t *r);   /* 1375:0454: the rect DS:tmpl at the animated tile (DS:6672) */
+void render_lever5_images(void); void render_lever5_entry(void); void render_lever5_mouth_tick(void); void render_lever5_trap_tick(void);   /* render_ovl37f0.c */
+void render_water_tick(int8_t tp, uint8_t v); void render_roof25_tick(int8_t tp); void render_roof26_tick(uint16_t m); void render_roof27_tick(uint16_t m); void render_lever5_set_saved(int v);
 void render_pal_guards(void);     /* 2D3E:0F50 */
 void render_pal_level_start(void);
 void render_room_enter_palette(int bg);   /* the palette parts of the description rooms' hooks (entry 0, room loaded) */

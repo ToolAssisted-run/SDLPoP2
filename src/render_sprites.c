@@ -32,7 +32,7 @@ static void set_rect(int16_t *r, uint16_t ds_addr) { for (int k = 0; k < 4; k++)
 static void char_box(int16_t *r) { r[0] = Char.bbox_top; r[1] = Char.bbox_left; r[2] = Char.bbox_bottom; r[3] = Char.bbox_right; }
 
 /* 0993:02AE (al: the object's type): the drawing variables into the frame's objects (DS:5D3A) */
-static void add_obj(uint8_t type)
+void add_obj(uint8_t type)
 {
 	if (obj_count >= OBJ_MAX) return;
 	int k = obj_count++; frame_obj *o = &objs[k];

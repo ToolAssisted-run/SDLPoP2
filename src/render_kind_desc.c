@@ -6,6 +6,7 @@
 #include "globals.h"
 #include "render.h"
 #include "render_tiles.h"
+#include "render_frame.h"
 
 static int16_t rd(const uint8_t *p) { return (int16_t)(p[0] | p[1] << 8); }
 static void wr(uint8_t *p, int16_t v) { p[0] = (uint8_t)v; p[1] = (uint8_t)(v >> 8); }
@@ -40,6 +41,90 @@ static void desert_1e(tile_args *a)
 	desc_draw_obj_at(a, d + 4);
 	if (d > 7 && a->col - puzzle_answer == 2) desc_draw_obj_at(a, 0x10);
 }
+/* the tick-time parts (called from kind1.c's tile animations through shell.c): they act on the drawn room's
+ * description (DS:[0x01AC]) whichever room the tile is in */
+/* 33FD:0576 (tile 4's animation step): object 2's rect grows 2 to the left; the back layers under it are redrawn at
+ * the tile, the tile right of it and the two above (1375:0DC6), and the screen saved under it put back (0CD6:0684) */
+void render_desert_gate_tick(int8_t tp)
+{
+	if (desc_count() <= 2) return;
+	uint8_t *o = desc_obj(2); wr(o + 0xD, (int16_t)(rd(o + 0xD) - 2));
+	int16_t r[4]; for (int k = 0; k < 4; k++) r[k] = rd(o + 0xB + 2 * k);
+	mark_back(tp, r); mark_back((int8_t)(tp + 1), r); mark_back((int8_t)(tp - 10), r); mark_back((int8_t)(tp - 9), r);
+	render_desc_restore_obj(o[0]);
+}
+/* 33FD:067C / 0708 (tiles 0x1C / 0x1D, a step of the waves): the back layers under object 1's rect at the tile */
+void render_desert_wave_tick(int8_t tp)
+{
+	if (desc_count() <= 1) return;
+	uint8_t *o = desc_obj(1); int16_t r[4]; for (int k = 0; k < 4; k++) r[k] = rd(o + 0xB + 2 * k);
+	mark_back(tp, r);
+}
+/* 17C1:0034 / 00B4: the column / row of tile tp of `room` in the drawn room's grid (-1 / 10 / 3: the neighbours'
+ * edge next to it; 0x1E: not in it) */
+static int8_t grid_col(int8_t tp, uint8_t room)
+{
+	int8_t c = (int8_t)(tp % 10);
+	if (room == drawn_room || room == room_A || room == room_B) return c;
+	if (c == 9 && (room == room_L || room == room_BL || room == room_AL)) return -1;
+	if (c == 0 && (room == room_R || room == room_BR || room == room_AR)) return 0xB;
+	return 0x1E;
+}
+static int8_t grid_row(int8_t tp, uint8_t room)
+{
+	int8_t r = (int8_t)(tp / 10);
+	if (room == drawn_room || room == room_L || room == room_R) return r;
+	if (room == room_A && r == 2) return -1;
+	if (room == room_B && r == 0) return 3;
+	return 0x1E;
+}
+/* 1375:0454: the rect DS:tmpl at the animated tile (DS:6672) on the screen; 0 when it does not show */
+int render_trob_rect(uint16_t tmpl, int16_t *r)
+{
+	int16_t t[4]; for (int k = 0; k < 4; k++) t[k] = (int16_t)ds_word((uint16_t)(tmpl + 2 * k));
+	int8_t col = grid_col((int8_t)cur_trob.tilepos, cur_trob.room), row = grid_row((int8_t)cur_trob.tilepos, cur_trob.room);
+	return render_rect_at_tile(row, col, t, r);   /* 17C1:016E */
+}
+/* 1375:0536 / 06A8: the tile right of / below the animated one as the drawn room's request index (0x1E none; -1..-10
+ * the row above) */
+static int8_t trob_right(void)
+{
+	int8_t t = (int8_t)cur_trob.tilepos; uint8_t room = cur_trob.room;
+	if (room == drawn_room) return t % 10 == 9 ? 0x1E : (int8_t)(t + 1);
+	if (room == room_L) return t % 10 == 9 ? (int8_t)(t - 9) : 0x1E;
+	if (room == room_A) return t >= 0x14 && t < 0x1D ? (int8_t)(0x12 - t) : 0x1E;
+	if (room == room_AL) return t == 0x1D ? -1 : 0x1E;
+	return 0x1E;
+}
+static int8_t trob_below(void)
+{
+	int8_t t = (int8_t)cur_trob.tilepos; uint8_t room = cur_trob.room;
+	if (room == drawn_room) return t < 0x14 ? (int8_t)(t + 10) : 0x1E;
+	if (room == room_A) return t >= 0x14 ? (int8_t)(t % 10) : 0x1E;
+	return 0x1E;
+}
+/* 33FD:08BE (tile 0x1E's animation, still moving): the back layers under DS:1498 at the tile (the animated tile's
+ * own position as the index), the one right of it and the one below */
+void render_desert_tile1e_tick(void)
+{
+	int16_t r[4];
+	if (!render_trob_rect(0x1498, r)) return;
+	mark_back((int8_t)cur_trob.tilepos, r); mark_back(trob_right(), r); mark_back(trob_below(), r);
+}
+/* 33FD:0904 (a puzzle tile pressed, column col): the screens saved under the clue's copies (id 0x72: object 14's six
+ * copies, 33FD:0770) that touch x = 32 (col + 1) are put back next frame: the first two with an edge there, or the one
+ * spanning it at y 0x72..0x7F */
+void render_desert_press(int col)
+{
+	int16_t x = (int16_t)((col + 1) << 5); int found = 0;
+	for (int n = 1; ; n++) {   /* 0993:0646: the n-th slot of id 0x72 */
+		int k, m = 0; for (k = 0; k < saved_count; k++) if (saved_bgs[k].id == 0x72 && ++m == n) break;
+		if (k >= saved_count) return;
+		saved_bg *b = &saved_bgs[k];
+		if (b->rect[1] == x || b->rect[3] == x) { b->flag = 0; if (++found == 2) return; }
+		else if (b->rect[1] < x && b->rect[3] > x && b->rect[0] == 0x72 && b->rect[2] == 0x7F) { b->flag = 0; return; }
+	}
+}
 const kind_drawers kind_desert = {{
 	[0x04] = desert_04, [0x1C] = desert_1c, [0x1D] = desert_1c, [0x1E] = desert_1e,
 }, NULL};
@@ -68,6 +153,57 @@ static void roof_27(tile_args *a)
 {
 	if (a->layer != 0xB || mod_lo(a) >= 0xB) return;
 	draw_unclipped(mod_lo(a) + 0x1F);
+}
+/* the tick-time parts of the rooftops' tile animations (anim.c through shell.c) */
+static int rect_meets(int16_t *r, const int16_t *a, const int16_t *b) { return render_sect_rect(r, a, b); }   /* 194C:5266 */
+/* 33FD:0680 (tile 0x25, a step while visible): object 0x19 at the tile, the tiles under it and under it 12 lower and
+ * 30 to the left (33FD:0876) requested, unless a grab in progress (33FD:030E) meets it; the object put back */
+void render_roof25_tick(int8_t tp)
+{
+	if (desc_count() <= 0x19) return;
+	int16_t g[4], r[4]; desc_grab_rect(g);
+	uint8_t *o = desc_obj(0x19), save[0x19]; memcpy(save, o, sizeof save);
+	desc_obj_to_tile(o, (int8_t)(tp % 10), (int8_t)(tp / 10));   /* 0CD6:0108 */
+	for (int k = 0; k < 4; k++) r[k] = rd(o + 0xB + 2 * k);
+	extern uint8_t byte_6937;
+	if (!(byte_6937 && rect_meets(g, g, r))) {
+		mark_tiles_under(mark_back, r, 0xFF);
+		wr(o + 1, (int16_t)(rd(o + 1) + 0xC)); wr(o + 3, (int16_t)(rd(o + 3) - 0x1E)); desc_obj_offset(o, -0x1E, 0xC);   /* 33FD:0876 */
+		for (int k = 0; k < 4; k++) r[k] = rd(o + 0xB + 2 * k);
+		mark_tiles_under(mark_back, r, 0xFF);
+	}
+	memcpy(o + 1, save + 1, 4); memcpy(o + 0xB, save + 0xB, 8);
+}
+/* the box of object i's image at its position with x = x (194C:13B3), one wider */
+static void obj_box(int i, int16_t x, int16_t *r)
+{
+	uint8_t *o = desc_obj(i); const image_t *im = render_image(4, rd(o + 7)); int16_t y = rd(o + 1);
+	r[0] = y; r[1] = x; r[2] = (int16_t)(y + (im ? im->height : 0)); r[3] = (int16_t)(x + (im ? im->width : 0) + 1);
+}
+/* 33FD:08C0 (tile 0x26, the ship leaving, a step m while the tile is in the drawn room): object 19 at x -m and
+ * object 0x15 + ((m - 1) & 3) at x 1 - m: the tiles under their boxes (one wider) requested; object 19's saved
+ * screen put back (0CD6:0684), its rect cut at the box's right edge when that falls inside it (33FD:0B12) */
+void render_roof26_tick(uint16_t m)
+{
+	if (desc_count() <= 20 || cur_trob.room != drawn_room) return;
+	int16_t r[4];
+	uint8_t *o = desc_obj(19); wr(o + 3, (int16_t)-m);
+	obj_box(19, (int16_t)-m, r);
+	mark_tiles_under(mark_back, r, 0xFF);
+	int slot = render_desc_restore_obj(o[0]);
+	if ((int8_t)slot >= 0 && slot < saved_count && saved_bgs[slot].rect[1] < r[3] && saved_bgs[slot].rect[3] > r[3]) saved_bgs[slot].rect[3] = r[3];
+	int k = (int)(((uint8_t)(m - 1) & 3) + 0x15);
+	if (k >= desc_count()) return;
+	wr(desc_obj(k) + 3, (int16_t)(1 - m));
+	obj_box(k, (int16_t)(1 - m), r);
+	mark_tiles_under(mark_back, r, 0xFF);
+}
+/* 33FD:05AC (tile 0x27, step m): the tiles under object m + 0x1E's rect */
+void render_roof27_tick(uint16_t m)
+{
+	int i = (int)(uint8_t)(m + 0x1E); if (i >= desc_count()) return;
+	int16_t r[4]; for (int k = 0; k < 4; k++) r[k] = rd(desc_obj(i) + 0xB + 2 * k);
+	mark_tiles_under(mark_back, r, 0xFF);
 }
 const kind_drawers kind_rooftops = {{
 	[0x25] = roof_25, [0x26] = roof_26, [0x27] = roof_27,

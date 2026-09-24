@@ -213,7 +213,19 @@ black-out/erase wrapper; `NIS_INTRO` plays 7, 4, 8 with the music running on.
 
 Engine hooks (nis.h): `nis_set_room_hook` for 0AAC:0376 (transitions 2 and 3 draw a game room: level 10 room 22,
 level 14 room 1), `nis_set_kid` for the kid of transition 6 (0AAC:0442, OVL14's placing of script 4210). Without them
-the room area stays as the scene left it.
+the room area stays as the scene left it. tests/nistest.c built with -DNIS_ENGINE (tools/nisrun.py does) links the
+whole program and sets the room hook to the shell's `shell_nis_room` (with DS:2BA6 = 1, as 0AAC:0274 sets it).
+
+0AAC:0376 (room, level): 169B:018E; DS:0998 = DS:5CEC = level; the game's offscreen port DS:5CC2 = the current port (the
+scene's screen, so the room is drawn straight into it); 1286:02EE (the level), the kind's scenery file opened,
+1286:00A2 (the tiles, colours 0x40.. unless 0AAC:00AE), 1286:043A if the kind changed, 1286:03B6, 1286:0592; drawn room
+0, DS:6B6D = room, 0823:0E72(1) (the room's description and its hook: level 14 room 1's 33FD:145E fills the port
+with 0x8B, the sky), 169B:0430 (the whole redraw); 1286:0EC6(4), (1), 0EAC; the file closed; DS:43FD (the level kind)
+= 0; DS:5CC2 put back; 2A31:0D03. Compared (2026-09-24): the room itself is exact in both (scene 2: every difference
+of the room phase lies in the horse's animation, e.g. shot 2604: 725 px, all in x 119..195, y 102..185); scene 3's
+sky needed the description hook's fill (shell_nis_room lets the room hooks draw: `nis_room_on`) and its horse statue
+(the extra piece 0x6372) is off while DS:2BA6 is set. What remains is timing: the game spends ~45 frames loading
+the level before its fade (scene 3 shots 1527..1563 black in the game), and anim 11's horse is 2-3 px off from ours.
 
 ## Verification (tests/nistest.c, tools/nisrun.py)
 
@@ -233,7 +245,7 @@ sound: the cheat's music for the next loop).
 | 9 | 1413 | 1267 | 1410 | fades during dense MIDI (lost ticks) |
 | 10 | 1870 | 1707 | 1855 | dissolve steps, 2 torn shots |
 | 11 (ending) | 1587 | 1358 | 1513 | tearing, fade phase around callbacks, 1-2 frame phase |
-| 1, 2, 3, 5 | 2654 | 1965 | 2264 | 2, 3: the game room (engine hook); load stalls; tearing |
+| 1, 2, 3, 5 | 2654 | 1992 | 2340 | 2, 3: the game's load time around the room (engine hook) not modelled; anim 11's horse; tearing |
 | 6 | 1543 | 6 | 29 | 10 px: the item's palette bank 15 (from the game); 2 px uninitialised memory |
 
 "Tearing": the game's shot caught the copy of an anim frame to the screen half done. All mismatches examined are

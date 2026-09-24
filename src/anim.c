@@ -23,19 +23,27 @@ static int tile_visible(int8_t tilepos, uint8_t room)
 	if (room == room_BL && tilepos == 9) return 1;
 	return 0;
 }
-/* kind 5 (level 1) handlers, OVL 33FD (0x25 also serves kind 1's 0x1C/0x1D) */
+/* kind 5 (level 1) handlers, OVL 33FD; their redraw requests go to the renderer (weak hooks, shell.c) */
+__attribute__((weak)) void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m) { (void)tile; (void)tp; (void)m; }
 static void anim_torch_25(void)   /* 33FD:0652: cycles 0..7 while visible */
 {
 	if (!tile_visible(cur_trob.tilepos, cur_trob.room)) { cur_trob.state = 0xFF; return; }
 	uint16_t v = (uint16_t)anim_mod & 0xF; v = v == 7 ? 0 : v + 1;
 	anim_mod = (anim_mod & ~0xFu) | v;
+	hook_roof_tick(0x25, (int8_t)cur_trob.tilepos, v);   /* 33FD:0680 */
 }
-static void anim_26(void) { uint16_t v = (uint16_t)anim_mod + 1; anim_mod = (anim_mod & 0xFFFF0000u) | v; if (v > 0xB0) cur_trob.state = 0xFF; }   /* 33FD:08A2 */
+static void anim_26(void)         /* 33FD:08A2 */
+{
+	uint16_t v = (uint16_t)anim_mod + 1; anim_mod = (anim_mod & 0xFFFF0000u) | v;
+	if (v > 0xB0) { cur_trob.state = 0xFF; return; }
+	hook_roof_tick(0x26, (int8_t)cur_trob.tilepos, v);   /* 33FD:08C0 */
+}
 static void anim_27(void)         /* 33FD:058A */
 {
 	if ((uint16_t)anim_mod >= 0xB) { cur_trob.state = 0xFF; return; }
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)((uint16_t)anim_mod + 1);
 	if ((uint16_t)anim_mod == 1) play_sound(0x31);
+	hook_roof_tick(0x27, (int8_t)cur_trob.tilepos, (uint16_t)anim_mod);   /* 33FD:05AC */
 }
 /* 1375:04CE: animations off screen stop */
 static int anim_visible(void) { int v = tile_visible(cur_trob.tilepos, cur_trob.room); if (!v) cur_trob.state = 0xFF; return v; }
@@ -95,7 +103,7 @@ static void animate_tile(void)
 	else if (level_kind == 5 && t == 0x27) anim_27();
 	else if (t == 4 && level_kind == 1) anim_gate_kind1();   /* 33FD:0538 */
 	else if (t == 4) anim_gate();
-	else if ((t == 0x1C || t == 0x1D) && level_kind == 1) anim_torch_25();   /* 33FD:06E4 / 0658: same as kind 5's 0x25 */
+	else if ((t == 0x1C || t == 0x1D) && level_kind == 1) anim_wave_kind1();   /* 33FD:06E4 / 0658 (kind1.c) */
 	else if (t == 0x1E && level_kind == 1) anim_tile1e();   /* 33FD:07CE */
 	else if (t == 5 || t == 6 || t == 0x22) anim_button();
 	else if (t == 0xA) anim_0a();

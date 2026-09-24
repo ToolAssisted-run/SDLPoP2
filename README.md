@@ -199,6 +199,11 @@ This is an unofficial reconstruction of Prince of Persia 2 (DOS) for research an
 with or endorsed by the game's rights holders, who own the game, its code, data and trademarks; the contributors
 claim no ownership of it, and no game data is included (you need your own copy). Details: `NOTICE`.
 
+**Copy protection:** this engine does not allow bypassing the original game's copy protection. As in the DOS game,
+the question from the manual is asked the first time a game reaches level 3 or later, however it gets there (playing
+on, a restored game, the level cheat, Alt+N or the `first_level` setting); there is no setting, command-line option,
+cheat or environment variable to skip, answer or move it.
+
 ## Credits
 - [SDLPoP](https://github.com/NagyD/SDLPoP) by Dávid Nagy and its contributors: this project is modelled on it,
   `SDLPoP2.ini` follows its `SDLPoP.ini`, and the in-game menu (`sdl/overlay_menu.c`) is its `src/menu.c`

@@ -13,6 +13,14 @@ const char *const settings_key_ini_names[KEY_COUNT] = {
 };
 const uint8_t settings_key_pc_scan[KEY_COUNT] = { 0x4B, 0x4D, 0x48, 0x50, 0x47, 0x49, 0x4F, 0x51, 0x2A, 0x1D };
 static const char *const key_defaults[KEY_COUNT] = { "Left", "Right", "Up", "Down", "Home", "PageUp", "End", "PageDown", "Left Shift", "Left Ctrl" };
+const char *const settings_button_ini_names[BUTTON_COUNT] = {
+	"button_up", "button_down", "button_shift", "button_ctrl", "button_menu", "button_restart", "button_quicksave", "button_quickload",
+	"button_time", "button_info",
+};
+/* SDLPoP's controller layout (Y up, A down, X and the triggers Shift) with PoP2's Ctrl on B */
+static const char *const button_defaults[BUTTON_COUNT] = {
+	"y", "a", "x lefttrigger righttrigger", "b", "start", "back", "leftshoulder", "rightshoulder", "rightstick", "none",
+};
 
 /* the game's tables (PRINCE.EXE's data segment: DS:1BB6 strike, restrike, block, impblock, advance; DS:13D0 refract) */
 static const uint16_t def_strike[SETTINGS_SKILLS]   = { 75, 100, 75, 75, 75, 50, 100, 220, 0, 60, 40, 60 };
@@ -33,6 +41,8 @@ void settings_defaults(pop2_settings *s)
 	snprintf(s->replays_folder, sizeof s->replays_folder, "replays");
 	s->random_seed_clock = 1; s->random_seed = 0;
 	s->enable_info_screen = 1;
+	s->enable_controller = s->controller_rumble = 1; s->joystick_threshold = 8000; s->joystick_only_horizontal = 0;
+	for (int b = 0; b < BUTTON_COUNT; b++) snprintf(s->buttons[b], sizeof s->buttons[b], "%s", button_defaults[b]);
 	s->start_minutes_left = 75; s->ticks_per_minute = 0x2CF; s->start_hitp = 3; s->max_hitp_allowed = 12;
 	s->skip_level_reduced_minutes = 15; s->first_level = 1; s->copyprot_first_level = 3;
 	s->base_speed = 5; s->fight_speed = 6;
@@ -67,6 +77,11 @@ static const field fields[] = {
 	F("AdditionalFeatures", replays_folder, T_STR, 0, 0, 0),
 	F("AdditionalFeatures", random_seed, T_SEED, 0, 0, 0),
 	F("AdditionalFeatures", enable_info_screen, T_BOOL, 0, 1, 0),
+	F("Controller", enable_controller, T_BOOL, 0, 1, 0),
+	F("Controller", controller_rumble, T_BOOL, 0, 1, 0),
+	F("Controller", joystick_threshold, T_INT, 0, 32767, 0),
+	F("Controller", joystick_only_horizontal, T_BOOL, 0, 1, 0),
+	F("Controller", gamecontrollerdb_file, T_STR, 0, 0, 0),
 	F("CustomGameplay", start_minutes_left, T_INT, 1, 32767, 1),
 	F("CustomGameplay", ticks_per_minute, T_INT, 1, 65535, 1),
 	F("CustomGameplay", start_hitp, T_INT, 1, 127, 1),
@@ -162,7 +177,8 @@ int settings_parse_text(pop2_settings *s, const char *text, const char *origin, 
 			} else if (sscanf(section, "Skill %d", &num) == 1) {
 				if (num < 0 || num >= SETTINGS_SKILLS) { WARN("%s:%d: [%s]: skills are 0..%d", origin, lineno, section, SETTINGS_SKILLS - 1); section[0] = 0; continue; }
 				sec_n = num; snprintf(section, sizeof section, "Skill");
-			} else if (strcmp(section, "General") && strcmp(section, "AdditionalFeatures") && strcmp(section, "CustomGameplay")) {
+			} else if (strcmp(section, "General") && strcmp(section, "AdditionalFeatures") && strcmp(section, "CustomGameplay")
+			           && strcmp(section, "Controller")) {
 				WARN("%s:%d: unknown section [%s]", origin, lineno, section); section[0] = 0;
 			}
 			continue;
@@ -192,6 +208,11 @@ int settings_parse_text(pop2_settings *s, const char *text, const char *origin, 
 				for (int k = 0; k < KEY_COUNT; k++) if (!strcmp(key, settings_key_ini_names[k])) {
 					if (ieq(val, "default")) snprintf(s->keys[k], sizeof s->keys[k], "%s", d.keys[k]);
 					else snprintf(s->keys[k], sizeof s->keys[k], "%s", val);
+					ok = 1;
+				}
+			if (!strcmp(section, "Controller"))
+				for (int b = 0; b < BUTTON_COUNT; b++) if (!strcmp(key, settings_button_ini_names[b])) {
+					snprintf(s->buttons[b], sizeof s->buttons[b], "%s", ieq(val, "default") ? d.buttons[b] : val);
 					ok = 1;
 				}
 			for (int i = 0; i < NFIELDS && ok < 0; i++)

@@ -1,5 +1,5 @@
 sdlpop2Frontend = executable('sdlpop2',
-  'main.c',
+  'main.c', 'controller.c',
   c_args : [ commonCompileArgs,
              '-DSDLPOP2_DATADIR="' + (get_option('prefix') / get_option('datadir') / 'sdlpop2') + '"' ],
   dependencies : [ sdlpop2Dependency, dependency('sdl2') ],

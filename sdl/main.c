@@ -1,4 +1,5 @@
-/* SDLPoP2's SDL2 frontend: a window, the keyboard, the game's tick timing, the renderer's screen and palette.
+/* SDLPoP2's SDL2 frontend: a window, the keyboard and game controllers (controller.c), the game's tick timing, the
+ * renderer's screen and palette.
  * The program itself (title, menus, scenes, levels) is source/shell.c, stepped one VGA frame (70.086 Hz) at a time.
  * Settings: SDLPoP2.ini (source/settings.h); replays: source/replay.h.
  * usage: sdlpop2 [--ini PATH] [--record NAME | --replay NAME] GAME_DIR [DOS command line words] */
@@ -17,6 +18,8 @@
 #include "../source/replay.h"
 #include "../source/loader.h"
 #include "../source/text.h"
+#include "../source/globals.h"
+#include "controller.h"
 #ifndef SDLPOP2_DATADIR
 #define SDLPOP2_DATADIR ""
 #endif
@@ -77,9 +80,11 @@ static void overlay_draw(void)
 			"Ctrl+Q, Alt+Q: quit", "",
 			"F6: quicksave   F9: quickload",
 			"Alt+Enter: fullscreen   (SDLPoP2.ini: settings)",
+			"Pad (default): D-pad / stick, X Shift, B Ctrl,",
+			"Y up, A down, Start Esc, Back Alt+A, LB/RB F6/F9",
 		};
-		int n = (int)(sizeof lines / sizeof lines[0]);
-		qrect box = { 14, 10, (int16_t)(14 + 14 + 11 * n), 310 };
+		int n = (int)(sizeof lines / sizeof lines[0]) - (controller_count() ? 0 : 2);   /* (the controller's lines when one is connected) */
+		qrect box = { 14, 10, (int16_t)(14 + 14 + 11 * n > 199 ? 199 : 14 + 14 + 11 * n), 310 };
 		gfx_fill_rect(2, &box);
 		overlay->fg = 1;
 		for (int i = 0; i < n; i++) overlay_text(box.top + 16 + 11 * i, box.left + 8, lines[i]);
@@ -241,6 +246,7 @@ int main(int argc, char **argv)
 	}
 	build_keymap();
 	open_audio(dir);
+	controller_init(&S, 0);
 
 	static shell_input in; int replaying = play_name != NULL, action = REPLAY_NONE;
 	Uint64 next = SDL_GetPerformanceCounter(), hz = SDL_GetPerformanceFrequency();
@@ -248,6 +254,7 @@ int main(int argc, char **argv)
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
 			if (e.type == SDL_QUIT) goto out;
+			if (controller_event(&e)) continue;
 			if (e.type != SDL_KEYDOWN && e.type != SDL_KEYUP) continue;
 			SDL_Scancode sc = e.key.keysym.scancode; int down = e.type == SDL_KEYDOWN;
 			/* the frontend's own keys: never passed to the game, nor recorded */
@@ -264,6 +271,13 @@ int main(int argc, char **argv)
 			if (replaying || info_shown) continue;   /* (a replay plays its own keys) */
 			shell_input_key(&in, keymap[sc], down, down && !keyaction[sc] ? ascii_of(e.key.keysym.sym, e.key.keysym.mod) : 0);
 		}
+		{   /* the controllers: the keys they hold and type into the frame's input, and the frontend's actions */
+			int c = controller_frame(&in, shell_mode(), !replaying && !info_shown);
+			if (info_shown && (c & (CONTROLLER_INFO | CONTROLLER_CLOSE))) info_shown = 0;
+			else if ((c & CONTROLLER_INFO) && S.enable_info_screen) info_shown = 1;
+			if ((c & (CONTROLLER_QUICKSAVE | CONTROLLER_QUICKLOAD)) && S.enable_quicksave && !replaying)
+				action = (c & CONTROLLER_QUICKSAVE) ? REPLAY_QUICKSAVE : REPLAY_QUICKLOAD;
+		}
 		if (!info_shown) {   /* (while the info screen shows, the game waits) */
 			if (replaying && !replay_frame(&play, &in, &action)) {
 				message(replay_verify(&play) ? "REPLAY VERIFIED" : "REPLAY DIFFERS FROM THE RECORDING");
@@ -278,7 +292,9 @@ int main(int argc, char **argv)
 			int r = shell_step(&in);
 			if (adev) SDL_UnlockAudioDevice(adev);
 			in.ntyped = 0;
-			switch (shell_quick_result()) { case 1: message("QUICKSAVE"); break; case 2: message("QUICKLOAD"); break; case -1: message("NO QUICKSAVE YET"); break; }
+			int q = shell_quick_result();
+			switch (q) { case 1: message("QUICKSAVE"); break; case 2: message("QUICKLOAD"); break; case -1: message("NO QUICKSAVE YET"); break; }
+			controller_after_step(shell_mode(), pop2_level(), Kid.f12, q == 2);   /* (rumble: the hit points, Kid +0x12, went down) */
 			if (r == SHELL_EXIT) {
 				if (replaying) { int act; shell_input end; replay_frame(&play, &end, &act);
 					fprintf(stderr, "sdlpop2: %s\n", replay_verify(&play) ? "REPLAY VERIFIED" : "REPLAY DIFFERS FROM THE RECORDING"); }
@@ -305,6 +321,7 @@ out:
 	}
 	if (shell_exit_message()) printf("%s\n", shell_exit_message());
 	if (adev) SDL_CloseAudioDevice(adev);
+	controller_quit();
 	SDL_Quit();
 	return shell_exit_code();
 }

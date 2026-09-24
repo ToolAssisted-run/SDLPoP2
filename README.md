@@ -30,6 +30,7 @@ writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has every
                                                # (options before the directory: --ini PATH, --record NAME, --replay NAME)
 Tests: `meson setup build -DgameDir=path/to/prince2` registers the core and settings suites (`meson test -C build --suite core --suite settings`);
 `-DoracleTests=true` adds the oracle comparison suites (`--suite oracle`), which need the captures in `<workspace>`.
+The `controller` suite (game controllers, SDL's virtual joystick) runs with or without the game files.
 The game data files are not part of this repository.
 
 ## Settings (`SDLPoP2.ini`)
@@ -39,7 +40,8 @@ Every option is documented in the file, `default` is accepted everywhere, unknow
 the original game: `[General]` (window, 4:3 aspect, integer scaling, sharp / fuzzy / blurry scaling, music, sounds,
 volume, the sound device, the intro, the story scenes, the copy protection, skipping the title, the control keys),
 `[AdditionalFeatures]` (F6 / F9 quicksave with SDLPoP's one-minute penalty, replays, the random seed, the F1 key
-summary), `[CustomGameplay]` (starting time and hit points, ticks per minute, the hit point cap, Alt+N's minutes, the
+summary), `[Controller]` (game controllers: on / off, rumble, the stick's dead zone and horizontal-only mode, extra
+mappings, the buttons), `[CustomGameplay]` (starting time and hit points, ticks per minute, the hit point cap, Alt+N's minutes, the
 first level, the copy protection's level, the tick speeds), `[Level N]` (the prince's sword type) and `[Skill N]`
 (the guards' strike / block / advance probabilities and refractory timers, PRINCE.EXE's DS:1BB6 / DS:13D0 tables).
 
@@ -50,6 +52,18 @@ program's start (the seed, the command-line words, the gameplay settings, the ga
 video frame's input) into `replays/NAME.p2r`; `sdlpop2 --replay NAME GAME_DIR` plays it back and checks the final state and
 screen (`source/replay.h`). `meson test -C build --suite settings` (with `-DgameDir`) checks that the ini's defaults are
 the game's and that a scripted session records and replays identically.
+
+Game controllers (`sdl/controller.c`, SDL's game controller database, hot-plugging; every connected controller drives the
+game) give the game the keyboard's keys (`shell_input_key`: the arrows held, Shift, Ctrl, Esc, Alt+A, space), so the game
+logic, replays and quicksaves are unchanged; the DOS game's own joystick mode (Alt+J) still reports "Joystick Not
+Found". Default buttons (SDLPoP's layout, with PoP2's Ctrl on B): D-pad or left stick move (a diagonal = Home / PgUp /
+End / PgDn), Y up, A down, X or a trigger Shift, B Ctrl, Start Esc (again: the pause ends), Back Alt+A (restart the level),
+LB / RB quicksave / quickload, the right stick pressed space (the time left). In the menus A = Enter, B = Esc, X = Tab,
+Y types the name "Prince" (the name fields), and on the title, in scenes and the demo any button is the "any key". The
+prince losing hit points rumbles the controller (Kid +0x12 read by the frontend after each frame). `meson test -C build
+--suite controller` checks the mapping with SDL's virtual joystick (no hardware; skipped when SDL cannot make one) and,
+with `-DgameDir`, that a scripted controller session gives the same shell inputs and pop2_hash every frame as the
+equivalent keyboard session.
 
 ## Core API (`source/core.h`)
     pop2_init("path/to/prince2");            // PRINCE.EXE, SEQUENCE.DAT, PRINCE.DAT, KID.DAT, guard and scenery DATs

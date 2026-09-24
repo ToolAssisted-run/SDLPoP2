@@ -51,6 +51,22 @@ if get_option('gameDir') != ''
        suite : [ 'settings' ])
 endif
 
+# Game controllers (sdl/controller.c) through SDL's virtual joystick, no hardware needed; with the game files also a
+# controller session against the equivalent keyboard session. Skipped (exit 77) when SDL cannot create a virtual joystick.
+sdl2Dependency = dependency('sdl2', required : false)
+if sdl2Dependency.found()
+  controllertest = executable('controllertest',
+    'controllertest.c', files('../sdl/controller.c'),
+    c_args : commonCompileArgs,
+    dependencies : [ sdlpop2Dependency, sdl2Dependency ],
+  )
+  test('controllertest', controllertest,
+       args : get_option('gameDir') != '' ? [ get_option('gameDir') ] : [],
+       env : { 'SDL_VIDEODRIVER' : 'offscreen', 'SDL_AUDIODRIVER' : 'dummy' },
+       timeout : 600,
+       suite : [ 'controller' ])
+endif
+
 # The oracle suites: the scripts take the programs built here through BUILD
 if get_option('oracleTests') == true
   bash = find_program('bash')

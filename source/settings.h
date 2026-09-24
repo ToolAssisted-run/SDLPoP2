@@ -14,6 +14,10 @@ enum { SOUND_DEVICE_SPEAKER = 0, SOUND_DEVICE_DIGITAL = 1, SOUND_DEVICE_FM = 2, 
 enum { KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_UPLEFT, KEY_UPRIGHT, KEY_DOWNLEFT, KEY_DOWNRIGHT, KEY_SHIFT, KEY_CTRL, KEY_COUNT };
 extern const char *const settings_key_ini_names[KEY_COUNT];   /* "key_left", ... */
 extern const uint8_t settings_key_pc_scan[KEY_COUNT];          /* 0x4B left, 0x4D right, 0x48 up, 0x50 down, 0x47 Home, ... */
+/* the controller's remappable buttons ([Controller]; the frontend's sdl/controller.c gives them the keys' meaning) */
+enum { BUTTON_UP, BUTTON_DOWN, BUTTON_SHIFT, BUTTON_CTRL, BUTTON_MENU, BUTTON_RESTART, BUTTON_QUICKSAVE, BUTTON_QUICKLOAD,
+       BUTTON_TIME, BUTTON_INFO, BUTTON_COUNT };
+extern const char *const settings_button_ini_names[BUTTON_COUNT];   /* "button_up", ... */
 #define SETTINGS_LEVELS 14
 #define SETTINGS_SKILLS 12   /* DS:1BB6's tables have 12 words each */
 #define SWORD_NONE 0xFF
@@ -38,6 +42,13 @@ typedef struct pop2_settings {
 	char replays_folder[256];
 	int random_seed_clock; uint32_t random_seed;   /* clock, or a number */
 	int enable_info_screen;                   /* (frontend) F1 */
+	/* [Controller] (the frontend) */
+	int enable_controller;                    /* SDL game controllers drive the game (through the keys) */
+	int controller_rumble;                    /* rumble when the prince is hurt */
+	int joystick_threshold;                   /* 0..32767: the analog dead zone */
+	int joystick_only_horizontal;             /* the stick gives left / right only (the D-pad all eight) */
+	char gamecontrollerdb_file[256];          /* extra SDL controller mappings ("" none) */
+	char buttons[BUTTON_COUNT][64];           /* SDL game controller button names, space separated ("none": no button) */
 	/* [CustomGameplay] (the core and the shell) */
 	int start_minutes_left;                   /* 75 (169B:0006) */
 	int ticks_per_minute;                     /* 719 = 0x2CF (DS:5CEA) */

@@ -38,6 +38,15 @@ void shell_nis_room(int level, int room, uint8_t *pixels, int rowbytes);   /* we
 int  shell_exit_code(void);
 const char *shell_exit_message(void);   /* the text the DOS program prints when it quits (NULL: none) */
 uint32_t shell_frame_count(void);
+/* quick save / load (not in the DOS game; the SDL frontend's F6 / F9): a request, carried out at the start of the next
+ * game tick while playing (ignored in the other modes); the core's whole state (pop2_save) in memory, one slot. After a
+ * load the screen is drawn afresh (the level's images first when it is another level, the colours as they were saved)
+ * and the sound device silenced; a load costs one minute of game time once the clock runs (SDLPoP's penalty; off with
+ * SDLPoP2.ini's enable_quicksave_penalty = false). */
+void shell_quicksave(void);
+void shell_quickload(void);
+int  shell_quick_result(void);    /* since the last call: 1 saved, 2 loaded, -1 nothing to load, 0 none */
+void shell_quick_clear(void);     /* forget the slot */
 void shell_set_seed(uint32_t seed);   /* before shell_init: the random seed the program takes from the clock (DOS time()) */
 
 /* sounds the shell starts outside the tick's sound queue go to sound.c's hooks (sound_start_hook(res - 10000), the SDL

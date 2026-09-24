@@ -4,6 +4,7 @@
  * Transcribed from the disassembly (the decompiler loses most branches in this overlay). */
 #include "types.h"
 #include "globals.h"
+#include "settings.h"
 #include <stdlib.h>
 
 uint32_t random_seed;        /* DS:2B7A */
@@ -66,6 +67,8 @@ static void sword_range(int16_t *far_ax, int16_t *near_bx)
 	if (Opp.f10 == 1) { *near_bx = 0x22; *far_ax = 0x39; } else { *near_bx = 0x16; *far_ax = 0x2A; }
 }
 
+/* SDLPoP2.ini [Skill N]: the table word by skill (the original read, past the tables too, for skills without an entry) */
+#define SKILL_PROB(ini, table, skill) (pop2_settings_game && (skill) < SETTINGS_SKILLS ? pop2_settings_game->ini[skill] : table[skill])
 /* 366C:0CAA advance, 0D4A block, 0DC4 strike (PoP1's per-skill probabilities) */
 static void guard_advance(void)
 {
@@ -73,21 +76,21 @@ static void guard_advance(void)
 	uint8_t skill = guard_skill();
 	if (skill != 0 && word_68ec != 0) return;
 	if (lvl5_bridge() && !ovl_383d2()) return;
-	if (prob_advance[skill] > (uint16_t)random_2751(255)) move_forward();
+	if (SKILL_PROB(advprob, prob_advance, skill) > (uint16_t)random_2751(255)) move_forward();
 }
 static void guard_block(void)
 {
 	if (Char.charid == 10) return;
 	if (Opp.frame != 0x98 && Opp.frame != 0x99 && Opp.frame != 0xA2) return;
 	uint8_t skill = guard_skill();
-	uint16_t p = word_68f0 ? prob_impblock[skill] : prob_block[skill];
+	uint16_t p = word_68f0 ? SKILL_PROB(impblockprob, prob_impblock, skill) : SKILL_PROB(blockprob, prob_block, skill);
 	if (p > (uint16_t)random_2751(255)) move_up();
 }
 static void guard_strike(void)
 {
 	if (Opp.frame == 0xA9 || Opp.frame == 0x97) return;
 	uint8_t skill = guard_skill();
-	uint16_t p = (Char.charid != 7 && Char.charid != 8 && (Char.frame == 0xA1 || Char.frame == 0x96)) ? prob_restrike[skill] : prob_strike[skill];
+	uint16_t p = (Char.charid != 7 && Char.charid != 8 && (Char.frame == 0xA1 || Char.frame == 0x96)) ? SKILL_PROB(restrikeprob, prob_restrike, skill) : SKILL_PROB(strikeprob, prob_strike, skill);
 	if (p > (uint16_t)random_2751(255)) move_shift(-2);
 }
 /* 366C:00DE: put the sword away */

@@ -44,6 +44,12 @@ for (;;) {                                  // once per video frame (VGA 70.086 
   the options menu, PRINCE.OPT, CONFIG.DAT) call the weak `platform_sound_volume(15 | 0)` (194C:3380 -> `audio_volume`).
 - Files: `file_dir` (loader.h) is where PRINCE.SAV / HOF / OPT are read and written ("" = the game directory, as
   DOS does; the tests set it elsewhere). `file_size / file_read / file_write_at / file_create` are weak.
+- Not in the DOS game (the SDL frontend's SDLPoP2.ini features): `shell_quicksave()` / `shell_quickload()` (F6 / F9)
+  are requests carried out at the start of the next game tick while playing (`pop2_save` / `pop2_load` of the whole
+  state; after a load the level's images when it is another level, the first room's full redraw with its drawing state
+  effects dropped, the DAC as it was, the sound device silenced, and with `enable_quicksave_penalty` a minute of game
+  time less); the gameplay settings (`pop2_settings_game`, settings.h) are read at their original sites and are NULL
+  here unless a frontend installs them.
 - `SHELL_TRACE=1` prints the shell's steps with their frame; `shell_tick_hook` (tests) is called at each tick's
   start (where the oracle's 169B:05E0 probe fires).
 

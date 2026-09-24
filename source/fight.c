@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "types.h"
 #include "globals.h"
+#include "settings.h"
 
 /* 0AFF:089A / 0AFF:0840: write Char back and restore Kid from Opp; write Kid and chars[Opp.index] back */
 static void save_char_restore_kid(void) { if ((int8_t)Char.index >= 0 && (int8_t)Char.index < 5) save_char(); Kid = Opp; }
@@ -140,7 +141,8 @@ void process_hurt(void)
 		load_char(i); Opp = Kid;
 		if (Opp.action == 99) Opp.action = 1;
 		char_hurt();
-		word_922e = refract_timer[((uint8_t *)&level)[0x17F3 + Char.room * 0x74 + 1 + (int8_t)Char.index * 23 + 4]];
+		{ uint8_t skill = ((uint8_t *)&level)[0x17F3 + Char.room * 0x74 + 1 + (int8_t)Char.index * 23 + 4];
+		  word_922e = pop2_settings_game && skill < SETTINGS_SKILLS ? pop2_settings_game->refractimer[skill] : refract_timer[skill]; }   /* DS:13D0[skill] (SDLPoP2.ini [Skill N] refractimer) */
 		save_char_restore_kid();
 	}
 	if (Kid.action == 99) {

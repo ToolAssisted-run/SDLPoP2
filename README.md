@@ -27,9 +27,29 @@ writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has every
     meson setup build                          # options: meson_options.txt (buildFrontend, buildTools, buildTests, ...)
     meson compile -C build
     build/sdl/sdlpop2 path/to/prince2          # the game; add DOS command-line words, e.g. `yippeeyahoo LEVEL3`
-Tests: `meson setup build -DgameDir=path/to/prince2` registers the core suite (`meson test -C build --suite core`);
+                                               # (options before the directory: --ini PATH, --record NAME, --replay NAME)
+Tests: `meson setup build -DgameDir=path/to/prince2` registers the core and settings suites (`meson test -C build --suite core --suite settings`);
 `-DoracleTests=true` adds the oracle comparison suites (`--suite oracle`), which need the captures in `<workspace>`.
 The game data files are not part of this repository.
+
+## Settings (`SDLPoP2.ini`)
+The SDL frontend reads `SDLPoP2.ini` (modelled on SDLPoP's `SDLPoP.ini`): `--ini PATH`, else `SDLPoP2.ini` in the
+current directory, next to the binary (the build copies it to `build/sdl/`), or the installed `share/sdlpop2/SDLPoP2.ini`.
+Every option is documented in the file, `default` is accepted everywhere, unknown options are reported. Every default is
+the original game: `[General]` (window, 4:3 aspect, integer scaling, sharp / fuzzy / blurry scaling, music, sounds,
+volume, the sound device, the intro, the story scenes, the copy protection, skipping the title, the control keys),
+`[AdditionalFeatures]` (F6 / F9 quicksave with SDLPoP's one-minute penalty, replays, the random seed, the F1 key
+summary), `[CustomGameplay]` (starting time and hit points, ticks per minute, the hit point cap, Alt+N's minutes, the
+first level, the copy protection's level, the tick speeds), `[Level N]` (the prince's sword type) and `[Skill N]`
+(the guards' strike / block / advance probabilities and refractory timers, PRINCE.EXE's DS:1BB6 / DS:13D0 tables).
+
+The core and the shell read the gameplay options through `pop2_settings_game` (`source/settings.h`), NULL unless the
+frontend installs one: at each original site the code is `GAME_SETTING(field, original)`, so the headless core and the
+tests run the verified code unchanged. Replays: `sdlpop2 --record NAME GAME_DIR [words]` records a session from the
+program's start (the seed, the command-line words, the gameplay settings, the game's own PRINCE.OPT / HOF / SAV and every
+video frame's input) into `replays/NAME.p2r`; `sdlpop2 --replay NAME GAME_DIR` plays it back and checks the final state and
+screen (`source/replay.h`). `meson test -C build --suite settings` (with `-DgameDir`) checks that the ini's defaults are
+the game's and that a scripted session records and replays identically.
 
 ## Core API (`source/core.h`)
     pop2_init("path/to/prince2");            // PRINCE.EXE, SEQUENCE.DAT, PRINCE.DAT, KID.DAT, guard and scenery DATs

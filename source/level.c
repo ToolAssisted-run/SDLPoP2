@@ -3,6 +3,7 @@
 #include <string.h>
 #include "types.h"
 #include "globals.h"
+#include "settings.h"
 
 uint8_t start_hp = 3;          /* DS:6B71: the prince's hp at level start (3; a LEVEL switch gives 3..12; carried between levels) */
 uint16_t word_0996, word_0880; /* DS:0996, DS:0880 */
@@ -192,6 +193,7 @@ int load_level_ex(int n, int full)
 	level_postprocess(); checkpoint_restore();
 	/* 1286:0D06: the sword type: the checkpoint's (DS:5AB2 is the checkpoint block's far pointer, +0xC), else by level */
 	byte_5cba = cp.used ? cp.sword : level_number == 6 ? 0xFF : (level_number == 7 || level_number == 8) ? 2 : 1;
+	if (pop2_settings_game && !cp.used && level_number >= 1 && level_number <= SETTINGS_LEVELS) byte_5cba = pop2_settings_game->sword_type[level_number];   /* (SDLPoP2.ini [Level N] sword_type) */
 	if (full) {   /* the full load (1286:01F2); a plain restart reloads through 1286:0332 */
 		guard_sprites_loaded(level.type);   /* 1286:027E -> 087E */
 		kind_level_init();
@@ -216,10 +218,15 @@ static void kind_level_init(void)
 int story_scene(int prev, int n)
 {
 	int si = 0;
-	if ((int8_t)byte_6b6c > 2 && word_0366 == 0) return last_scene = 0x64;
+	int cpl = GAME_SETTING(copyprot_first_level, 3);   /* (SDLPoP2.ini: the copy protection before this level) */
+	if ((int8_t)byte_6b6c > cpl - 1 && word_0366 == 0) return last_scene = 0x64;
 	if (byte_6b6c == 0) return last_scene = 0;
 	if (!(prev != 0 && (n == prev || n == -1)))
 		switch (prev) { case 1: si = 9; break; case 2: si = 0x64; break; case 3: si = 0xA; break; case 5: si = 1; break; case 8: si = 2; break; case 13: si = 3; break; }
+	if (cpl != 3) {   /* (SDLPoP2.ini copyprot_first_level: the case-2 question moves to the level before that one) */
+		if (si == 0x64) si = 0;
+		if (si == 0 && prev == cpl - 1 && !(prev != 0 && (n == prev || n == -1))) si = 0x64;
+	}
 	if (si == 0 && prev >= 4) {
 		if (byte_016a == -1) { si = 0x14; byte_016a = 0; }
 		else { int8_t st = (int8_t)((1 - (int16_t)minutes_left) / 9 + 7); if (st > byte_016a) { si = st + 0x14; byte_016a = st; } }
@@ -237,7 +244,7 @@ void game_start(void)
 	word_2b96 = 0;
 	word_5cdc = word_5cda = word_5ce8 = word_5cd0 = 0;
 	if (word_5cb6) return;
-	minutes_left = 75; clock_ticks = 0x2CF; start_hp = 3;
+	minutes_left = (uint16_t)GAME_SETTING(start_minutes_left, 75); clock_ticks = (uint16_t)GAME_SETTING(ticks_per_minute, 0x2CF); start_hp = (uint8_t)GAME_SETTING(start_hitp, 3);   /* 169B:0006 (SDLPoP2.ini start_minutes_left, ticks_per_minute, start_hitp) */
 	if (cheat_mode && level_switch) { int8_t v = (int8_t)level_number; start_hp = v < 3 ? 3 : v > 12 ? 12 : v; }
 }
 /* the state a shown scene leaves behind (0AAC:0274 shows it; the NIS themselves are not reconstructed): scene 0x64

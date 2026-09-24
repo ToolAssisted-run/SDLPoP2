@@ -3,6 +3,7 @@
 #include <string.h>
 #include "types.h"
 #include "globals.h"
+#include "settings.h"
 
 /* DS:612E..6138: the tile lookup's results (curr_tile .. char_bottom_row) */
 typedef struct { uint8_t tile; uint16_t mod; uint8_t tilepos, room; int8_t col, row, cl, cr, tr, br; } tile_ctx;
@@ -67,7 +68,7 @@ void drink(void)
 	else switch (--word_27c0) {
 	case 0: if (Char.f12 != Char.f13) Char.hp_delta = 1; sound_1611_01a8(0x65); break;   /* heal */
 	case 1: {   /* 0823:0F16: life */
-		int m = (int8_t)Char.f13 + 1; if (m > 12) m = 12; Char.f13 = (uint8_t)m; Char.hp_delta = (int8_t)(Char.f13 - Char.f12);
+		int m = (int8_t)Char.f13 + 1, cap = GAME_SETTING(max_hitp_allowed, 12); if (m > cap) m = cap; Char.f13 = (uint8_t)m; Char.hp_delta = (int8_t)(Char.f13 - Char.f12);   /* (the cap: SDLPoP2.ini max_hitp_allowed) */
 		sound_1611_01a8(0x65); break; }
 	case 2: word_5d36 = 0xE4; sound_1611_01a8(0x69); word_087e = -1; break;   /* 0823:13C4: feather fall */
 	case 3: toggle_upside_down_pub(); break;   /* 0823:139C */

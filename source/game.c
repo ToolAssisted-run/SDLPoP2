@@ -2,6 +2,7 @@
 #include <string.h>
 #include "types.h"
 #include "globals.h"
+#include "settings.h"
 
 uint16_t minutes_left = 75, clock_ticks = 0x2CF;   /* DS:5CD2 (0x4B at the start), DS:5CEA (719 ticks a minute) */
 uint16_t word_5cb6, word_5cc0; int8_t byte_016a;   /* DS:5CB6 / 5CC0; DS:016A (negative: clock stopped) */
@@ -12,7 +13,7 @@ void game_clock(void)
 {
 	if (byte_016a >= 0 && Kid.alive < 0 && minutes_left != 0) {
 		if (--clock_ticks == 0) {
-			clock_ticks = 0x2CF;
+			clock_ticks = (uint16_t)GAME_SETTING(ticks_per_minute, 0x2CF);   /* 0823:0D5A (SDLPoP2.ini ticks_per_minute) */
 			if (--minutes_left != 0 && (minutes_left < 5 || minutes_left % 5 == 0)) word_5cd0 = 1;
 		} else if (minutes_left == 1 && clock_ticks % 12 == 0) { word_5cd0 = 1; word_5cdc = word_5cda = 0; }
 	}
@@ -28,7 +29,7 @@ static void frame_timers(void) { if ((int16_t)word_5ce8 > 0) word_5ce8--; if (wo
 /* 169B:0BA6: before each tick: frame delay, hp deltas cleared, previous sprite boxes kept, landing states closed */
 void frame_begin(void)
 {
-	frame_delay = Kid.f10 == 1 ? 6 : 5;
+	frame_delay = Kid.f10 == 1 ? (uint16_t)GAME_SETTING(fight_speed, 6) : (uint16_t)GAME_SETTING(base_speed, 5);   /* 169B:0BA6 (SDLPoP2.ini base_speed, fight_speed) */
 	Kid.hp_delta = 0; memcpy((uint8_t *)&Kid + 0x2C, (uint8_t *)&Kid + 0x1B, 8);
 	if (Kid.f24 == 8 && (Kid.seq_id != 0x34 || Kid.seq_pos == 0)) Kid.f24 = 0;
 	int8_t n = room_nchars(drawn_room);

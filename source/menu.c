@@ -10,6 +10,7 @@
 #include "loader.h"
 #include "shell.h"
 #include "menu.h"
+#include "settings.h"
 #include "glue.h"
 
 uint16_t word_1392;           /* DS:1392 */
@@ -552,6 +553,7 @@ void copy_protection(void)   /* 0D5E:1288 */
 {
 	sh_trace("copy_protection", 0);
 	int ok = 1;
+	if (word_0366 == 0 && word_2ba8 == 0 && !GAME_SETTING(enable_copyprot, 1)) word_0366 = 1;   /* (SDLPoP2.ini enable_copyprot = false: taken as answered, nothing drawn) */
 	if (word_0366 == 0 && word_2ba8 == 0) {
 		word_0366 = 1;
 		menu_enter();

@@ -13,6 +13,7 @@ testPrograms = {
   'audiotest' : 'the sound drivers\' register streams and audio',
   'ctltest'   : 'control() cases',
   'inputtest' : 'keyboard to controls',
+  'settingstest' : 'SDLPoP2.ini (defaults = the game) and replays (record and play back headlessly)',
 }
 testExecutables = {}
 foreach name, description : testPrograms
@@ -43,6 +44,11 @@ if get_option('gameDir') != ''
        args : [ get_option('gameDir'), '2000' ],
        timeout : 600,
        suite : [ 'core' ])
+  # SDLPoP2.ini and replays: the ini's defaults are the game's, a scripted session records and replays identically
+  test('settingstest', testExecutables['settingstest'],
+       args : [ get_option('gameDir'), meson.project_source_root() / 'SDLPoP2.ini' ],
+       timeout : 600,
+       suite : [ 'settings' ])
 endif
 
 # The oracle suites: the scripts take the programs built here through BUILD

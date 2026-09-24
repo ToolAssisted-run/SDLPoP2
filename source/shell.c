@@ -19,6 +19,7 @@
 #include "shell.h"
 #include "nis.h"
 #include "render_frame.h"
+#include "settings.h"
 int checkpoint_in_use(void);   /* level.c */
 
 extern uint16_t word_2baa;
@@ -327,7 +328,7 @@ int sh_scene(int n)
 		if (n == 6) { nis_kid k = { (int8_t)Kid.direction, Kid.x, Kid.y, char_x_left }; nis_set_kid(&k); }   /* 0AAC:0442 (DS:5B37 / 5B38 / 5B3A, DS:6116) */
 		nis_set_palette(render_palette);   /* (the DAC as the scene finds it: transition 6 keeps colours 0xE0..0xFF, its item bank 15) */
 		cur_scene = n;
-		if (nis_open(game_dir, n)) {
+		if ((n == NIS_INTRO || GAME_SETTING(enable_story_scenes, 1)) && nis_open(game_dir, n)) {   /* (SDLPoP2.ini enable_story_scenes = false: as a scene played to its end) */
 			int aborted = 0, save_poll = poll_menu; poll_menu = 2;   /* 2D7D:4A6A: DS:1F32 = 2D7D:49F6 while it plays */
 			for (;;) {
 				if (!nis_step(screen_buf, render_palette)) break;
@@ -448,7 +449,7 @@ static void cheat_keys(int di)   /* 0823:0528 (the gameplay ones; the debug disp
 	case 0x2D: if (minutes_left > 1) minutes_left--; word_5cdc = word_5cda = 0; word_5cd0 = 1; break;   /* '-' */
 	case 0x49: toggle_upside_down_pub(); break;   /* 'I' */
 	case 0x52: snprintf(t, sizeof t, "Room %d", drawn_room); message(t); break;   /* 'R' */
-	case 0x54: sound_1611_01a8(0x65); { int m = (int8_t)Char.f13 + 1; Char.f13 = (uint8_t)(m > 12 ? 12 : m); Char.hp_delta = (int8_t)(Char.f13 - Char.f12); } Kid = Char; break;   /* 'T' (0823:0F16) */
+	case 0x54: sound_1611_01a8(0x65); { int m = (int8_t)Char.f13 + 1; int cap = GAME_SETTING(max_hitp_allowed, 12); Char.f13 = (uint8_t)(m > cap ? cap : m); Char.hp_delta = (int8_t)(Char.f13 - Char.f12); } Kid = Char; break;   /* 'T' (0823:0F16) */
 	case 0x57: word_5d36 = 0xE4; sound_1611_01a8(0x69); sound_stop_all(); word_087e = -1; break;   /* 'W' (0823:13C4) */
 	case 0x72: if ((int8_t)Kid.alive > 0) { word_5ce8 = 0x14; Kid.alive = -1; status_clear(1); } break;   /* 'r' */
 	case 0x3D00: message(demo_toggle() ? "PLAYER ON" : "PLAYER OFF"); break;   /* F3 */
@@ -488,7 +489,7 @@ int hotkeys_02be(void)
 		case 0x3100:                                                         /* Alt-N: the next level (up to 3 without the cheat word) */
 			if ((int8_t)word_32d8 > 3 && !cheat_mode) break;
 			if ((int8_t)word_32d8 == 14 && cheat_mode) counter_5cec = 1;
-			else { counter_5cec = (uint16_t)((int8_t)word_32d8 + 1); if (!cheat_mode && minutes_left > 15) { minutes_left = 15; clock_ticks = 0x2CF; } }
+			else { counter_5cec = (uint16_t)((int8_t)word_32d8 + 1); int m = GAME_SETTING(skip_level_reduced_minutes, 15); if (!cheat_mode && minutes_left > m) { minutes_left = (uint16_t)m; clock_ticks = (uint16_t)GAME_SETTING(ticks_per_minute, 0x2CF); } }   /* (SDLPoP2.ini skip_level_reduced_minutes) */
 			sound_stop_all(); break;
 		case 0x3200: msg = music_toggle_msg(); break;                        /* Alt-M */
 		}
@@ -537,9 +538,54 @@ static int first_room(int n)   /* 169B:03AE */
 }
 void (*shell_tick_hook)(void);   /* tests: called where the oracle's 169B:05E0 probe fires (after frame_begin) */
 void frame_wait(void);
+
+/* ---- quick save / load (not in the DOS game: the frontend's F6 / F9, SDLPoP2.ini enable_quicksave): the core's whole
+ * state (pop2_save) at the start of a game tick, while playing ---- */
+extern void (*sound_stop_hook)(int n);   /* sound.c */
+static uint8_t *qs_buf, qs_dac[768]; static int qs_valid, qs_level, qs_request, qs_result;
+void shell_quicksave(void) { if (mode == SH_PLAY) qs_request = 1; }
+void shell_quickload(void) { if (mode == SH_PLAY) qs_request = 2; }
+int shell_quick_result(void) { int r = qs_result; qs_result = 0; return r; }
+void shell_quick_clear(void) { qs_valid = qs_request = qs_result = 0; }
+/* the loaded state on the screen: drawn as a level's first room is (169B:03AE: the room entered afresh with its
+ * palette, the whole redraw, the hit points), then the opponent's hit points (0FB3:259C); the drawing's own state
+ * effects are dropped (the state is put back as loaded) */
+static void quick_redraw(void)
+{
+	static uint8_t *keep; if (!keep) keep = malloc(pop2_state_size());
+	pop2_save(keep);
+	pal_std16(); render_after_menu(level_kind);    /* 0FB3:293A, 1286:07CE: colours 0..31 */
+	for (int i = 0; i < 5; i++) chars[i].f26 = 0;  /* 0993:118C */
+	word_5cb6 = 1;                                 /* (not a scene's picture: the screen is erased and drawn) */
+	drawn_room = 0; level_first_room();
+	hook_hp_bars();
+	pop2_load(keep);
+}
+static void quick_do(void)
+{
+	int rq = qs_request; qs_request = 0;
+	if (rq == 1) {
+		if (!qs_buf) qs_buf = malloc(pop2_state_size());
+		pop2_save(qs_buf); qs_level = (int8_t)word_32d8; qs_valid = 1; qs_result = 1;
+		memcpy(qs_dac, render_palette, sizeof qs_dac);   /* (the colours as they were: the cycling ones' phase, a flash) */
+		return;
+	}
+	if (!qs_valid) { qs_result = -1; return; }
+	if (qs_level != (int8_t)word_32d8) load_level_ex(qs_level, 1);   /* the other level's images and palettes (its state is replaced next) */
+	pop2_load(qs_buf);
+	if (GAME_SETTING(enable_quicksave_penalty, 1) && byte_016a >= 0 && minutes_left != 0) {   /* a minute of game time less (SDLPoP's penalty) */
+		long tpm = GAME_SETTING(ticks_per_minute, 0x2CF), left = (long)(minutes_left - 1) * tpm + clock_ticks - tpm;
+		if (left < 1) left = 1;
+		minutes_left = (uint16_t)((left - 1) / tpm + 1); clock_ticks = (uint16_t)(left - (long)(minutes_left - 1) * tpm);
+	}
+	if (sound_stop_hook) sound_stop_hook(-10000);   /* the sound device silenced (the game's own sound state is the loaded one) */
+	quick_redraw(); qs_result = 2;
+	memcpy(render_palette, qs_dac, sizeof qs_dac);
+}
 static int play_loop(void)   /* 169B:0504 */
 {
 	for (;;) {
+		if (qs_request) quick_do();                  /* (the frontend's quick save / load) */
 		frame_begin();                               /* 169B:0BA6 */
 		if (shell_tick_hook) shell_tick_hook();
 		int r = frame_after_tick(tick_main());      /* 169B:05E0 .. 0A30 */
@@ -585,10 +631,11 @@ static int title(void)   /* 0823:01CA */
 {
 	mode = SH_TITLE;
 	int si = 1;
-	if (word_00ec == 0) { if (word_2baa || title_credits() || hall_of_fame(0)) si = 2; }
+	if (GAME_SETTING(skip_title, 0)) si = 2;   /* (SDLPoP2.ini skip_title: straight into the game) */
+	else if (word_00ec == 0) { if (word_2baa || title_credits() || hall_of_fame(0)) si = 2; }
 	else word_00ec = 0;
-	if (si != 2) si = sh_scene(NIS_INTRO);   /* 0AAC:0274(7), (4), (8): nis.c plays them as one (the music runs on) */
-	if (si == 2) { byte_6b6c = 1; word_00ec = 1; demo_stop(); } else demo_arm();
+	if (si != 2 && GAME_SETTING(enable_intro, 1)) si = sh_scene(NIS_INTRO);   /* 0AAC:0274(7), (4), (8): nis.c plays them as one (the music runs on) */
+	if (si == 2) { byte_6b6c = (uint8_t)GAME_SETTING(first_level, 1); word_00ec = 1; demo_stop(); } else demo_arm();   /* (SDLPoP2.ini first_level) */
 	int r = byte_6b6c;
 	word_2b96 = 0;   /* 169B:018E */
 	if (word_1392) r = restore_from_title();

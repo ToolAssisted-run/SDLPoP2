@@ -34,7 +34,7 @@ typedef struct pop2_settings {
 	int sound_device;                         /* SOUND_DEVICE_* (audio_init's caps) */
 	char keys[KEY_COUNT][32];                 /* SDL scancode names ("Left", "Left Shift", ...) */
 	/* [General], read by the shell (recorded in replays) */
-	int enable_intro, enable_story_scenes, enable_copyprot, skip_title;
+	int enable_intro, enable_story_scenes, skip_title;
 	/* [AdditionalFeatures] */
 	int enable_quicksave;                     /* (frontend) F6 / F9 */
 	int enable_quicksave_penalty;             /* (shell) a quickload costs a minute of game time */
@@ -56,7 +56,6 @@ typedef struct pop2_settings {
 	int max_hitp_allowed;                     /* 12 (0823:0F16) */
 	int skip_level_reduced_minutes;           /* 15 (Alt-N without the cheat word, 0823:02BE) */
 	int first_level;                          /* 1 (0823:01CA) */
-	int copyprot_first_level;                 /* 3 (0AAC:0120) */
 	int base_speed, fight_speed;              /* 5, 6 (169B:0BA6: frame_delay, 60 Hz ticks) */
 	/* [Level N] */
 	uint8_t sword_type[SETTINGS_LEVELS + 1];  /* by level number: SWORD_NONE, 1 or 2 (1286:0D06) */

@@ -60,6 +60,9 @@ static void remove_dir(const char *d)
 }
 /* one run in this (child) process: settings (NULL: none), recording to rec_path, or playing back play_path */
 static const char *level_word;   /* NULL: the program from its start (title, intro); else "yippeeyahoo LEVELn" */
+/* The copy protection has no switch. Sessions on levels 3 and later that test something else mark it as already
+ * answered in the game's memory (DS:0366, as the oracle captures poke state); section 6 checks it is asked. */
+static int cp_answered; extern uint16_t word_0366;   /* (level.c) */
 static result session(const pop2_settings *s, const char *rec_path, const char *play_path)
 {
 	result res = {0}; char dir[256]; scratch_dir(dir, sizeof dir);
@@ -75,6 +78,7 @@ static result session(const pop2_settings *s, const char *rec_path, const char *
 	pop2_settings_game = s;
 	shell_set_seed(seed);
 	if (!shell_init(game_dir, nwords, play_path ? p.argp : words)) { printf("shell_init failed\n"); exit(3); }
+	if (cp_answered) word_0366 = 1;
 	if (rec_path && !replay_record_start(&rec, rec_path, seed, nwords, words, s)) { printf("cannot write %s\n", rec_path); exit(3); }
 	static shell_input in; uint64_t dg = 1469598103934665603ull;
 	for (int f = 0; f < FRAMES; f++) {
@@ -111,19 +115,21 @@ static result run(const pop2_settings *s, const char *rec_path, const char *play
 }
 /* the shell options: from "yippeeyahoo LEVEL4" (or the title with words NULL), Alt+N at a frame; the state 3 ticks
  * into level 5, the frames spent in scenes, the demo and playing */
-typedef struct opt_result { uint64_t hash5; int scene, demo, play, level, minutes, sword; } opt_result;
+typedef struct opt_result { uint64_t hash5; int scene, demo, play, menu, play_after, level, minutes, sword; } opt_result;
 extern uint8_t byte_5cba; extern uint32_t tick;
 static opt_result opt_session(const pop2_settings *s, const char *word, int alt_n_at, int frames)
 {
 	opt_result o = {0}; char dir[256]; scratch_dir(dir, sizeof dir); snprintf(file_dir, sizeof file_dir, "%s", dir);
 	const char *w[2] = { "yippeeyahoo", word }; pop2_settings_game = s; shell_set_seed(0x5EED);
 	if (!shell_init(game_dir, word ? 2 : 0, w)) exit(3);
+	if (cp_answered) word_0366 = 1;
 	static shell_input in; uint32_t t0 = 0;
 	for (int f = 0; f < frames; f++) {
 		memset(&in, 0, sizeof in);
 		if (f == alt_n_at) { in.typed[0] = 0x3100; in.ntyped = 1; }
 		if (shell_step(&in) == SHELL_EXIT) break;
-		int m = shell_mode(); o.scene += m == SH_SCENE; o.demo += m == SH_DEMO; o.play += m == SH_PLAY;
+		int m = shell_mode(); o.scene += m == SH_SCENE; o.demo += m == SH_DEMO; o.play += m == SH_PLAY; o.menu += m == SH_MENU;
+		if (alt_n_at >= 0 && f > alt_n_at) o.play_after += m == SH_PLAY;
 		if (!t0 && pop2_level() == 5 && m == SH_PLAY) t0 = tick;
 		if (t0 && !o.hash5 && tick == t0 + 3) o.hash5 = pop2_hash();
 	}
@@ -188,7 +194,7 @@ int main(int argc, char **argv)
 	CHECK(r5.verified && r5.digest == r4.digest && r5.screen == r4.screen, "a replay carries its gameplay settings");
 	unlink(rec1); unlink(rec2);
 	/* 5. no settings / defaults on other levels (the guards' tables, the sword types, the copy protection answered) */
-	setenv("SDLPOP2_CP_ANSWER", "1", 1);
+	cp_answered = 1;
 	static const char *const lv[] = { "LEVEL3", "LEVEL4", "LEVEL6", "LEVEL7", "LEVEL8", "LEVEL9", "LEVEL12", "LEVEL14" };
 	for (int i = 0; i < (int)(sizeof lv / sizeof lv[0]); i++) {
 		level_word = lv[i];
@@ -204,11 +210,18 @@ int main(int argc, char **argv)
 	opt_result s0 = opt_run(&d, "LEVEL4", 800, 3000);
 	o.enable_story_scenes = 0; opt_result s1 = opt_run(&o, "LEVEL4", 800, 3000);
 	CHECK(s0.scene > 0 && s0.hash5 && s1.scene == 0 && s1.hash5 == s0.hash5 && s1.level == 5, "enable_story_scenes = false: no scene, the same state after it (%d scene frames)", s0.scene);
-	unsetenv("SDLPOP2_CP_ANSWER");
-	o = d; o.enable_copyprot = 0; opt_result c1 = opt_run(&o, "LEVEL3", -1, 1500);
-	CHECK(c1.play > 1000 && c1.level == 3, "enable_copyprot = false: level 3 plays at once");
-	o = d; o.copyprot_first_level = 5; opt_result c2 = opt_run(&o, "LEVEL3", -1, 1500);
-	CHECK(c2.play > 1000 && c2.level == 3, "copyprot_first_level = 5: no question before level 3");
+	/* the copy protection cannot be skipped: a game reaching level 3 or later waits at the question */
+	cp_answered = 0;
+	opt_result c1 = opt_run(&d, "LEVEL3", -1, 1500);
+	CHECK(c1.play == 0 && c1.menu > 1000, "LEVEL3 (cheat): the copy protection is asked before the level (%d menu frames)", c1.menu);
+	opt_result c2 = opt_run(&d, "LEVEL9", -1, 1500);
+	CHECK(c2.play == 0 && c2.menu > 1000, "LEVEL9 (cheat): the copy protection is asked before the level");
+	o = d; o.skip_title = 1; o.first_level = 5; opt_result c3 = opt_run(&o, NULL, -1, 1500);
+	CHECK(c3.play == 0 && c3.menu > 1000, "first_level = 5: the copy protection is asked before the level");
+	opt_result c4 = opt_run(&d, "LEVEL2", 800, 2000);
+	CHECK(c4.play > 300 && c4.play_after < 30 && c4.menu > 900, "LEVEL2, Alt+N to level 3: the copy protection is asked (%d play frames after the skip)", c4.play_after);
+	printf("copy protection: LEVEL3 %d/%d, LEVEL9 %d/%d, first_level 5 %d/%d, LEVEL2 + Alt+N %d/%d (menu / play frames)\n", c1.menu, c1.play, c2.menu, c2.play, c3.menu, c3.play, c4.menu, c4.play);
+	cp_answered = 1;
 	o = d; o.enable_intro = 0; opt_result i1 = opt_run(&o, NULL, -1, 1500);
 	CHECK(i1.scene == 0 && i1.demo > 1000, "enable_intro = false: the title goes to the demo");
 	o = d; o.skip_title = 1; o.first_level = 2; o.start_minutes_left = 33; o.sword_type[2] = 2;

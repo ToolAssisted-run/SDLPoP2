@@ -26,7 +26,7 @@ int replay_record_start(replay_rec *r, const char *path, uint32_t seed, int argc
 {
 	memset(r, 0, sizeof *r);
 	r->f = fopen(path, "wb"); if (!r->f) return 0;
-	fprintf(r->f, MAGIC "\nseed %u\ncp_answer %d\n", (unsigned)seed, getenv("SDLPOP2_CP_ANSWER") ? 1 : 0);
+	fprintf(r->f, MAGIC "\nseed %u\n", (unsigned)seed);
 	for (int i = 0; i < argc && i < 16; i++) fprintf(r->f, "word %s\n", argv[i]);
 	for (int i = 0; i < 3; i++) {   /* the game's own files as the program will find them */
 		long n = file_size(game_files[i]); if (n <= 0 || n > (1 << 20)) continue;
@@ -88,7 +88,6 @@ int replay_open(replay_play *p, const char *path, char *err, size_t errlen)
 			if (n + l + 2 > cap) { cap = (n + l + 2) * 2; ini = realloc(ini, cap); }
 			memcpy(ini + n, line, l); n += l; ini[n++] = '\n'; ini[n] = 0;
 		} else if (!strncmp(line, "seed ", 5)) p->seed = (uint32_t)strtoul(line + 5, NULL, 10);
-		else if (!strncmp(line, "cp_answer ", 10)) p->cp_answer = atoi(line + 10);
 		else if (!strncmp(line, "word ", 5)) { if (p->argc < 16) snprintf(p->argv[p->argc++], sizeof p->argv[0], "%.63s", line + 5); }
 		else if (!strncmp(line, "file ", 5)) {
 			char name[16]; long size;

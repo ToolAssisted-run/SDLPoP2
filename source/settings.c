@@ -36,7 +36,7 @@ void settings_defaults(pop2_settings *s)
 	s->use_correct_aspect_ratio = 1; s->scaling_type = SCALING_SHARP;
 	s->enable_music = s->enable_sounds = 1; s->volume = 15; s->sound_device = SOUND_DEVICE_FM_DIGITAL;
 	for (int k = 0; k < KEY_COUNT; k++) snprintf(s->keys[k], sizeof s->keys[k], "%s", key_defaults[k]);
-	s->enable_intro = s->enable_story_scenes = s->enable_copyprot = 1; s->skip_title = 0;
+	s->enable_intro = s->enable_story_scenes = 1; s->skip_title = 0;
 	s->enable_quicksave = s->enable_quicksave_penalty = s->enable_replay = 1;
 	snprintf(s->replays_folder, sizeof s->replays_folder, "replays");
 	s->random_seed_clock = 1; s->random_seed = 0;
@@ -44,7 +44,7 @@ void settings_defaults(pop2_settings *s)
 	s->enable_controller = s->controller_rumble = 1; s->joystick_threshold = 8000; s->joystick_only_horizontal = 0;
 	for (int b = 0; b < BUTTON_COUNT; b++) snprintf(s->buttons[b], sizeof s->buttons[b], "%s", button_defaults[b]);
 	s->start_minutes_left = 75; s->ticks_per_minute = 0x2CF; s->start_hitp = 3; s->max_hitp_allowed = 12;
-	s->skip_level_reduced_minutes = 15; s->first_level = 1; s->copyprot_first_level = 3;
+	s->skip_level_reduced_minutes = 15; s->first_level = 1;
 	s->base_speed = 5; s->fight_speed = 6;
 	for (int l = 0; l <= SETTINGS_LEVELS; l++) s->sword_type[l] = l == 6 ? SWORD_NONE : (l == 7 || l == 8) ? 2 : 1;
 	memcpy(s->strikeprob, def_strike, sizeof def_strike); memcpy(s->restrikeprob, def_restrike, sizeof def_restrike);
@@ -69,7 +69,6 @@ static const field fields[] = {
 	F("General", sound_device, T_SOUNDDEV, 0, 3, 0),
 	F("General", enable_intro, T_BOOL, 0, 1, 1),
 	F("General", enable_story_scenes, T_BOOL, 0, 1, 1),
-	F("General", enable_copyprot, T_BOOL, 0, 1, 1),
 	F("General", skip_title, T_BOOL, 0, 1, 1),
 	F("AdditionalFeatures", enable_quicksave, T_BOOL, 0, 1, 0),
 	F("AdditionalFeatures", enable_quicksave_penalty, T_BOOL, 0, 1, 1),
@@ -88,7 +87,6 @@ static const field fields[] = {
 	F("CustomGameplay", max_hitp_allowed, T_INT, 1, 127, 1),
 	F("CustomGameplay", skip_level_reduced_minutes, T_INT, 1, 32767, 1),
 	F("CustomGameplay", first_level, T_INT, 1, 14, 1),
-	F("CustomGameplay", copyprot_first_level, T_INT, 1, 15, 1),
 	F("CustomGameplay", base_speed, T_INT, 1, 255, 1),
 	F("CustomGameplay", fight_speed, T_INT, 1, 255, 1),
 };

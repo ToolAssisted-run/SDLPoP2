@@ -208,7 +208,6 @@ int main(int argc, char **argv)
 		if (nwords) fprintf(stderr, "sdlpop2: replaying %s: its own command line words are used\n", path);
 		settings_copy_gameplay(&S, &play.settings); pop2_settings_game = &S;
 		seed = play.seed; nwords = play.argc; words = play.argp;
-		plat_setenv("SDLPOP2_CP_ANSWER", play.cp_answer ? "1" : NULL);
 		if (!plat_temp_dir(files_tmp, sizeof files_tmp, "sdlpop2-replay")) {   /* (the player's own saved games are not touched) */ fprintf(stderr, "sdlpop2: no scratch directory for the replay's files\n"); SDL_Quit(); return 1; }
 		replay_write_files(&play, files_tmp); snprintf(file_dir, sizeof file_dir, "%s", files_tmp);
 		fprintf(stderr, "sdlpop2: replaying %s\n", path);

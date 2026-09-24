@@ -218,15 +218,12 @@ static void kind_level_init(void)
 int story_scene(int prev, int n)
 {
 	int si = 0;
-	int cpl = GAME_SETTING(copyprot_first_level, 3);   /* (SDLPoP2.ini: the copy protection before this level) */
-	if ((int8_t)byte_6b6c > cpl - 1 && word_0366 == 0) return last_scene = 0x64;
+	/* the copy protection (scene 0x64), once per game: a game started at level 3 or later (LEVELn, a restored game)
+	 * asks before its first level; otherwise it comes after level 2 (case 2 below). No setting changes this. */
+	if ((int8_t)byte_6b6c > 2 && word_0366 == 0) return last_scene = 0x64;
 	if (byte_6b6c == 0) return last_scene = 0;
 	if (!(prev != 0 && (n == prev || n == -1)))
 		switch (prev) { case 1: si = 9; break; case 2: si = 0x64; break; case 3: si = 0xA; break; case 5: si = 1; break; case 8: si = 2; break; case 13: si = 3; break; }
-	if (cpl != 3) {   /* (SDLPoP2.ini copyprot_first_level: the case-2 question moves to the level before that one) */
-		if (si == 0x64) si = 0;
-		if (si == 0 && prev == cpl - 1 && !(prev != 0 && (n == prev || n == -1))) si = 0x64;
-	}
 	if (si == 0 && prev >= 4) {
 		if (byte_016a == -1) { si = 0x14; byte_016a = 0; }
 		else { int8_t st = (int8_t)((1 - (int16_t)minutes_left) / 9 + 7); if (st > byte_016a) { si = st + 0x14; byte_016a = st; } }

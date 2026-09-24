@@ -49,12 +49,14 @@ The SDL frontend reads `SDLPoP2.ini` (modelled on SDLPoP's `SDLPoP.ini`): `--ini
 current directory, next to the binary (the build copies it to `build/sdl/`), or the installed `share/sdlpop2/SDLPoP2.ini`.
 Every option is documented in the file, `default` is accepted everywhere, unknown options are reported. Every default is
 the original game: `[General]` (window, 4:3 aspect, integer scaling, sharp / fuzzy / blurry scaling, music, sounds,
-volume, the sound device, the intro, the story scenes, the copy protection, skipping the title, the control keys),
+volume, the sound device, the intro, the story scenes, skipping the title, the control keys),
 `[AdditionalFeatures]` (F6 / F9 quicksave with SDLPoP's one-minute penalty, replays, the random seed, the F1 key
 summary), `[Controller]` (game controllers: on / off, rumble, the stick's dead zone and horizontal-only mode, extra
 mappings, the buttons), `[CustomGameplay]` (starting time and hit points, ticks per minute, the hit point cap, Alt+N's minutes, the
-first level, the copy protection's level, the tick speeds), `[Level N]` (the prince's sword type) and `[Skill N]`
+first level, the tick speeds), `[Level N]` (the prince's sword type) and `[Skill N]`
 (the guards' strike / block / advance probabilities and refractory timers, PRINCE.EXE's DS:1BB6 / DS:13D0 tables).
+The copy protection (the symbol from the manual) cannot be turned off or moved: as in the original, a game that
+reaches level 3 or later - by playing on, a restored game, the level cheat, Alt+N or `first_level` - asks it first.
 
 The core and the shell read the gameplay options through `pop2_settings_game` (`source/settings.h`), NULL unless the
 frontend installs one: at each original site the code is `GAME_SETTING(field, original)`, so the headless core and the

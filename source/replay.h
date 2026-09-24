@@ -24,7 +24,6 @@ void replay_record_end(replay_rec *r);   /* after the last step: the frame count
 typedef struct replay_play {
 	FILE *f; uint32_t frame;
 	uint32_t seed; int argc; char argv[16][64]; const char *argp[16];
-	int cp_answer;             /* SDLPOP2_CP_ANSWER was set when it was recorded */
 	pop2_settings settings;    /* the recorded gameplay settings over the defaults */
 	uint32_t end_frame; uint64_t end_hash; uint32_t end_screen; int ended;
 	shell_input cur;

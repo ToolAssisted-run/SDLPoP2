@@ -2,7 +2,7 @@
 """Oracle capture scripts for the sound drivers (tests/audiotest.c): audioscript.py BASE.script OUT.script [--audio PATH] [--speaker]
 Keeps BASE's key lines (e.g. an E<level>_<seed>.script random run) and end frame, adds the driver probes (and the mixer
 output with --audio). --speaker: probes for the PC speaker player (run the game with CONFIG.DAT's digital and MIDI types
-set to 0, bytes 6..9, on a copy of the disk image). Run: ~/pop2dec/oracle/cap.sh NAME "prince yippeeyahoo LEVELn"."""
+set to 0, bytes 6..9, on a copy of the disk image). Run: $POP2_WORKSPACE/oracle/cap.sh NAME "prince yippeeyahoo LEVELn"."""
 import sys
 
 COMMON = """probe 1611 053C a_req SS0000 10

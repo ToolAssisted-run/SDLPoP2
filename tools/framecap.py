@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """framecap.py NAME "COMMAND" SCRIPT_WITH_KEYS [END_FRAME] [EXTRA_SCRIPT_LINES_FILE]: capture NAME in the oracle with the
-keys of SCRIPT_WITH_KEYS plus probes around the drawing of every frame; writes ~/pop2dec/oracle/frames/NAME.frames
+keys of SCRIPT_WITH_KEYS plus probes around the drawing of every frame; writes $POP2_WORKSPACE/oracle/frames/NAME.frames
 (records: 8-byte label, u32 emulator frame, u32 length, data) and NAME_ram.bin (a RAM dump at the end).
 Probes (see tests/frametest.c):
   169B:0A98 (a normal frame, before 0FB3:12F4): pre_lo (DS:0000..2900), pre_ds (DS:2900..6C00), pre_heap (DS:9800..B800), pre_buf (the
@@ -25,7 +25,8 @@ import sys, os, re, subprocess, struct
 name, cmd, src = sys.argv[1], sys.argv[2], sys.argv[3]
 end = int(sys.argv[4]) if len(sys.argv) > 4 else None
 extra = open(sys.argv[5]).read() if len(sys.argv) > 5 else ''
-O = os.path.expanduser('~/pop2dec/oracle'); F = O + '/frames'; os.makedirs(F, exist_ok=True)
+WS = os.environ.get('POP2_WORKSPACE', os.path.expanduser('~/pop2dec'))   # the analysis workspace (README)
+O = WS + '/oracle'; F = O + '/frames'; os.makedirs(F, exist_ok=True)
 lines = [l for l in open(src) if l.startswith(('key ', 'probepoke ', 'poke '))]
 last = end or max([int(l.split()[1]) for l in lines if l.startswith('key ')] + [2000])
 lines = [l for l in lines if not l.startswith(('key ', 'poke ')) or int(l.split()[1]) <= last] if end else lines   # (probepoke lines are by tick)

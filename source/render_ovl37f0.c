@@ -1,7 +1,7 @@
 /* The drawing parts of level 5's room overlays at 37F0 (the caverns' tile drawers DS:[6188] point there for tiles
  * 0x12, 0x1B and 0x2C, and the resident drawing calls 37F0 directly): OVL11, room 3 (description 0: the pit trap and
  * the mouth in the ceiling), OVL12, rooms 7 / 10 / 12 (description 0x21: the rope bridge and its falling planks). Transcribed from
- * the relocated overlays (~/pop2dec/image/ovl11_37F0.bin, ovl12_37F0.bin). */
+ * the relocated overlays (the workspace's image/ovl11_37F0.bin, ovl12_37F0.bin). */
 #include <string.h>
 #include "types.h"
 #include "globals.h"

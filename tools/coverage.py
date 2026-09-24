@@ -1,14 +1,16 @@
 # Coverage of the reconstruction: Ghidra function list (decomp-pop2img5) vs addresses cited in source/. usage: coverage.py [SEGMENT]
-import re,glob,collections,sys
+import re,glob,collections,sys,os
+WS=os.environ.get('POP2_WORKSPACE',os.path.expanduser('~/pop2dec'))   # the analysis workspace (README)
+ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 fn=[]
-for l in open('/home/jaffar/pop2dec/decomp-pop2img5/functions.txt'):
+for l in open(WS+'/decomp-pop2img5/functions.txt'):
     m=re.match(r'([0-9a-fA-F]{4}):([0-9a-fA-F]{4}) (\S+) size=(\d+)',l)
     if m: s,o=int(m.group(1),16),int(m.group(2),16); fn.append((s*16+o,int(m.group(4)),m.group(1).upper(),m.group(3))); continue
     m=re.match(r'(OVL\d\d_[0-9A-F]{4})::([0-9a-f]{6}) (\S+) size=(\d+)',l)
     if m: fn.append((int(m.group(2),16),int(m.group(4)),m.group(1),m.group(3)))
 fn.sort()
 cited=set()
-for f in glob.glob('/home/jaffar/sdlpop2/source/*.c')+glob.glob('/home/jaffar/sdlpop2/source/*.h'):
+for f in glob.glob(ROOT+'/source/*.c')+glob.glob(ROOT+'/source/*.h'):
     t=open(f).read()
     for m in re.finditer(r'\b([0-9A-Fa-f]{4}):([0-9A-Fa-f]{4})\b',t): cited.add(int(m.group(1),16)*16+int(m.group(2),16))
     for m in re.finditer(r'\b(0[23][0-9A-Fa-f]{4})\b',t): cited.add(int(m.group(1),16))

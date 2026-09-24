@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Pseudo-code of an OVL00 routine from the listing: calls with their pushed arguments (Pascal order: first pushed =
-first parameter), jumps and labels.  nispseudo.py LISTING START END   (e.g. ~/pop2dec/work/ovl00_2D3E.asm 2D7D:2E27 2D7D:3E00)"""
+first parameter), jumps and labels.  nispseudo.py LISTING START END   (e.g. $POP2_WORKSPACE/work/ovl00_2D3E.asm 2D7D:2E27 2D7D:3E00)"""
 import sys, re
 NAMES = {
  '0x26bc:0x876': 'draw_shape', '0x2583:0x6': 'draw_img', '0x25a1:0xfa': 'shape_get', '0x194c:0x6632': 'fill_rect',

@@ -1,8 +1,9 @@
 #!/bin/sh
-# The shell (source/shell.c, menu.c, text.c, loader.c) against its oracle captures in ~/pop2dec/oracle/shell (see
+# The shell (source/shell.c, menu.c, text.c, loader.c) against its oracle captures in $POP2_WORKSPACE/oracle/shell (see
 # docs/SHELL.md 9): the game state at every tick start and the screens. usage: tests/run_shell.sh
 set -e
-here=$(cd "$(dirname "$0")" && pwd); O=$HOME/pop2dec/oracle; C=$O/shell; S=$HOME/pop2dec/sources/prince2
+WS=${POP2_WORKSPACE:-$HOME/pop2dec}   # the analysis workspace (README)
+here=$(cd "$(dirname "$0")" && pwd); O=$WS/oracle; C=$O/shell; S=$WS/sources/prince2
 W=${WORK:-$(mktemp -d)}; mkdir -p $W/files
 cd "$here/.."
 # BUILD=dir (meson test): take the programs built there instead of compiling them here

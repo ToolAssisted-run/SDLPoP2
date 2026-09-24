@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build tests/nistest and run it on every scene capture (see docs/NIS.md, "Verification").  nisrun.py [window]"""
 import os, subprocess, sys
-home = os.path.expanduser('~'); root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-D = home + '/pop2dec/sources/prince2'; O = home + '/pop2dec/oracle'; win = sys.argv[1] if len(sys.argv) > 1 else '10'
+WS = os.environ.get('POP2_WORKSPACE', os.path.expanduser('~/pop2dec'))   # the analysis workspace (README)
+root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+D = WS + '/sources/prince2'; O = WS + '/oracle'; win = sys.argv[1] if len(sys.argv) > 1 else '10'
 exe = os.environ.get('TMPDIR', '/tmp') + '/nistest'
 import glob   # (with the whole program: transitions 2 and 3 draw their game room through the shell's 0AAC:0376)
 subprocess.check_call(['gcc', '-O2', '-w', '-DNIS_ENGINE', '-o', exe, root + '/tests/nistest.c'] + sorted(glob.glob(root + '/source/*.c')) + ['-lm'])

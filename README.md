@@ -9,7 +9,8 @@ address (the game's own loader decompressed them inside a headless DOSBox-X orac
 function by function against that oracle (per-frame RAM diffs, instruction traces, call injection).
 Analysis workspace: outside this repo, written `<workspace>` in the docs (`<workspace>/sources`: the game files,
 `<workspace>/oracle`: the oracle runner and its captures, `<workspace>/work` and `<workspace>/image`: disassembly
-listings and overlay images). Game data files are never committed.
+listings and overlay images). The scripts find it through `POP2_WORKSPACE` (default `~/pop2dec`). Game data files
+are never committed.
 
 ## Status (2026-09-24)
 The whole program runs in C: the game logic of the 14 levels, the renderer, the story scenes (NIS), the sound drivers

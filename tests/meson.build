@@ -1,5 +1,5 @@
 # Test programs. Most compare the C against oracle captures (the real game in DOSBox-X): their data lives outside the
-# repository (~/pop2dec), so only the core round-trip test runs by default (with -DgameDir); -DoracleTests=true adds
+# repository ($POP2_WORKSPACE, default ~/pop2dec), so only the core round-trip test runs by default (with -DgameDir); -DoracleTests=true adds
 # the capture suites (the scripts in this directory, run with the programs built here).
 testHelpers = files('snap.c', 'testutil.c')
 

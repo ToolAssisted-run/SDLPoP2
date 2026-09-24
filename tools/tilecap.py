@@ -2,11 +2,12 @@
 """tilecap.py NAME "COMMAND" SCRIPT_WITH_KEYS [END_FRAME]: capture NAME in the oracle with the keys of SCRIPT_WITH_KEYS
 plus probes at 0FB3:0122 (a whole-room build starts: the DS state 0x2900..0x6C00) and 0FB3:0B78 (tables drawn: the
 back/fore tables and the counts) and a RAM dump at the end; writes cases NAME_<n>.case (one per room build: the state
-hex, then the tables hex, then the near heap DS:9800..B800 (the collapsing floors' objects, the piece table), one per line) into ~/pop2dec/oracle/tiles/, and NAME_ram.bin"""
+hex, then the tables hex, then the near heap DS:9800..B800 (the collapsing floors' objects, the piece table), one per line) into $POP2_WORKSPACE/oracle/tiles/, and NAME_ram.bin"""
 import sys, os, re, subprocess
 name, cmd, src = sys.argv[1], sys.argv[2], sys.argv[3]
 end = int(sys.argv[4]) if len(sys.argv) > 4 else None
-O = os.path.expanduser('~/pop2dec/oracle'); T = O + '/tiles'; os.makedirs(T, exist_ok=True)
+WS = os.environ.get('POP2_WORKSPACE', os.path.expanduser('~/pop2dec'))   # the analysis workspace (README)
+O = WS + '/oracle'; T = O + '/tiles'; os.makedirs(T, exist_ok=True)
 lines = [l for l in open(src) if l.startswith(('key ', 'probepoke ', 'poke '))]
 last = end or max([int(l.split()[1]) for l in lines if l.startswith('key ')] + [2000])
 with open(f'{O}/{name}.script', 'w') as f:

@@ -28,5 +28,5 @@ option('gameDir',
 option('oracleTests',
   type : 'boolean',
   value : false,
-  description : 'Register the oracle comparison suites (need the captures in ~/pop2dec/oracle and ~/pop2dec/work)',
+  description : 'Register the oracle comparison suites (need the captures in $POP2_WORKSPACE/oracle and /work, default ~/pop2dec)',
 )

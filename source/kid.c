@@ -174,7 +174,7 @@ static void start_fall(void)
 		}
 	}
 	if (level_kind == 1) { id = 0x1B; ovl_349be(); seq_set_85f8(8); }
-	else if (Char.charid == 0 && is_feather_fall != 0 && Char.f19 != 0xE4) id = 0xE4;
+	else if (Char.charid == 0 && word_5d36 != 0 && Char.f19 != 0xE4) id = 0xE4;
 	seqtbl_offset_char(id); play_seq(); load_fram_det_col();
 	if (!tile_is_wall_kind(get_tile_at_char())) {
 		if (tile_is_wall_kind(get_tile_infrontof(1))) {
@@ -290,7 +290,7 @@ void check_tile_effects(void)
 {
 	uint16_t frame = Char.frame; uint8_t t;
 	if (Char.charid == 0xB || Char.charid == 10) return;
-	if (Char.charid == 0 && is_feather_fall != 0) return;
+	if (Char.charid == 0 && word_5d36 != 0) return;
 	if (Char.charid == 1 && Char.f19 > 0x1C && Char.f19 < 0x2B) return;
 	int a = Char.action;
 	if ((frame < 0x57 || frame > 99) && (frame < 0x87 || frame > 0x8C)) {

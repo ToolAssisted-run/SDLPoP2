@@ -6,7 +6,7 @@
 void fall_accel(void)
 {
 	if (Char.action == 4 || Char.action == 9) {
-		if (is_feather_fall == 0) { Char.fall_y += 3; if (Char.fall_y > 33) Char.fall_y = 33; }
+		if (word_5d36 == 0) { Char.fall_y += 3; if (Char.fall_y > 33) Char.fall_y = 33; }
 		else { Char.fall_y += 1; if (Char.fall_y > 4) Char.fall_y = 4; }
 	}
 }

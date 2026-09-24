@@ -53,11 +53,17 @@ int play_kid_control(void)
 {
 	int si = kid_input_and_control();
 	if (si != -2 || Char.alive < 0 || !is_dead_frame(Char.frame)) return si;
-	if (word_5ce8) note_missing("DEAD_IN_CUTSCENE");   /* 0AFF:1117: revive and continue the cutscene */
+	if (word_5ce8) {   /* 0AFF:1117: the prince revived (DS:5CE8, set by the cheat 'r'): every sound stopped, full hit points, up again */
+		sound_stop_all();                  /* 194C:83D2(0) */
+		Kid.hp_delta = (int8_t)Kid.f13; loadkid();
+		seqtbl_offset_char(2); Char.x += 0x10;
+		play_seq(); load_fram_det_col();   /* 0AFF:03AA, 0294 */
+		init_kid_record_pub();             /* 169B:02B8 */
+	}
 	if (Char.charid != 0 && Char.charid != 1) return si;
 	if (death_sound_playing(0)) return si;   /* DS:0882 still playing (unless it is sound 4, 7 or 0x36) */
 	word_5cd0 = 0;
-	if (Char.alive < 6) { Char.alive++; return si; }
+	if (Char.alive >= 0 && Char.alive < 6) { Char.alive++; return si; }   /* (0AFF:1180: not a prince revived above) */
 	if (Char.alive == 6) { seq_music_1611(byte_5cb8); Char.alive++; return si; }
 	if (Char.alive != 7 || death_sound_playing(1)) return si;   /* DS:0882 or DS:0884 still playing */
 	if (minutes_left == 0) { restart_prompt(); si = -1; }   /* out of time */

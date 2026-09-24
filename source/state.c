@@ -46,7 +46,7 @@ static const state_field extra_fields[] = {
 	{"kid_sprite", 0, sizeof(kid_sprite_t), &kid_sprite}, {"room_bg", 0, 2, &room_bg}, {"level_kind", 0, 1, &level_kind}, {"level_number", 0, 1, &level_number}, {"frame_delay", 0, 2, &frame_delay}, {"last_scene", 0, sizeof(int), &last_scene},
 	{"level_switch", 0, sizeof(int), &level_switch}, {"floor_objs", 0, sizeof floor_objs, floor_objs},
 	{"word_27c0", 0, 2, &word_27c0}, {"counter_27d6", 0, 2, &counter_27d6}, {"flag_5cb9", 0, 1, &flag_5cb9}, {"byte_5cb8", 0, 1, &byte_5cb8},
-	{"is_feather_fall", 0, 2, &is_feather_fall}, {"obj_xl", 0, 1, &obj_xl}, {"word_2baa", 0, 2, &word_2baa}, {"word_37e8", 0, 2, &word_37e8},
+	{"obj_xl", 0, 1, &obj_xl}, {"word_2baa", 0, 2, &word_2baa}, {"word_37e8", 0, 2, &word_37e8},
 	{"word_927e", 0, 2, &word_927e}, {"word_0882", 0x0882, 2, &word_0882}, {"word_0884", 0x0884, 2, &word_0884}, {"snd_ch", 0, sizeof snd_ch, snd_ch}, {"snd_time", 0, 4, &snd_time}, {"sound_pass_late", 0, sizeof(int), &sound_pass_late}, {"byte_2ab4", 0, 1, &byte_2ab4},
 	{"edge_type", 0, 1, &edge_type}, {"start_room", 0, 1, &start_room}, {"word_3bf62", 0, 2, &word_3bf62},
 };

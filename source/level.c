@@ -121,6 +121,7 @@ static void init_kid_record(void)
 	Char.f10 = byte_5cba == 0xFF ? 0xFF : 0;
 	play_seq(); Kid = Char;
 }
+void init_kid_record_pub(void) { init_kid_record(); }
 /* 169B:031A (level 7): the start depends on DS:5CB9 */
 static void level7_start(void)
 {

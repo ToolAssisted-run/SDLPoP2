@@ -186,7 +186,7 @@ void check_collisions(void)
 			}
 		}
 	}
-	if (Char.charid == 0 && coll.bump_col_left_of_wall == -1 && coll.bump_col_right_of_wall == -1 && is_feather_fall != 0 && Char.action == 4) feather_wall_check();
+	if (Char.charid == 0 && coll.bump_col_left_of_wall == -1 && coll.bump_col_right_of_wall == -1 && word_5d36 != 0 && Char.action == 4) feather_wall_check();
 }
 
 /* OVL01 0329B6: may this character bump into the gate at curr_tile? (needs the gate to be low enough) */

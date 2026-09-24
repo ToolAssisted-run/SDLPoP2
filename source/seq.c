@@ -101,7 +101,7 @@ void play_seq(void)
 			seq_set_85f8(seq_fetch_word());
 			break;
 		case SEQ_JMP_IF_FEATHER:                     /* 055C */
-			if (is_feather_fall) goto do_jmp;
+			if (word_5d36) goto do_jmp;
 			(void)seq_fetch_word();
 			break;
 		case SEQ_ADD_FALL: {                         /* 0570 */

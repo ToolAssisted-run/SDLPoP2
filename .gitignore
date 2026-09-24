@@ -7,3 +7,7 @@
 *.iso
 build/
 tools/__pycache__/
+build-windows/
+dist/
+extern/*/
+extern/packagecache/

@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <ucontext.h>
+#include "coro.h"
 #include <time.h>
 #include "types.h"
 #include "globals.h"
@@ -59,7 +59,7 @@ static void timer_interrupt(void)   /* 194C:7EE7 (the 60 Hz part) */
 }
 
 /* ---- the coroutine ---- */
-static ucontext_t ctx_host, ctx_shell; static char *shell_stack; static int shell_done;
+static coro *shell_coro; static int shell_done;   /* (coro.h) */
 static const shell_input *cur_in; static uint16_t keyq[16]; static int keyq_n;
 static void take_input(const shell_input *in)
 {
@@ -71,7 +71,7 @@ static void take_input(const shell_input *in)
 void sh_frame(void)
 {
 	if (!running) return;
-	swapcontext(&ctx_shell, &ctx_host);
+	coro_yield(shell_coro);
 }
 static void advance_frame(void)
 {
@@ -136,8 +136,8 @@ extern void (*sound_start_hook)(int n);   /* sound.c: resource 10000 + n */
 void shell_sound(int res) { if (sound_start_hook) sound_start_hook(res - 10000); }   /* 194C:840E / 1611:053C */
 void shell_sound_stop(int res) { if (res == 0) sound_stop_all(); else sound_194c_83d2((uint16_t)res); }   /* 194C:83D2 */
 void sound_res_start(uint16_t res) { if (running || sound_start_hook) shell_sound(res); }   /* (game.c: 169B:0B9C's beep) */
-__attribute__((weak)) void platform_sound_volume(int v) { (void)v; }   /* the frontend: audio_volume */
-void sound_set_volume(int v) { sound_volume = (uint8_t)(v > 15 ? 15 : v); platform_sound_volume(sound_volume); }   /* 194C:3380 */
+void (*platform_sound_volume_hook)(int v);   /* the frontend: audio_volume */
+void sound_set_volume(int v) { sound_volume = (uint8_t)(v > 15 ? 15 : v); if (platform_sound_volume_hook) platform_sound_volume_hook(sound_volume); }   /* 194C:3380 */
 int music_toggle_msg(void)   /* 1611:07D4 -> the message */
 {
 	if (!(sound_caps & 2)) return 0xA44;   /* "Music Unavailable" */
@@ -293,7 +293,7 @@ static void nis_sound(int kind, int id, void *u)   /* the scenes' sounds to the 
 }
 /* 0AAC:0376 for transitions 2 and 3: the level loaded and the room drawn into the scene's picture; the game state is
  * put back after (the level that follows the scene is loaded again anyway) */
-__attribute__((weak)) void shell_nis_room(int lv, int room, uint8_t *pixels, int rowbytes)
+void shell_nis_room(int lv, int room, uint8_t *pixels, int rowbytes)
 {
 	static uint8_t *save; if (!save) save = malloc(pop2_state_size());
 	pop2_save(save);
@@ -680,7 +680,7 @@ static void shell_main(void)   /* 0823:0000 */
 
 /* ---- the host side ---- */
 void shell_set_seed(uint32_t seed) { seed_value = seed; seed_set = 1; }
-static void entry(void) { shell_main(); shell_done = 1; for (;;) swapcontext(&ctx_shell, &ctx_host); }
+static void entry(void) { shell_main(); shell_done = 1; }
 int shell_init(const char *dir, int argc, const char **argv)
 {
 	snprintf(game_dir, sizeof game_dir, "%s", dir);
@@ -689,10 +689,7 @@ int shell_init(const char *dir, int argc, const char **argv)
 	pop2_reset_state();           /* the data segment as the program starts */
 	byte_6b6c = 0; cheat_mode = 0; level_switch = 0; word_32d8 = 0xFF;
 	frame_on_time_hook = frame_on_time_shell;
-	if (!shell_stack) shell_stack = malloc(1 << 20);
-	getcontext(&ctx_shell);
-	ctx_shell.uc_stack.ss_sp = shell_stack; ctx_shell.uc_stack.ss_size = 1 << 20; ctx_shell.uc_link = NULL;
-	makecontext(&ctx_shell, entry, 0);
+	coro_destroy(shell_coro); shell_coro = coro_create(entry, 1 << 20);
 	hooks_on = 1; render_track_tiles = 1;   /* (the tick-time redraw requests the core leaves out: from the tile changes) */
 	running = 1; shell_done = 0; frames = 0; sh_ticks60 = 0; tick_acc = 0;
 	return 1;
@@ -702,7 +699,7 @@ int shell_step(const shell_input *in)
 	if (shell_done) return SHELL_EXIT;
 	cur_in = in; if (in) take_input(in);
 	advance_frame();
-	swapcontext(&ctx_host, &ctx_shell);
+	coro_resume(shell_coro);
 	return shell_done ? SHELL_EXIT : SHELL_RUNNING;
 }
 /* for frontends: a key goes down or up; the BIOS shift flags follow the modifier keys, and a key going down types the

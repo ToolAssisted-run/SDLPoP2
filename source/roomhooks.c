@@ -15,8 +15,7 @@ int room_has_description(uint8_t room)
 	return 0;
 }
 /* the frontend's hooks for the palette parts of the entries below (shell.c -> render_palette.c; no-ops for the core) */
-__attribute__((weak)) void hook_room_enter(int bg) { (void)bg; }
-__attribute__((weak)) void hook_room_leave(int bg) { (void)bg; }
+
 /* entry 0 of the background's hooks */
 static void room_enter_hook(int16_t bg)
 {

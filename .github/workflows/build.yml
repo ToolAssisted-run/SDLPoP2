@@ -1,0 +1,102 @@
+name: Build
+
+# Linux and Windows executables, both built on Linux (Windows through mingw-w64: cross/mingw-w64.ini, SDL2 from the
+# WrapDB wrap). The game's data files are not public, so CI runs only the tests that need none; the core, settings
+# and oracle suites run where the game files are (meson setup -DgameDir=... -DoracleTests=true).
+#
+# Every push to master publishes the rolling "dev" prerelease (assets named with the short commit); a tag v*
+# publishes a release of its own.
+
+on:
+  push:
+    branches: [ "master" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Installing apt packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends meson ninja-build build-essential pkg-config libsdl2-dev
+    - name: Building
+      run: |
+        meson setup build
+        meson compile -C build
+    - name: Testing (no game data needed)
+      run: meson test -C build --suite controller --print-errorlogs
+    - name: Packaging
+      run: |
+        name=sdlpop2-linux-x86_64-$(git rev-parse --short=8 HEAD)
+        mkdir -p dist/$name
+        cp build/sdl/sdlpop2 SDLPoP2.ini LICENSE NOTICE README.md dist/$name/
+        mkdir -p dist/$name/LICENSES && cp LICENSES/* dist/$name/LICENSES/
+        tar -C dist -czf dist/$name.tar.gz $name
+        echo "ASSET=dist/$name.tar.gz" >> "$GITHUB_ENV"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: sdlpop2-linux-x86_64
+        path: ${{ env.ASSET }}
+
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Installing apt packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends meson ninja-build pkg-config mingw-w64 zip
+    - name: Building (mingw-w64 cross build)
+      run: |
+        meson setup build-windows --cross-file cross/mingw-w64.ini
+        meson compile -C build-windows
+    - name: Packaging
+      run: |
+        name=sdlpop2-windows-x86_64-$(git rev-parse --short=8 HEAD)
+        mkdir -p dist/$name/LICENSES
+        cp build-windows/sdl/sdlpop2.exe SDLPoP2.ini LICENSE NOTICE README.md dist/$name/
+        cp LICENSES/* dist/$name/LICENSES/
+        x86_64-w64-mingw32-strip dist/$name/sdlpop2.exe
+        (cd dist && zip -qr $name.zip $name)
+        echo "ASSET=dist/$name.zip" >> "$GITHUB_ENV"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: sdlpop2-windows-x86_64
+        path: ${{ env.ASSET }}
+
+  publish:
+    # master: the rolling "dev" prerelease; a v* tag: its own release
+    if: github.event_name == 'push'
+    needs: [ linux, windows ]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/download-artifact@v4
+      with:
+        path: assets
+        merge-multiple: true
+    - name: Publishing
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+          gh release create "${GITHUB_REF_NAME}" assets/* --title "SDLPoP2 ${GITHUB_REF_NAME}" --notes "SDLPoP2 ${GITHUB_REF_NAME}. You need your own copy of the original game (see README)."
+        else
+          # the rolling prerelease: replaced on every push to master
+          gh release delete dev --yes --cleanup-tag || true
+          gh release create dev assets/* --prerelease --target "${GITHUB_SHA}" --title "SDLPoP2 (dev, ${GITHUB_SHA::8})" \
+            --notes "The newest build of master (${GITHUB_SHA::8}). You need your own copy of the original game (see README)."
+        fi

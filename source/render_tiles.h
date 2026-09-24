@@ -71,3 +71,8 @@ void desc_obj_offset(uint8_t *o, int16_t dx, int16_t dy);
 void desc_draw_obj_at(tile_args *a, int i);   /* 0CD6:007A */
 void desc_draw_obj_pair(tile_args *a, int i);
 extern const kind_drawers kind_desert, kind_rooftops, kind_final;   /* render_kind_desc.c */
+/* drawing parts of the level overlays (render_ovl37f0.c, render_hooks.c, render_kind2/4.c) and the sprite list */
+void draw_hook_37f0_044a(void); void draw_hook_37f0_05fc(void); void draw_mob_37f0_0782(void);
+void obj_hook_37f0_023a(uint8_t type); void obj_hook_37f0_08d2(uint8_t type);
+void ruins_0ec0(tile_args *a); void temple_0cc0(tile_args *a);
+const int16_t *sprite_rect_of(int chtab, uint8_t type);   /* render_frame.c (0FB3:1BF2) */

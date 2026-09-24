@@ -246,7 +246,7 @@ static void draw_layer(uint8_t layer)
 	}
 }
 /* 0FB3:1BF2: the frame's sprite of a character (the sprite list, not reconstructed yet): its record's rect */
-__attribute__((weak)) const int16_t *sprite_rect_of(int kind, uint8_t charid) { (void)kind; (void)charid; return NULL; }
+
 extern void caverns_teeth(tile_args *a);   /* 34C1:0774 */
 /* a character that the teeth of the chomper at the left tile (4) close on: on this row, in the chomper's column or
  * the one after this one, not in action 2 or 6 */

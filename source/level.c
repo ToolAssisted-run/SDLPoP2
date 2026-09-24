@@ -176,7 +176,7 @@ void level_begin(void)
 
 static void kind_level_init(void); extern int last_scene; int load_level_ex(int n, int full);
 /* the frontend's hooks (shell.c; no-ops for the core alone) */
-__attribute__((weak)) void hook_level_loaded(void) {}
+
 /* 1286:01F2 / 02EE: load level n (resource 0x7CF + n, +0x14 with the GAMEPLAY switch), then the checkpoint copy.
  * A different level than the current one drops the checkpoint. */
 int load_level(int n) { return load_level_ex(n, n != (int8_t)word_32d8 || last_scene); }

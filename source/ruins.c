@@ -57,7 +57,7 @@ void ruins_open_tile7(void)
 
 /* 0AAC:0274 from the tick (a story scene in the middle of play): the platform's shell plays it (shell.c); headless,
  * nothing plays and it is not cut short. Returns 2 when a key cut it short. */
-__attribute__((weak)) int core_play_scene(int n) { last_scene = n; return 0; }
+
 void sound_1611_0826(uint16_t n); void state_ds_range(uint16_t lo, uint16_t len, uint8_t *buf, int load);
 /* 37F0:007C (OVL14, through 2A31:0E1B when the prince takes the sword in level 8's room 9): scene 6, then the level
  * reloaded in full (1286:01F2) with the level's state (DS:2BB8, 0x2EF9 bytes) put back, the prince in room 9 in seq

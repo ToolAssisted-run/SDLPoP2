@@ -42,8 +42,10 @@ static void read_joystick(void)
 	control_shift = -(int8_t)joy_button; if ((int8_t)control_shift < -2) control_shift = -1;
 }
 /* 0823:10A0: clear next_room and the controls, read the device, then the hotkeys (0823:02BE, not reconstructed) */
-__attribute__((weak)) int read_input(void)   /* weak: the snapshot tests feed captured controls */
+int (*read_input_hook)(void);   /* tests: the snapshot tests feed captured controls */
+int read_input(void)
 {
+	if (read_input_hook) return read_input_hook();
 	next_room = 0; control_x = control_y = control_shift = 0;
 	if (input_device == 2) read_joystick(); else read_keyboard();
 	int si = hotkeys_02be();
@@ -62,4 +64,4 @@ int hotkeys_02be_core(void)
 	if (restart && !word_5ce8 && !(drawn_room == 4 && level_number == 13 && shadow13_present())) { word_5cd8 = 1; sound_stop_all(); }   /* 0823:051C; 2A31:0E11 -> 37F0:03CA */
 	return di;
 }
-__attribute__((weak)) int hotkeys_02be(void) { return hotkeys_02be_core(); }   /* the whole of 0823:02BE: shell.c */
+

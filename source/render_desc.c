@@ -149,7 +149,7 @@ static void draw_extra(uint8_t layer)
 	e->top = draw_clip[0]; e->left = draw_clip[1]; e->bottom = draw_clip[2]; e->right = draw_clip[3];
 	e->mode = 0xA; e->piece = cur_tile.tile;   /* (DS:6B72) */
 }
-__attribute__((weak)) void level14_room1_palette(void) { }   /* 33FD:145E */
+void level14_room1_palette(void) { }   /* 33FD:145E */
 /* 0FB3:0624: the description's objects of `layer` (whole-room builds: once, the background ones at the first tile
  * drawn and the foreground ones at the last) */
 void render_desc_objects(uint8_t layer)

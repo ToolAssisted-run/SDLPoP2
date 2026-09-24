@@ -7,8 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include "platform.h"
 #include <time.h>
 #include "../source/core.h"
 #include "../source/render.h"
@@ -52,7 +51,7 @@ static void open_audio(const char *dir)
 	sound_start_hook = on_start; sound_stop_hook = on_stop;
 	SDL_PauseAudioDevice(adev, 0);
 }
-void platform_sound_volume(int v) { audio_volume(v >= 15 ? S.volume : v * S.volume / 15); }   /* (194C:3380: the game's 15 = on, 0 = off; Alt+S) */
+static void platform_sound_volume(int v) { audio_volume(v >= 15 ? S.volume : v * S.volume / 15); }   /* (194C:3380: the game's 15 = on, 0 = off; Alt+S) */
 
 /* ---- the picture, with the frontend's overlay (the info screen, messages) drawn with the shell's text library into
  * a port of its own (1 text, 2 a dark box): the game's screen and palette are not touched ---- */
@@ -146,7 +145,7 @@ static int ascii_of(SDL_Keycode k, Uint16 mod)
 }
 
 /* ---- files ---- */
-static int file_exists(const char *p) { struct stat st; return p && !stat(p, &st) && S_ISREG(st.st_mode); }
+static int file_exists(const char *p) { return plat_file_exists(p); }
 static void warn_ini(const char *m) { fprintf(stderr, "sdlpop2: %s\n", m); }
 /* SDLPoP2.ini: --ini PATH, else the current directory, next to the binary, the installed copy. -1: --ini unreadable */
 static int load_ini(const char *given, char *used, size_t n)
@@ -162,9 +161,9 @@ static int load_ini(const char *given, char *used, size_t n)
 /* a replay NAME without a directory is in replays_folder; ".p2r" is added when it has no extension */
 static void replay_path(char *out, size_t n, const char *name, int reading)
 {
-	int plain = !strchr(name, '/'), ext = strchr(name, '.') != NULL;
+	int plain = !strchr(name, '/') && !strchr(name, '\\'), ext = strchr(name, '.') != NULL;
 	if (reading && file_exists(name)) { snprintf(out, n, "%s", name); return; }
-	if (plain) { if (!reading) mkdir(S.replays_folder, 0777); snprintf(out, n, "%s/%s%s", S.replays_folder, name, ext ? "" : ".p2r"); }
+	if (plain) { if (!reading) plat_mkdir(S.replays_folder); snprintf(out, n, "%s/%s%s", S.replays_folder, name, ext ? "" : ".p2r"); }
 	else snprintf(out, n, "%s%s", name, ext ? "" : ".p2r");
 }
 static void usage(const char *prog)
@@ -201,7 +200,7 @@ int main(int argc, char **argv)
 	}
 
 	/* replays: a recording starts with the program; a replay brings its seed, words, gameplay settings and game files */
-	static replay_play play; static replay_rec rec; char path[1024], files_tmp[64] = "";
+	static replay_play play; static replay_rec rec; char path[1024], files_tmp[512] = "";
 	uint32_t seed = S.random_seed_clock ? (uint32_t)time(NULL) : S.random_seed;   /* (DOS: time() at start) */
 	if (play_name) {
 		char err[512]; replay_path(path, sizeof path, play_name, 1);
@@ -209,12 +208,12 @@ int main(int argc, char **argv)
 		if (nwords) fprintf(stderr, "sdlpop2: replaying %s: its own command line words are used\n", path);
 		settings_copy_gameplay(&S, &play.settings); pop2_settings_game = &S;
 		seed = play.seed; nwords = play.argc; words = play.argp;
-		if (play.cp_answer) setenv("SDLPOP2_CP_ANSWER", "1", 1); else unsetenv("SDLPOP2_CP_ANSWER");
-		snprintf(files_tmp, sizeof files_tmp, "/tmp/sdlpop2-replay-XXXXXX");   /* (the player's own saved games are not touched) */
-		if (!mkdtemp(files_tmp)) { fprintf(stderr, "sdlpop2: no scratch directory for the replay's files\n"); SDL_Quit(); return 1; }
+		plat_setenv("SDLPOP2_CP_ANSWER", play.cp_answer ? "1" : NULL);
+		if (!plat_temp_dir(files_tmp, sizeof files_tmp, "sdlpop2-replay")) {   /* (the player's own saved games are not touched) */ fprintf(stderr, "sdlpop2: no scratch directory for the replay's files\n"); SDL_Quit(); return 1; }
 		replay_write_files(&play, files_tmp); snprintf(file_dir, sizeof file_dir, "%s", files_tmp);
 		fprintf(stderr, "sdlpop2: replaying %s\n", path);
 	}
+	platform_sound_volume_hook = platform_sound_volume;   /* (Alt+S / the game's volume -> the audio module) */
 	shell_set_seed(seed);
 	if (!shell_init(dir, nwords, words)) { fprintf(stderr, "cannot load the game from %s\n", dir); SDL_Quit(); return 1; }
 	if (rec_name) {
@@ -315,9 +314,9 @@ int main(int argc, char **argv)
 out:
 	if (rec.f) { replay_record_end(&rec); fprintf(stderr, "sdlpop2: recording saved to %s\n", path); }
 	if (files_tmp[0]) {
-		static const char *const names[3] = { "PRINCE.OPT", "PRINCE.HOF", "PRINCE.SAV" }; char p[128];
-		for (int i = 0; i < 3; i++) { snprintf(p, sizeof p, "%s/%s", files_tmp, names[i]); unlink(p); }
-		rmdir(files_tmp);
+		static const char *const names[3] = { "PRINCE.OPT", "PRINCE.HOF", "PRINCE.SAV" }; char p[600];
+		for (int i = 0; i < 3; i++) { snprintf(p, sizeof p, "%s/%s", files_tmp, names[i]); remove(p); }
+		plat_rmdir(files_tmp);
 	}
 	if (shell_exit_message()) printf("%s\n", shell_exit_message());
 	if (adev) SDL_CloseAudioDevice(adev);

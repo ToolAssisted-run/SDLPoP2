@@ -1,7 +1,7 @@
 # The reconstructed game as one library. It is linked whole: several routines are weak defaults that other objects
 # (the shell, the renderer, a test) replace, exactly as when every source is compiled into the program.
 sdlpop2Sources = files(
-  'anim.c', 'audio.c', 'audio_opl3.c', 'beast.c', 'blades.c', 'caverns.c', 'char.c', 'collision.c', 'control.c',
+  'anim.c', 'audio.c', 'audio_opl3.c', 'beast.c', 'blades.c', 'caverns.c', 'char.c', 'collision.c', 'control.c', 'coro.c',
   'core.c', 'dat.c', 'fight.c', 'final.c', 'frame.c', 'game.c', 'glue.c', 'guard.c', 'heads.c', 'hooks.c', 'image.c',
   'input.c', 'items.c', 'kid.c', 'kidctl.c', 'kind1.c', 'kind5.c', 'level.c', 'lever5.c', 'loader.c', 'menu.c',
   'mobs.c', 'nis.c', 'render.c', 'render_desc.c', 'render_frame.c', 'render_hooks.c', 'render_kind2.c',

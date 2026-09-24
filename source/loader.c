@@ -104,17 +104,17 @@ static const char *file_path(const char *name)
 	if (!file_dir[0]) return game_path(name);
 	snprintf(p, sizeof p, "%s/%s", file_dir, name); return p;
 }
-__attribute__((weak)) long file_size(const char *name)
+long file_size(const char *name)
 {
 	FILE *f = fopen(file_path(name), "rb"); if (!f) return -1;
 	fseek(f, 0, SEEK_END); long n = ftell(f); fclose(f); return n;
 }
-__attribute__((weak)) long file_read(const char *name, long off, void *buf, long n)
+long file_read(const char *name, long off, void *buf, long n)
 {
 	FILE *f = fopen(file_path(name), "rb"); if (!f) return -1;
 	long r = fseek(f, off, SEEK_SET) == 0 ? (long)fread(buf, 1, n, f) : 0; fclose(f); return r;
 }
-__attribute__((weak)) int file_write_at(const char *name, long off, const void *buf, long n, int create)
+int file_write_at(const char *name, long off, const void *buf, long n, int create)
 {
 	FILE *f = fopen(file_path(name), "r+b");
 	if (!f && create) f = fopen(file_path(name), "w+b");
@@ -124,7 +124,7 @@ __attribute__((weak)) int file_write_at(const char *name, long off, const void *
 	int ok = fseek(f, off, SEEK_SET) == 0 && (long)fwrite(buf, 1, n, f) == n;
 	fclose(f); return ok;
 }
-__attribute__((weak)) int file_create(const char *name, const void *buf, long n)
+int file_create(const char *name, const void *buf, long n)
 {
 	FILE *f = fopen(file_path(name), "wb"); if (!f) return 0;
 	int ok = (long)fwrite(buf, 1, n, f) == n; fclose(f); return ok;

@@ -28,6 +28,16 @@ writes, and menus and scenes match its screenshots. `docs/FINDINGS.md` has every
     meson compile -C build
     build/sdl/sdlpop2 path/to/prince2          # the game; add DOS command-line words, e.g. `yippeeyahoo LEVEL3`
                                                # (options before the directory: --ini PATH, --record NAME, --replay NAME)
+Windows executables are built on Linux with mingw-w64 (SDL2 comes from the [WrapDB](https://mesonbuild.com/Wrapdb-projects.html)
+wrap, built in; `sdlpop2.exe` needs only system DLLs):
+
+    meson setup build-windows --cross-file cross/mingw-w64.ini [--cross-file cross/wine.ini]
+    meson compile -C build-windows                 # build-windows/sdl/sdlpop2.exe
+With `cross/wine.ini`, `meson test` runs the Windows test programs under [Wine](https://www.winehq.org). The CI
+(`.github/workflows/build.yml`) builds both, runs the tests that need no game data, and publishes them: every push to
+master as the rolling `dev` prerelease, and `v*` tags as releases. The Linux executable needs SDL2 installed
+(e.g. `libsdl2-2.0-0`).
+
 Tests: `meson setup build -DgameDir=path/to/prince2` registers the core and settings suites (`meson test -C build --suite core --suite settings`);
 `-DoracleTests=true` adds the oracle comparison suites (`--suite oracle`), which need the captures in `<workspace>`.
 The `controller` suite (game controllers, SDL's virtual joystick) runs with or without the game files.

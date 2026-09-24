@@ -13,7 +13,7 @@
 #include "snap.h"
 static uint8_t kctl[8], kc1[16]; static int tick_mode;
 /* 0823:10A0 read_input replaced by the captured controls (taken inside control(), after the facing flips of 0AFF:12CA) */
-int read_input(void)
+static int snap_read_input(void)
 {
 	next_room = 0;
 	control_x = Char.direction == 0 ? -(int8_t)kctl[0] : (int8_t)kctl[0]; control_y = word_5d38 ? -(int8_t)kctl[1] : (int8_t)kctl[1]; control_shift = kctl[2];
@@ -25,6 +25,7 @@ static int snap_sound_answer(int what, uint16_t res, int model) { (void)res; (vo
 extern int coll_debug;
 int main(int argc, char **argv)
 {
+	read_input_hook = snap_read_input;   /* (the captured controls) */
 	if (argc < 6) { fprintf(stderr, "usage: snaptest room|chars SEQUENCE.DAT ram.bin PRINCE.EXE pairs.bin\n"); return 2; }
 	sound_query_hook = snap_sound_answer; sound_ambient_enabled = 0;
 	int chars_mode = !strcmp(argv[1], "chars"); tick_mode = !strcmp(argv[1], "tick"); int start_mode = !strcmp(argv[1], "start"), between_mode = !strcmp(argv[1], "between");

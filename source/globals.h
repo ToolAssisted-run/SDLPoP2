@@ -119,7 +119,7 @@ int ovl_36ed6(int16_t d); void dead_char_sound_1611(void); void ovl_15db_64(void
 #define word_2bb2 (*(uint16_t *)(tiles0 + 0x18))   /* DS:2BB2 level 8: the sword taken */
 #define word_2bb0 (*(uint16_t *)(tiles0 + 0x16))   /* DS:2BB0 level 8: the sword room music played */
 #define word_2ba4 (*(uint16_t *)(tiles0 + 0xA))   /* DS:2BA4: the lateness meter (0..0x14), 169B:05A1 */
-int frame_on_time(void);   /* platform: the frame was done before the frame timer ran out (default: always) */
+int frame_on_time(void); extern int (*frame_on_time_hook)(void);   /* platform: the frame was done before the frame timer ran out (default: always; the shell / tests set the hook) */
 /* fight.c, spawns, tick.c */
 extern uint16_t word_5ce8; extern const uint16_t *refract_timer;
 void check_sword_hits(void); void process_hurt(void); void guards_see_kid(void); void spawn_guards(uint8_t room); int tick_body(void);
@@ -151,7 +151,7 @@ void add_mob(void); extern mob_type cur_mob; mob_type *find_mob_pub(int n, uint8
 extern uint16_t floor_ptrs[4]; extern uint8_t floor_objs[4][0x65]; void caverns_set_tables(const uint8_t *ds); void floor_room_entry(uint8_t room, int8_t tp);
 void floor_free_all(void); void anim_floor(void); void floor_touch_check(void); int gate_squeeze(int si); int door_speed_0776(int st); trob_type *get_trob(int8_t tp, uint8_t room);
 /* input.c */ extern uint8_t key_table[0x70], bios_shift_flags; extern int16_t joy_x, joy_y, joy_cx, joy_cy; extern uint8_t joy_button; extern uint16_t input_device;
-int read_input(void); int hotkeys_02be(void); int hotkeys_02be_core(void); int demo_timing_check(void); void shell_status(int op); void sound_res_start(uint16_t res);   /* shell.c (weak defaults in input.c / glue.c) */
+int read_input(void); extern int (*read_input_hook)(void); int hotkeys_02be(void); int hotkeys_02be_core(void); int demo_timing_check(void); void shell_status(int op); void sound_res_start(uint16_t res);   /* shell.c (weak defaults in input.c / glue.c) */
 /* kidctl.c */ extern int8_t kid_ctrl1_saved[5]; extern uint16_t word_5d38, word_5cd0, word_5cda, word_5cdc; int play_kid_control(void);
 void seq_music_1611(uint8_t m); void restart_prompt(void); int death_sound_playing(int both);   /* platform: 194C:8426 on DS:0882 (and DS:0884) */
 /* level.c */ extern uint8_t start_hp, byte_5cbb; extern uint16_t word_0996, word_0880, word_5cbe, word_5d36;
@@ -163,7 +163,7 @@ extern uint16_t word_2b90, word_2b92, word_5cee, word_5cce; extern uint8_t byte_
 int level_first_room(void); int play_frame(void); int level_end_sound_playing(void);   /* platform: 1611:02CE / 194C:8426 on DS:0882 */
 void ambient_sound(void);   /* platform (sound timing): may call random_2751 */
 int load_level(int n); int play_level(int n); const uint8_t *level_resource(uint16_t id, uint16_t *size); void platform_wait_frame(void);   /* platform: DAT resource, frame pacing */
-int bios_key(void);   /* platform: pending keystroke (BIOS code), 0 = none */
+int bios_key(void); extern int (*bios_key_hook)(void);   /* platform: pending keystroke (BIOS code), 0 = none */
 int frame_after_tick(int r);
 extern uint16_t cheat_mode; void frame_wait(void);
 extern uint16_t word_0366; int story_scene(int prev, int n);
@@ -226,3 +226,7 @@ extern uint16_t word_0882, word_0884; extern uint8_t amb_state[2], sound_caps; e
 extern int (*sound_query_hook)(int what, uint16_t res, int model); extern uint32_t (*sound_clock_hook)(void);
 void sound_stop_all(void); void sound_pass_done(void); int sound_on(void); int sound_digital(void); int music_playing(void);
 void fall_scream_room(uint8_t room); int snd_ch_id(int k); int snd_ch_left(int k); extern int sound_phase, sound_pass_late; int level_end_effect_playing(void); void sound_init_ambient(void);
+/* the platform's side of the tick and the program flow (shell.c; the headless core links the same definitions, which
+ * act only once shell_init has run) */
+void hook_draw(int whole); void hook_first_room(int stage); void hook_hp_bars(void); void hook_level_loaded(void);
+void hook_room_enter(int bg); void hook_room_leave(int bg);

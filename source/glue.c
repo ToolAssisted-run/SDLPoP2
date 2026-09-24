@@ -83,7 +83,6 @@ int16_t ovl_352ca(void) { return wall_limit(Char.room, Char.curr_row); }   /* 13
 void ovl_348e6(void) { if (level_kind == 4) ruins_crumble(); else note(" CHOMPER"); }   /* 347C:0126 */ void ovl_3564e(void) { note(" 3564e"); }
 void ovl_34724(void) { if (level_kind == 3) floor_collapse_pub(); else note(" 34724"); }   /* 33FD:0754 (OVL04, caverns.c) */ void ovl_37826(void) { skel_collapse(); }   /* 366C:1166 (skeleton.c) */
 
-
 static uint16_t guard_bank2[8];
 const uint16_t *refract_timer; static uint16_t refract_tbl[16];
 static dat_file kiddat, envdat; static int kiddat_ok, envdat_kind = -1;
@@ -174,7 +173,7 @@ void ovl_34958(void) { level6_entrance(); } void ovl_2f9f2(void) {}   /* 2F86:01
 void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {}
 level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
 void ovl_36712(void) { note(" 36712"); } void room_music_087e(void) {}
-__attribute__((weak)) void redraw_room(void) {} __attribute__((weak)) void hp_bar_clear(void) {} __attribute__((weak)) void hp_bar_draw(uint8_t index, int a, uint8_t hp) { (void)index; (void)a; (void)hp; }   /* (0FB3:29B8 / 25D4 on the screen: the frontend's, shell.c) */
+
 static uint8_t dstables[0x20];
 void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 charid->type (static data) */
 { memcpy(ds_img, ram + 0x3B250, 0x10000); memcpy(dstables, ram + 0x3B250 + 0x96, 0x20); type_to_charid = dstables; charid_to_type = dstables + 0x0C; guard_set_prob_tables(ram + 0x3B250); mobs_set_tables(ram + 0x3B250); caverns_set_tables(ram + 0x3B250); heads_set_tables(ram + 0x3B250); blades_set_tables(ram + 0x3B250); byte_016a = (int8_t)ram[0x3B250 + 0x16A]; byte_14a0 = ram[0x3B250 + 0x14A0]; byte_0670 = ram[0x3B250 + 0x670]; cheat_mode = ram[0x3B250 + 0x10C2] | ram[0x3B250 + 0x10C3] << 8; word_0366 = ram[0x3B250 + 0x366] | ram[0x3B250 + 0x367] << 8;; fireball_width = (int16_t)(ram[0x3B250 + 0x842] | ram[0x3B250 + 0x843] << 8);   /* outside the snapshot window */ for (int i = 0; i < 16; i++) refract_tbl[i] = ram[0x3B250 + 0x13D0 + 2 * i] | ram[0x3B250 + 0x13D1 + 2 * i] << 8; refract_timer = refract_tbl;
@@ -184,7 +183,7 @@ void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 
 /* guard.c / play_all_chars stubs */
 
 void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
-int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */ __attribute__((weak)) void ovl_15db_64(void) { note(" 15db"); }   /* (shell.c: the demo player) */ void ovl_37d28(void) { note(" 37d28"); }
+int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */  void ovl_37d28(void) { note(" 37d28"); }
 
 /* fight/tick stubs */
 int ovl_366c_6ac(void) { if (level_kind == 4) return head_hit(); note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } 
@@ -219,12 +218,11 @@ void glue_select_guard_dat(uint8_t type)
 	frame_table_guard = f ? f : kidtab;
 }
 
-__attribute__((weak)) void restart_prompt(void) { sound_stop_all(); note(" restart"); }   /* 1611:0002 death music; 169B:123E prompt (shell.c) */
 int pop2_keystrokes;   /* keystrokes waiting (core input) */
-__attribute__((weak)) int bios_key(void) { if (pop2_keystrokes > 0) { pop2_keystrokes--; return 0x100; } return 0; }
-__attribute__((weak)) void platform_wait_frame(void) {}
-int (*frame_on_time_hook)(void);   /* the shell: the frame timer DS:24DE still runs */
-__attribute__((weak)) int frame_on_time(void) { return frame_on_time_hook ? frame_on_time_hook() : 1; }
-__attribute__((weak)) int demo_timing_check(void) { return -2; }   /* 15DB:000C (shell.c) */
-__attribute__((weak)) void shell_status(int op) { (void)op; }   /* the status line (shell.c): 0 time message, 1 clear, 2 clear the area, 3 "press key" */
+int (*bios_key_hook)(void);   /* tests: replace the keystroke source */
+int bios_key(void) { if (bios_key_hook) return bios_key_hook(); if (pop2_keystrokes > 0) { pop2_keystrokes--; return 0x100; } return 0; }
+void platform_wait_frame(void) {}
+int (*frame_on_time_hook)(void);   /* the shell / tests: the frame timer DS:24DE still runs */
+int frame_on_time(void) { return frame_on_time_hook ? frame_on_time_hook() : 1; }
+
 const uint8_t *level_resource(uint16_t id, uint16_t *size) { static dat_file d; static int ok; if (!ok) ok = dat_open(&d, game_path("PRINCE.DAT")) ? 1 : -1; return ok > 0 ? dat_find(&d, NULL, id, size) : NULL; }

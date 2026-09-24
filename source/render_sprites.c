@@ -21,8 +21,7 @@ void draw_hook_347c_0000(void);   /* render_hooks.c */
 void draw_hook_33fd_0330(void);   /* render_hooks.c */
 void draw_hook_33fd_0482(void);   /* render_hooks.c */
 void draw_hook_33fd_0478(void);   /* render_hooks.c */
-__attribute__((weak)) void draw_hook_37f0_044a(void) { note_missing("37F0:044A"); }
-__attribute__((weak)) void draw_hook_37f0_05fc(void) { note_missing("37F0:05FC"); }
+
 static void draw_hook_2f86_052e(void);
 void draw_hook_366c_15f6(void);
 static void draw_hook_366c_167c(void);
@@ -424,7 +423,7 @@ void draw_mob_186a_0008(void);   /* traps (4), render_hooks.c */
 void draw_mob_33fd_01a2(void);   /* 2, 5 (render_hooks.c) */
 void draw_mob_347c_0084(void);   /* 6..8 (render_hooks.c) */
 void draw_mob_347c_0c22(void);   /* 9, 10 (render_hooks.c) */
-__attribute__((weak)) void draw_mob_37f0_0782(void) { note_missing("37F0:0782"); }   /* 11 */
+
 void draw_mob_33fd_1be6(void);   /* 12 (render_hooks.c) */
 /* 1375:200C: by type (the table at 1375:201E) */
 static void draw_mob(void)

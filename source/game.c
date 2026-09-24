@@ -93,9 +93,7 @@ static void toggle_upside_down(void) { word_5d38 = word_5d38 ? 0 : 0x438; play_s
 /* 169B:0430: redraw everything (state side: flags cleared, DS:68EA = 2) */
 /* the frontend's hooks (shell.c: the drawing at 169B:0430 / 0A98 from the state before its state parts, 0FB3:259C,
  * 169B:03DE..03F3); no-ops for the core alone */
-__attribute__((weak)) void hook_draw(int whole) { (void)whole; }
-__attribute__((weak)) void hook_hp_bars(void) {}
-__attribute__((weak)) void hook_first_room(int stage) { (void)stage; }
+
 static void redraw_all(void) { word_5cee = 0; if (!word_2b92) { hook_draw(1); kind5_room_palette(drawn_room);   /* 0CD6:003A */ draw_mobs_state(); kid_sprite_state(); draw_chars_state(); lever5_draw_state(); } word_2b92 = 0; word_922a = 2; }   /* DS:2B92 set: only the message is drawn */
 /* 0FB3:259C (the hit points shown again after a flip redraw), its state part: the prince's opponent into Opp
  * (0AFF:080A: loadkid, then Opp = chars[i]) and 0FB3:25D4's load_char of that character */

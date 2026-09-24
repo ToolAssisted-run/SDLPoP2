@@ -2,12 +2,12 @@
  * graphics/resource/sound library (194C, 25A1, 2583, 2631, 2797) they use. docs/NIS.md describes the formats.
  *
  * The scene code of the game is straight-line C with blocking waits (for the 60 Hz timer tick, the vertical retrace,
- * a MIDI cue point or the end of a sound). It runs here as a coroutine (ucontext) that yields to nis_step whenever the
+ * a MIDI cue point or the end of a sound). It runs here as a coroutine (coro.h) that yields to nis_step whenever the
  * original would busy-wait; nis_step advances the clock by one video frame and resumes it. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ucontext.h>
+#include "coro.h"
 #include "dat.h"
 #include "nis.h"
 
@@ -106,8 +106,7 @@ static uint64_t fstart(uint64_t g) { return g * 7902400000ull / 25175ull; }   /*
 #define ISR_SEQ_CYC 96                /* ... with the tracks' counts stepped */
 #define ISR_EVENT_CYC 99              /* a MIDI event read and handed to the driver */
 #define OPL_WRITE_CYC 4713            /* MIDI.DRV+0x8AF: two OUTs and the delay loops ([0x147] 1033 + [0x149] 517 turns of 3) */
-static ucontext_t main_ctx, scene_ctx;
-static char *scene_stack;
+static coro *scene_coro;   /* (coro.h: the scene runs as a coroutine of whoever steps it) */
 static int scene_done, scene_result, g_abort;
 static uint32_t g_frame, g_tick;
 static uint64_t g_time;                /* cycles */
@@ -172,7 +171,7 @@ static void advance(uint64_t t)
 	while (next_isr <= (t > g_time ? t : g_time)) do_isr();
 	if (t > g_time) g_time = t;
 }
-static void end_frame(void) { swapcontext(&scene_ctx, &main_ctx); }
+static void end_frame(void) { coro_yield(scene_coro); }
 /* work of n cycles (the interrupts on the way add theirs) */
 static void cpu(double n)
 {
@@ -2829,7 +2828,6 @@ static void scene_main(void)
 	for (int i = 0; i < scene_count && r != 2; i++) { r = play_scene(scene_list[i]); if (r) r = 2; }
 	scene_result = r;
 	scene_done = 1;
-	swapcontext(&scene_ctx, &main_ctx);
 }
 static void reset_state(void)
 {
@@ -2856,10 +2854,7 @@ int nis_open(const char *dir, int scene)
 	cur_scene = scene;
 	if (scene == NIS_INTRO) { scene_list[0] = 7; scene_list[1] = 4; scene_list[2] = 8; scene_count = 3; }
 	else { scene_list[0] = scene; scene_count = 1; }
-	if (!scene_stack) scene_stack = malloc(1 << 20);
-	getcontext(&scene_ctx);
-	scene_ctx.uc_stack.ss_sp = scene_stack; scene_ctx.uc_stack.ss_size = 1 << 20; scene_ctx.uc_link = &main_ctx;
-	makecontext(&scene_ctx, scene_main, 0);
+	coro_destroy(scene_coro); scene_coro = coro_create(scene_main, 1 << 20);
 	return 1;
 }
 static void do_tick(void)              /* the 60 Hz tick (194C:7EE7) */
@@ -2878,13 +2873,13 @@ int nis_step(uint8_t *screen, uint8_t *pal)
 	/* what the monitor shows during this frame: the pixels as the frame begins (a change the scene makes during the
 	 * frame shows from the next one), the palette as set at the retrace that begins it (the scenes set the palette
 	 * right after a retrace wait) */
-	swapcontext(&main_ctx, &scene_ctx);
+	coro_resume(scene_coro);
 	beam(fstart(g_frame + 1));
 	if (screen) memcpy(screen, scan_bits, sizeof scan_bits);
 	if (pal) memcpy(pal, dac, 768);
 	return !scene_done;
 }
-void nis_close(void) { free(scene_stack); scene_stack = NULL; }
+void nis_close(void) { coro_destroy(scene_coro); scene_coro = NULL; }
 void nis_set_sound_callback(nis_sound_fn fn, void *user) { sound_fn = fn; sound_user = user; }
 void nis_set_tick_source(nis_tick_fn fn, void *user) { tick_fn = fn; tick_user = user; }
 void nis_abort(void) { g_abort = 1; }

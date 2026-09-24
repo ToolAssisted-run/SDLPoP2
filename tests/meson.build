@@ -15,6 +15,12 @@ testPrograms = {
   'inputtest' : 'keyboard to controls',
   'settingstest' : 'SDLPoP2.ini (defaults = the game) and replays (record and play back headlessly)',
 }
+# Windows builds (cross/mingw-w64.ini) run only the core test (under Wine with cross/wine.ini): the others compare
+# against the oracle's Linux-side captures or use fork()
+isWindows = host_machine.system() == 'windows'
+if isWindows
+  testPrograms = { 'coretest' : testPrograms['coretest'] }
+endif
 testExecutables = {}
 foreach name, description : testPrograms
   testExecutables += { name : executable(name,
@@ -24,6 +30,7 @@ foreach name, description : testPrograms
   ) }
 endforeach
 
+if not isWindows
 # The story scenes' test, with the whole program linked (transitions 2 and 3 draw a game room through the shell)
 nistest = executable('nistest',
   'nistest.c',
@@ -37,6 +44,7 @@ seqtest = executable('seqtest',
   c_args : commonCompileArgs,
   include_directories : include_directories('../source'),
 )
+endif
 
 # The core round trips (needs the game files)
 if get_option('gameDir') != ''
@@ -45,16 +53,18 @@ if get_option('gameDir') != ''
        timeout : 600,
        suite : [ 'core' ])
   # SDLPoP2.ini and replays: the ini's defaults are the game's, a scripted session records and replays identically
+  if not isWindows
   test('settingstest', testExecutables['settingstest'],
        args : [ get_option('gameDir'), meson.project_source_root() / 'SDLPoP2.ini' ],
        timeout : 600,
        suite : [ 'settings' ])
+  endif
 endif
 
 # Game controllers (sdl/controller.c) through SDL's virtual joystick, no hardware needed; with the game files also a
 # controller session against the equivalent keyboard session. Skipped (exit 77) when SDL cannot create a virtual joystick.
 sdl2Dependency = dependency('sdl2', required : false)
-if sdl2Dependency.found()
+if sdl2Dependency.found() and not isWindows
   controllertest = executable('controllertest',
     'controllertest.c', files('../sdl/controller.c'),
     c_args : commonCompileArgs,
@@ -68,7 +78,7 @@ if sdl2Dependency.found()
 endif
 
 # The oracle suites: the scripts take the programs built here through BUILD
-if get_option('oracleTests') == true
+if get_option('oracleTests') == true and not isWindows
   bash = find_program('bash')
   oracleEnv = environment({ 'BUILD' : meson.current_build_dir() })
   check = files('oracle_check.sh')

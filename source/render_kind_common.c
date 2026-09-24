@@ -11,8 +11,7 @@ typedef int (*adder)(uint8_t, int16_t, int8_t, int8_t, uint8_t, uint8_t);
 
 /* the kind's own extra part of these tiles, for modifier bit 5 (34A3:0EC0 of ruins, 3579:0CC0 of temple: in
  * render_kind4.c / render_kind2.c) */
-__attribute__((weak)) void ruins_0ec0(tile_args *a) { (void)a; note_missing("DRAW_34A3_0EC0"); }
-__attribute__((weak)) void temple_0cc0(tile_args *a) { (void)a; note_missing("DRAW_3579_0CC0"); }
+
 /* 3443:000C */
 static void extra_part(tile_args *a)
 {

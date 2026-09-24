@@ -24,7 +24,7 @@ static int tile_visible(int8_t tilepos, uint8_t room)
 	return 0;
 }
 /* kind 5 (level 1) handlers, OVL 33FD; their redraw requests go to the renderer (weak hooks, shell.c) */
-__attribute__((weak)) void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m) { (void)tile; (void)tp; (void)m; }
+
 static void anim_torch_25(void)   /* 33FD:0652: cycles 0..7 while visible */
 {
 	if (!tile_visible(cur_trob.tilepos, cur_trob.room)) { cur_trob.state = 0xFF; return; }

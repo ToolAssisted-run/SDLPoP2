@@ -20,11 +20,7 @@ static trob_type *nth_trob(uint8_t tile, int n)
 	return NULL;
 }
 /* the drawing's part of this tick code (the renderer's: render_kind_desc.c through shell.c; no-ops in the core) */
-__attribute__((weak)) void hook_desert_gate(int8_t tilepos) { (void)tilepos; }
-__attribute__((weak)) void hook_desert_wave(int8_t tilepos) { (void)tilepos; }
-__attribute__((weak)) void hook_pal_rotate(int start, int count) { (void)start; (void)count; }
-__attribute__((weak)) void hook_desert_tile1e(void) { }
-__attribute__((weak)) void hook_desert_press(int col) { (void)col; }
+
 /* 33FD:0000: the puzzle chime (with MIDI music, DS:2085 bit 1) */
 static void chime(void) { if (sound_caps & 2) sound_1611_01a8(0xFB); }
 /* 33FD:0620: open the gate */

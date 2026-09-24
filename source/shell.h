@@ -54,7 +54,7 @@ void shell_set_seed(uint32_t seed);   /* before shell_init: the random seed the 
  * music, 10000 + 0xFD the hall of fame's, 9999 "unable to save" */
 void shell_sound(int res);        /* 194C:840E(res) / 1611:053C(res - 10000) */
 void shell_sound_stop(int res);   /* 194C:83D2(res); 0: everything */
-void platform_sound_volume(int v);   /* weak: 194C:3380, 15 (sound on) or 0 (off): the frontend's audio_volume(v) */
+extern void (*platform_sound_volume_hook)(int v);   /* 194C:3380, 15 (sound on) or 0 (off): the frontend's audio_volume(v) */
 
 /* inside the shell (the coroutine): the original's waits */
 void sh_frame(void);              /* one video frame passes (the 60 Hz timer runs on) */

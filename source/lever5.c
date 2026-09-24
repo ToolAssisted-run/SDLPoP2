@@ -8,8 +8,7 @@
 
 uint16_t lever5_flag3c, lever5_flag3e;   /* DS:2B76 block +0x3C (lifted; then counts the frames drawn), +0x3E (caught) */
 /* the drawing's parts of this tick code (the renderer's, through shell.c; no-ops in the core) */
-__attribute__((weak)) void hook_lever5_mouth(void) { }
-__attribute__((weak)) void hook_lever5_trap(void) { }
+
 static int block(void) { return room_bg == 1; }   /* DS:2B76 != 0: description id 0 loaded (room_bg = id + 1) */
 /* 37F0:0000 (room hook 0 enter): the block is allocated zeroed (0406; its images built, 002A; the palette, 0436), then
  * music 0x21 */

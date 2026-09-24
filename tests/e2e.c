@@ -65,7 +65,7 @@ static int cur_tick_frame;
  * every keystroke waiting in the BIOS buffer into the queue. */
 static int libq; static double pump_until = -1;
 static int bios_ready(double t) { return keyq_next < nkeyq && keyq[keyq_next] < t; }
-int bios_key(void)
+static int e2e_bios_key(void)
 {
 	double now = cur_tick_frame + (same_frame_keys ? 0.5 : 0.0);
 	/* the pump of the previous frames */
@@ -83,7 +83,7 @@ static int sound_busy, ambient_draws, rng_lost, restarts, resync, scenes, timing
 static uint32_t seed_b[8192]; static int seed_b_ok[8192], cur_tick_ix = -1;
 /* the lateness meter DS:2BA4 at each tick's start: this frame was late if the next tick starts with it higher */
 static uint16_t lag_a[8192]; static int nt_all, pace_ix = -1;
-int frame_on_time(void) { return !(pace_ix >= 0 && pace_ix + 1 < nt_all && lag_a[pace_ix + 1] > word_2ba4); }
+static int e2e_frame_on_time(void) { return !(pace_ix >= 0 && pace_ix + 1 < nt_all && lag_a[pace_ix + 1] > word_2ba4); }
 /* the answers to "is sound n playing" (the sound driver's timing is not modelled) in the current tick: by default from
  * the capture's seed (a random draw follows a "no"); when the tick disagrees with the capture, other answers are tried */
 static int sq_forced, sq_count; static unsigned sq_mask;
@@ -109,6 +109,7 @@ static uint32_t e2e_clock(void)
 }
 int main(int argc, char **argv)
 {
+	bios_key_hook = e2e_bios_key; frame_on_time_hook = e2e_frame_on_time;   /* (the capture's keystrokes and frame pacing) */
 	int sound_model = getenv("E2E_SOUNDMODEL") != NULL;
 	{ extern int sound_debug; sound_debug = (getenv("SND_LOG") ? 1 : 0) | (getenv("SND_AUDIT") ? 2 : 0); }
 	if (!sound_model) { sound_query_hook = e2e_sound_answer; sound_ambient_enabled = 0; }

@@ -150,11 +150,11 @@ static void sort_list(void)
 			if (obj_after(i)) { uint8_t t = obj_list[i]; obj_list[i] = obj_list[i + 1]; obj_list[i + 1] = t; swapped = 1; }
 	} while (swapped);
 }
-__attribute__((weak)) void obj_hook_37f0_023a(uint8_t type) { (void)type; note_missing("37F0:023A"); }
+
 void obj_hook_186a_038c(uint8_t type);   /* render_hooks.c */
 void obj_hook_347c_02d6(uint8_t type);   /* render_hooks.c */
 void obj_hook_347c_0f5e(uint8_t type);   /* render_hooks.c */
-__attribute__((weak)) void obj_hook_37f0_08d2(uint8_t type) { (void)type; note_missing("37F0:08D2"); }
+
 void obj_hook_33fd_1e72(uint8_t type);   /* render_hooks.c */
 /* 0FB3:1DBA (types 0x80, 0x81, 0x83): two scenery sprites by level kind: temple 0x15 / 0x16, caverns 0x42 + n /
  * 0x46 + n (n = type & 0x7F; x + 1 and the rect 5 lower), ruins 0x16 / 0x1A */

@@ -1,0 +1,24 @@
+SDLPoP2 - notices
+
+License
+-------
+Everything in this repository is licensed under the PolyForm Noncommercial License 1.0.0 (the LICENSE file,
+<https://polyformproject.org/licenses/noncommercial/1.0.0>), except the files listed under "Third-party code" below.
+It may be used, changed and redistributed for noncommercial purposes only: research, study, experiment, hobby use
+and the other permitted purposes the license lists. There are no "Required Notice" lines: no credit is asked for.
+The software comes with no warranty and no liability (see the license).
+
+The original game
+-----------------
+This is an unofficial reconstruction of Prince of Persia 2: The Shadow and the Flame (DOS), made for research and
+educational purposes by studying the original program. It is not affiliated with, authorised or endorsed by the
+game's rights holders. The game, its code, data, graphics, sound, story, names and trademarks belong to them; the
+contributors to this repository claim no ownership of the game or of the logic reconstructed from it, and the license
+above grants no rights to any of it. No game data is included: using this software requires your own copy of the
+original game.
+
+Third-party code
+----------------
+source/audio_opl3.c and source/audio_opl3.h: Nuked OPL3 1.8, Copyright (C) 2013-2020 Nuke.YKT, licensed under the
+GNU Lesser General Public License, version 2.1 or (at your option) any later version (LICENSES/LGPL-2.1.txt). These
+two files remain under the LGPL, not under the PolyForm license.

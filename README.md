@@ -1,6 +1,6 @@
 # SDLPoP2
 
-A source reconstruction of Prince of Persia 2: The Shadow and the Flame (DOS, 1.0, from the
+An unofficial source reconstruction of Prince of Persia 2: The Shadow and the Flame (DOS, 1.0, from the
 "Prince of Persia Collection Limited Edition" CD), in the spirit of SDLPoP for the first game,
 aimed first at a headless, savestate-able game-logic core for JaffarPlus / Chimera.
 
@@ -40,3 +40,13 @@ example (random play + savestate round trips).
 files and the overlay entry points, `source/state.c` for the state table, `docs/` for format notes (DAT resources,
 SEQUENCE.DAT, levels), `sdl/` for the SDL2 frontend, `tools/` for the explorer and capture helpers, `tests/` for the
 oracle comparisons (run by `meson test`, or directly: `tests/run_all.sh`, `tools/tiletests.sh`, `tests/run_shell.sh`).
+
+## License and legal
+Source available for noncommercial use: the PolyForm Noncommercial License 1.0.0 (`LICENSE`) — use, change and
+redistribute it for research, study, experiment, hobby and the other noncommercial purposes the license lists; no
+credit asked for; no warranty. This is not an "open source" license in the OSI sense.
+
+This is an unofficial reconstruction of Prince of Persia 2 (DOS) for research and education. It is not affiliated
+with or endorsed by the game's rights holders, who own the game, its code, data and trademarks; the contributors
+claim no ownership of it, and no game data is included (you need your own copy). The Nuked OPL3 emulator
+(`source/audio_opl3.*`) stays under the LGPL 2.1 or later. Details: `NOTICE`.

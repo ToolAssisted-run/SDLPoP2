@@ -116,10 +116,13 @@ int16_t room_description_bg(uint8_t room)
 	uint16_t n; const uint8_t *r = room_description_res(room, &n);
 	return r && n > 1 ? r[1] : -1;
 }
-const uint8_t *head_attach_table(void) { const dat_file *gf = guard_file_of_type(level.type); uint16_t n; return gf ? dat_find(gf, NULL, 755, &n) : NULL; }
+/* the guard type whose file is loaded (DS:0670, 1286:087E: its FRAM 750 is DS:0CB8, its SHAP set image set 3, its
+ * palette at 0x20, its 755 DS:1BB4), the level's until a room's character of another type loads its own (1286:0066) */
+uint8_t guard_type_loaded(void) { return byte_0670 != 0xFF ? byte_0670 : level.type; }
+const uint8_t *head_attach_table(void) { const dat_file *gf = guard_file_of_type(guard_type_loaded()); uint16_t n; return gf ? dat_find(gf, NULL, 755, &n) : NULL; }
 const uint8_t *guard_frame_table(uint8_t charid)
 {
-	uint8_t t = (charid == 10 || charid == 12) ? charid_to_type[charid] : level.type;
+	(void)charid; uint8_t t = guard_type_loaded();
 	const dat_file *gf = guard_file_of_type(t); uint16_t n; const uint8_t *f = gf ? dat_find(gf, "MARF", 750, &n) : NULL;
 	return f ? f : frame_table_guard;
 }
@@ -127,7 +130,7 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 {
 	if (chtab == 3 && image >= 0) {   /* guards: GUARD.DAT SHAP 751 + image */
 		/* 0993:0F36: images at or above the guard type's threshold (DS:06BC[type] -> first word) come from the second bank (+100) */
-		uint8_t t = (Char.charid == 10 || Char.charid == 12) ? charid_to_type[Char.charid] : level.type;
+		uint8_t t = guard_type_loaded();
 		int id = 751 + image; if (t != 5 && t != 6 && t < 8 && guard_bank2[t] && image >= guard_bank2[t]) id += 100;
 		const dat_file *gf = guard_file_of_type(t);
 		uint16_t n; const uint8_t *r = gf ? dat_find(gf, "PAHS", id, &n) : NULL;
@@ -170,7 +173,14 @@ int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width
 uint16_t word_68f0;
 void ovl_37d2a(void) { note(" 37d2a"); } 
 void ovl_34958(void) { level6_entrance(); }
-void load_guard_sprites(uint8_t t) { (void)t; } void ovl_guard6_sprites(void) {}
+/* 1286:0066: a room's character of type t: its guard file loaded unless it is the one loaded (not on level types 5 / 6,
+ * nor for charids 0, 6 and 0xB) */
+void load_guard_sprites(uint8_t t)
+{
+	if (t == byte_0670 || level.type == 5 || level.type == 6 || Char.charid == 0xB || Char.charid == 0 || Char.charid == 6) return;
+	guard_sprites_loaded(t);   /* 1286:087E */
+	hook_guard_loaded(t);      /* (the drawing: its palette PALS 750 at 0x20, 0FB3:2B1C) */
+} void ovl_guard6_sprites(void) {}
 level_char_init *ovl_36ada(level_char_init *r) { note(" 36ada?"); return r; }
 void ovl_36712(void) { note(" 36712"); } void room_music_087e(void) {}
 

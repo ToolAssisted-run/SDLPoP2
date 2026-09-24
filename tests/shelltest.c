@@ -23,6 +23,7 @@
 #include <string.h>
 #include "../source/shell.h"
 #include "../source/render.h"
+#include "../source/render_frame.h"
 #include "../source/types.h"
 #include "../source/globals.h"
 #include "../source/state.h"
@@ -110,8 +111,12 @@ static void tick_cmp(void)
 	int d = snap_diff(got, samples[cur_sample], regions, 0);
 	ticks_seen++;
 	if (d && getenv("SHELL_CMP_LIST")) { printf("sample %d differs:", cur_sample); for (int i = 0; regions[i]; i++) { const char *one[2] = {regions[i], NULL}; if (snap_diff(got, samples[cur_sample], one, 0)) printf(" %s", regions[i]); } printf("\n"); }
-	if (d) { bad_ticks++; if (bad_ticks <= 5) { printf("frame=%d tick sample %d (tick %u): %d fields differ\n", cmp_frame, cur_sample, (unsigned)tick, d); snap_diff(got, samples[cur_sample], regions, 1); } }
-	if (getenv("SHELL_LOAD")) snap_load(samples[cur_sample]);   /* (the capture's state from here: only the drawing is compared) */
+	if (d) { bad_ticks++; if (bad_ticks <= (getenv("SHELL_CMP_MAX") ? atoi(getenv("SHELL_CMP_MAX")) : 5)) { printf("frame=%d tick sample %d (tick %u): %d fields differ\n", cmp_frame, cur_sample, (unsigned)tick, d); snap_diff(got, samples[cur_sample], regions, 1); } }
+	if (getenv("SHELL_LOAD")) {   /* (the capture's state from here: only the drawing is compared) */
+		uint8_t room = drawn_room;
+		snap_load(samples[cur_sample]);
+		if (drawn_room != room && drawn_room) { render_redraw_all(); render_hp_bars(); }   /* (the capture switched rooms where this tick did not: its room and hit points drawn) */
+	}
 	cur_sample++;
 }
 /* ---- probepoke ds_tick N (plans): applied at the N-th tick start ---- */
@@ -128,7 +133,45 @@ static void apply_ppokes(void)
 		else for (int k = 0; k < q->nb; k++) { unsigned a = q->phys + k - 0x3B250; for (int f = 0; f < snap_nfields; f++) if (snap_fields[f].ds && a >= snap_fields[f].ds && a < (unsigned)snap_fields[f].ds + snap_fields[f].size) ((uint8_t *)snap_fields[f].p)[a - snap_fields[f].ds] = q->bytes[k]; }
 	}
 }
-static void on_tick(void) { apply_ppokes(); if (samples) tick_cmp(); }
+static int target_of(int F);
+/* typematic repeat: 500 ms, then every 33 ms (the frames of a 70.086 Hz display), counted in the capture's frames
+ * (with SHELL_SYNC: each repeat as far after its tick as in the capture, as the key events). A repeat due at the frame
+ * of a tick is typed from the tick hook, before that pass's key checks (0823:02BE), as the keyboard interrupt got it
+ * in the capture; the others at the start of their frame. */
+static int rep_next[0x60];
+static void repeats_due(int fr, int now)
+{
+	for (int s = 1; s < 0x54; s++) if (in.down[s] && s != 42 && s != 54 && s != 29 && s != 56) {
+		for (int t; (t = target_of(rep_next[s])) >= 0 && t <= fr; rep_next[s] += 2) {
+			const keydef *k = NULL; for (size_t i = 0; i < sizeof keys / sizeof *keys; i++) if (keys[i].scan == s) { k = &keys[i]; break; }
+			int code = in.down[56] ? s << 8 : k && k->ascii ? k->ascii : s << 8;
+			if (getenv("SHELL_KEYS")) printf("frame=%d repeat %x (oracle frame %d)%s\n", fr, s, rep_next[s], now ? " at the tick" : "");
+			if (now) shell_key_now(code); else if (in.ntyped < 8) in.typed[in.ntyped++] = (uint16_t)code;
+			if (!now) { rep_next[s] += 2; break; }   /* (one a frame) */
+		}
+	}
+}
+/* the script's key events due at shell frame fr (now: from the tick hook, straight into the keyboard table and queue) */
+static void key_events(int fr, int now)
+{
+	int last = -1;   /* (in order: a key event due brings the ones before it) */
+	for (int i = 0; i < nev; i++) if (ev[i].kind == 0 && !ev[i].done) { int t = target_of(ev[i].frame); if (t >= 0 && t <= fr) last = i; }
+	for (int i = 0; i <= last; i++) if (ev[i].kind == 0 && !ev[i].done) {
+		ev[i].done = 1;
+		const keydef *k = &keys[ev[i].key];
+		in.down[k->scan] = (uint8_t)ev[i].level;
+		if (now) shell_key_state_now(k->scan, ev[i].level);
+		if (ev[i].level) rep_next[k->scan] = ev[i].frame + 35;
+		int shift = in.down[42] || in.down[54], ctrl = in.down[29], alt = in.down[56];
+		in.shift_flags = (uint8_t)((in.down[54] ? 1 : 0) | (in.down[42] ? 2 : 0) | (ctrl ? 4 : 0) | (alt ? 8 : 0));
+		if (ev[i].level && k->scan != 42 && k->scan != 54 && k->scan != 29 && k->scan != 56) {
+			int code = alt ? k->scan << 8 : ctrl && k->ascii >= 'a' && k->ascii <= 'z' ? k->ascii & 0x1F : k->ascii ? (shift ? k->shifted : k->ascii) : k->scan << 8;
+			if (now) shell_key_now(code); else if (in.ntyped < 8) in.typed[in.ntyped++] = (uint16_t)code;
+		}
+		if (getenv("SHELL_KEYS")) printf("frame=%d key %s %d (oracle frame %d)%s\n", fr, k->name, ev[i].level, ev[i].frame, now ? " at the tick" : "");
+	}
+}
+static void on_tick(void) { apply_ppokes(); if (samples) tick_cmp(); if (samples) { key_events(cmp_frame, 1); repeats_due(cmp_frame, 1); } }
 /* ---- SHELL_VRAM: the oracle's VGA dumps ---- */
 typedef struct { int frame, rgb; uint8_t *px; } vdump_t;   /* rgb: a 'shot' record (320 x 200 x 3) */
 static vdump_t *vd; static int nvd, vd_next, vd_n, vd_exact, vd_near, vd_bad; static long vd_px;
@@ -189,22 +232,22 @@ static void vram_frame(int fr)
 extern void (*shell_tick_hook)(void);
 /* the event at oracle frame F happens at shell frame fr: F itself, or with SHELL_SYNC the same distance after the same
  * tick (the last oracle tick before F) as in the capture */
-static int sync_ticks, last_target = -1;
+static int sync_ticks;
 static int target_of(int F)   /* -1: not known yet */
 {
 	if (!sync_ticks || !nsamples) return F;
 	int k = -1; for (int i = 0; i < nsamples && sample_frame[i] <= F; i++) k = i;
 	if (k < 0) return F;
 	if (k >= cur_sample) return -1;   /* (that tick has not come yet) */
-	return my_tick_frame[k] + (F - sample_frame[k]);
-}
-static int at_frame(int F, int fr, int *done)   /* (key events keep their order: none before the previous one's frame) */
-{
-	if (*done) return 0;
-	int t = target_of(F); if (t < 0) return 0;
-	if (t < last_target) t = last_target;
-	if (t > fr) return 0;   /* (a target already passed, its tick came late in the frame: now) */
-	last_target = fr; *done = 1; return 1;
+	int t = my_tick_frame[k] + (F - sample_frame[k]);
+	/* in a gap of the capture's ticks (a scene, a level loading: their lengths are the platform's), an event in the
+	 * last second before the next tick comes no later than its distance to that tick once the tick came (a key held
+	 * into the level; while no tick comes, a pause say, as after the tick before) */
+	if (k + 1 < nsamples && k + 1 < cur_sample && sample_frame[k + 1] - sample_frame[k] > 60 && sample_frame[k + 1] - F <= 60) {
+		int t2 = my_tick_frame[k + 1] - (sample_frame[k + 1] - F);
+		if (t2 < t) t = t2;
+	}
+	return t;
 }
 int main(int argc, char **argv)
 {
@@ -239,29 +282,11 @@ int main(int argc, char **argv)
 	if (getenv("SHELL_VRAM")) load_vram(getenv("SHELL_VRAM"));
 	if (getenv("SHELL_VRAM_WIN")) vwin = atoi(getenv("SHELL_VRAM_WIN"));
 	memset(&in, 0, sizeof in);
-	int held_since[0x60] = {0}; int last_mode = -1, last_level = -1;
+	int last_mode = -1, last_level = -1;
 	for (int fr = 0; fr <= end; fr++) {
 		in.ntyped = 0;
-		for (int i = 0; i < nev; i++) if (ev[i].kind == 0 && at_frame(ev[i].frame, fr, &ev[i].done)) {
-			const keydef *k = &keys[ev[i].key];
-			in.down[k->scan] = (uint8_t)ev[i].level;
-			if (ev[i].level) held_since[k->scan] = fr;
-			int shift = in.down[42] || in.down[54], ctrl = in.down[29], alt = in.down[56];
-			in.shift_flags = (uint8_t)((in.down[54] ? 1 : 0) | (in.down[42] ? 2 : 0) | (ctrl ? 4 : 0) | (alt ? 8 : 0));
-			if (ev[i].level && k->scan != 42 && k->scan != 54 && k->scan != 29 && k->scan != 56 && in.ntyped < 8) {
-				int code = alt ? k->scan << 8 : ctrl && k->ascii >= 'a' && k->ascii <= 'z' ? k->ascii & 0x1F : k->ascii ? (shift ? k->shifted : k->ascii) : k->scan << 8;
-				in.typed[in.ntyped++] = (uint16_t)code;
-			}
-			if (getenv("SHELL_KEYS")) printf("frame=%d key %s %d (oracle frame %d)%s\n", fr, k->name, ev[i].level, ev[i].frame, in.ntyped ? "" : "");
-		}
-		/* typematic repeat: 500 ms, then every 33 ms (the frames of a 70.086 Hz display) */
-		for (int s = 1; s < 0x54; s++) if (in.down[s] && s != 42 && s != 54 && s != 29 && s != 56) {
-			int t = fr - held_since[s];
-			if (t >= 35 && (t - 35) % 2 == 0 && in.ntyped < 8) {
-				const keydef *k = NULL; for (size_t i = 0; i < sizeof keys / sizeof *keys; i++) if (keys[i].scan == s) { k = &keys[i]; break; }
-				int alt = in.down[56]; in.typed[in.ntyped++] = (uint16_t)(alt ? s << 8 : k && k->ascii ? k->ascii : s << 8);
-			}
-		}
+		key_events(fr, 0);
+		repeats_due(fr, 0);
 		for (int i = 0; i < nev; i++) if (ev[i].kind == 2 && !ev[i].done) { int t = target_of(ev[i].frame); if (t >= 0 && t <= fr) {
 			ev[i].done = 1;
 			for (int k = 0; k < ev[i].nb; k++) { unsigned a = ev[i].phys + k - 0x3B250; for (int f = 0; f < snap_nfields; f++) if (snap_fields[f].ds && a >= snap_fields[f].ds && a < (unsigned)snap_fields[f].ds + snap_fields[f].size) ((uint8_t *)snap_fields[f].p)[a - snap_fields[f].ds] = ev[i].bytes[k]; }

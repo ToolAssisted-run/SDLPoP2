@@ -31,6 +31,8 @@ enum shell_mode { SH_START, SH_TITLE, SH_SCENE, SH_MENU, SH_PLAY, SH_PAUSE, SH_D
 int  shell_init(const char *game_dir, int argc, const char **argv);   /* 0 when the game files are missing */
 int  shell_step(const shell_input *in);   /* (the frontend clears in->ntyped after each step) */
 void shell_input_key(shell_input *in, int scan, int down, int ascii);   /* a key event into the frame's input */
+void shell_key_state_now(int scan, int down);   /* tests: a key pressed / released at once (from shell_tick_hook) */
+void shell_key_now(int code);   /* tests: a keystroke queued at once (from shell_tick_hook: before the pass's key checks) */
 void shell_input_type(shell_input *in, int code);   /* a keystroke (a DOS code) typed without holding a key */
 int  shell_pc_scancode(int usb_hid);   /* SDL_Scancode (USB HID usage) -> PC scan code set 1 (0: none) */
 int  shell_mode(void);            /* what the program is doing (enum shell_mode) */

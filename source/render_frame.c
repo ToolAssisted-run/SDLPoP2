@@ -396,6 +396,16 @@ static void tiles_now(uint8_t *t, uint32_t *m)
 	for (int c = 0; c < 10; c++) { t[30 + c] = room_A ? ROOM_TILES(room_A)[20 + c] : 0; m[30 + c] = room_A ? ROOM_ATTRS(room_A)[20 + c] : 0; }
 }
 static void tiles_seen(void) { tiles_now(seen_tiles, seen_mods); seen_room = drawn_room; seen_above = room_A; seen_ok = 1; }
+/* a tile the tick changed with its own request (1375:1C7E's landing: 2296(0), the falling floor's box): the change
+ * accepted as seen, so it is not redrawn whole */
+void render_tile_modelled(uint8_t room, int8_t tp)
+{
+	if (!seen_ok || seen_room != drawn_room || seen_above != room_A || tp < 0 || tp >= 30 || !room) return;
+	int i = room == drawn_room ? tp : room == room_A && tp >= 20 ? 30 + tp - 20 : -1;
+	if (i < 0) return;
+	uint8_t t[40]; uint32_t m[40]; tiles_now(t, m);
+	seen_tiles[i] = t[i]; seen_mods[i] = m[i];
+}
 /* the tiles whose tick-time requests the core reports through its hooks (shell.c): not tracked */
 static int tick_requests_modelled(uint8_t t)
 {
@@ -403,6 +413,7 @@ static int tick_requests_modelled(uint8_t t)
 	    || (level_number == 5 && (t == 0x1B || t == 0x2C))                           /* 37F0:0756 / 06CE */
 	    || (level_kind == 5 && (t == 0x25 || t == 0x26 || t == 0x27))                /* 33FD:0680 / 08C0 / 05AC */
 	    || t == 0x13 || t == 0x20 || t == 0xA || t == 0x11 || t == 4 || t == 5 || t == 6 || t == 0x22   /* 1375:01F4 / 02D0 / 0274 / 0388 / 02F8 */
+	    || t == 0xB                                                                   /* 1375:0334 */
 	    || (level_kind == 3 && t == 0x24);                                            /* 1375:0416 (33FD:04B6) */
 }
 static void mark_changed_tiles(void)

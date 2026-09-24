@@ -54,6 +54,7 @@ void render_frame_tables(void);   /* 0FB3:12F4 */
 void render_frame_objects(void);  /* 0FB3:12F4 up to 1308 */
 void render_status_hp(void);      /* 0823:0F38 */
 void render_mob_mark(int how);     /* 1375:2296 */
+void render_tile_modelled(uint8_t room, int8_t tp);   /* a tick's tile change with its own request: not tracked as changed */
 void render_mob_obj(int16_t y);    /* 1375:22DC */
 void render_frame(void);          /* 169B:0A8A: a frame's drawing */
 void render_redraw_all(void);     /* 169B:0430: the whole room */

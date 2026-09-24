@@ -158,7 +158,7 @@ void render_trob_request(int which, uint16_t arg)
 		if (!render_trob_rect(level_kind == 3 ? 0x07D2 : 0x07BA, r)) return;
 		mark_tiles_under(mark_back, r, 0xFF);
 		break;
-	case 0x334:     /* 170A: a loose floor falls away */
+	case 0x334:     /* 170A: a loose floor, every tick it shakes (1375:1744's every way out) and when it falls away */
 		if (!render_trob_rect(ds_word((uint16_t)(0x07F2 + 2 * level_kind)), r)) return;
 		mark_back(trob_self(), r); mark_back(trob_right(), r);
 		if (level_kind == 3) mark_back(trob_below(), r);

@@ -116,7 +116,7 @@ int render_image_res(int chtab, int n, const char **dat, int *res)
 	case 1: *dat = "PRINCE.DAT"; *res = 3000 + n; return 1;                           /* DS:60E8 */
 	case 2: *dat = "KID.DAT"; *res = 25001 + n - (i >= 0xDE ? 0x190 : 0); return 1;   /* 0993:0E70 (the ranges of 1286:06F0 agree) */
 	case 3: {   /* 0993:0F36: the guard type's file (750 + n); the ranges on in 1286:09E4 are 851 + i */
-		uint8_t t = render_guard_type != 0xFF ? render_guard_type : level.type;
+		uint8_t t = render_guard_type != 0xFF ? render_guard_type : guard_type_loaded();
 		if (t > 9 || !guard_dat[t]) return 0;
 		*dat = guard_dat[t]; *res = 750 + n;
 		if (t != 5 && t != 6) {

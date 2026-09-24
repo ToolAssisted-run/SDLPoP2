@@ -30,7 +30,8 @@ static const uint8_t *pal_res(const char *tag, int id, uint16_t *n)
 	static const char *names[12] = {NULL, "PRINCE.DAT", "KID.DAT", "DESERT.DAT", "TEMPLE.DAT", "CAVERNS.DAT", "RUINS.DAT", "ROOFTOPS.DAT", "FINAL.DAT", NULL, NULL, NULL};
 	static const char *guards[10] = {NULL, "FLAME.DAT", "SKELETON.DAT", NULL, NULL, "HEAD.DAT", "HEAD.DAT", "BIRD.DAT", "HEAD.DAT", "JINNEE.DAT"};
 	const char *order[4] = {NULL, NULL, NULL, NULL}; int k = 0;
-	if (id == 750 && level.type < 10 && guards[level.type]) order[k++] = guards[level.type];
+	uint8_t gt = guard_type_loaded();
+	if (id == 750 && gt < 10 && guards[gt]) order[k++] = guards[gt];   /* (the guard file loaded, 1286:087E) */
 	if (level_kind_dat()) order[k++] = level_kind_dat();   /* (the ids are unique to their files: the scenery file's first) */
 	order[k++] = id == 25001 ? "KID.DAT" : "PRINCE.DAT";
 	for (int j = 0; j < k; j++) {

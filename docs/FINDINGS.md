@@ -857,3 +857,26 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   puts the saved colors back, 0FB3:294C; after a cast with no fireball in flight at 2 hp or fewer, sub-palette 0) and
   2F86:0192 (level 14's hp crossing 2: sub-palette 0 going down, 1 going up) were empty stubs. X14_3P (X14_3 with
   shots): the flame drawn black before (146 pixels at frame 3400), every pixel of rows 0..191 equal now.
+- 2026-09-24: tick-time redraws found by a pixel hunt (every E capture's shots against the shell's, the game state
+  loaded each tick, SHELL_LOAD): (1) a falling floor's landing (1375:1C7E) ends with 2296(0), its box's back layers
+  asked again, so the rubble image reaching into the next column is drawn there too (E7_21: 142 differing shots, 8
+  now); the landed tile is then not redrawn whole. (2) 1375:1744 (a loose floor's animation) asks 0334 on every way
+  out (1375:17F6), i.e. every tick it shakes, not only when it falls: its rect covers the tile, the one on its right
+  and (caverns) the strip below, where the shaking floor's front hangs (E4_6: 148 -> 77, the rest the harness's). (3)
+  The guard type loaded (DS:0670, 1286:087E) chooses the chtab-3 file, FRAM 750 and PALS 750, not the level's type
+  (E12_1: a dead guard's sword, 109 -> 11). The hit-point flasks' colours were never wrong: KID.DAT 0xD9 / 0xDA are
+  the full and empty flasks. Not the game's: the tree scenes run ~25 frames ahead of the capture's (the real game
+  loads NIS.DAT meanwhile on the emulated CPU), level 1's single stale pixel (210, 92) the original leaves.
+  tests/shelltest.c: typematic repeats are timed in the capture's frames and a repeat due at a tick's frame is queued
+  from the tick hook (shell_key_now), before the pass's key checks, as the keyboard interrupt delivered it: a restart
+  on a held key after a death now comes at the capture's pass (E4_6: 174 -> 77 differing ticks with SHELL_LOAD); and
+  a key event in the last second of a gap in the capture's ticks (a scene, a level loading, whose lengths are the
+  platform's) comes no later than its distance to the tick after the gap once that tick came (from the tick hook),
+  and key events never overtake each other: a key held into the level reaches its first ticks, a key that ends a
+  pause still comes as before (E6_3: 143 -> 8 differing ticks, E4_7: 83 -> 27, also without SHELL_LOAD; the shell
+  suite's MENU1 158 of 158 identical, TIMEOUT2 752 of 754). With SHELL_LOAD, a loaded state in another room than the
+  shell's tick drew (a restart the capture took a tick apart) has its room and hit points drawn (E3_5: 180 -> 23
+  differing shots). Over the 102 E captures (level 10's excepted): 4535 -> about 2400 differing shots, 5089 -> 1221
+  differing ticks. Left: the tree scenes' timing, level 1's pixel, one-tick input races, and E9_1: the capture's first
+  tick after a restart's scene still holds the dead prince's level state (its reload comes after that tick), which
+  SHELL_LOAD brings back into the shell ("PRESS KEY TO CONTINUE" stays on its status line).

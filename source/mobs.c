@@ -204,9 +204,9 @@ void anim_loose(void)
 {
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)((uint16_t)anim_mod + 1);
 	int dl = (uint8_t)anim_mod & 0xF;   /* shake counter */
-	if (cur_trob.state == 0xFF) return;
-	if (anim_mod & 0x40) { if (dl >= 4) { cur_trob.state = 0xFF; anim_mod = (anim_mod & 0xFFFFFF00u) | ((uint8_t)anim_mod & 0xB0); } return; }
-	if (dl < 0xC) return;
+	if (cur_trob.state == 0xFF) { hook_trob_request(0x334, 0); return; }   /* (every way out: 1375:17F6, the redraw request) */
+	if (anim_mod & 0x40) { if (dl >= 4) { cur_trob.state = 0xFF; anim_mod = (anim_mod & 0xFFFFFF00u) | ((uint8_t)anim_mod & 0xB0); } hook_trob_request(0x334, 0); return; }
+	if (dl < 0xC) { hook_trob_request(0x334, 0); return; }
 	int si = level_kind == 3 ? ((uint16_t)anim_mod & 0x80) >> 7 : 3;
 	remove_loose(cur_trob.tilepos, cur_trob.room);
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(si + 3);
@@ -266,6 +266,7 @@ static void mob_land(void)
 	case 0xC: case 0xD: *attr_lo(r, tp) = curr_modifier | 0x20; break;
 	default: return;
 	}
+	hook_mob_landed(r, tp);   /* 1375:1E7A: 2296(0) */
 }
 /* 1375:1B7C */
 static void mob_fall(void)

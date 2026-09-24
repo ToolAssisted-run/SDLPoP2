@@ -186,7 +186,7 @@ static uint8_t mask_pixel(uint8_t p, uint16_t mask)
 	if (!p) return 0;
 	int k = p >> 4, n = 0;
 	for (int b = 0; b < 16; b++) if (mask & (1u << b)) { if (n++ == k) return (uint8_t)((p & 0xF) | b << 4); }
-	return p;   /* (past the bits set: the original reads its stack) */
+	return (uint8_t)(p & 0xF);   /* (past the bits set: the table's unwritten bytes on 122C's stack; 0 in level 13 room 4) */
 }
 static void blit_rows(const image_t *im, int x, int y, int mode, int mirror, uint16_t mask)
 {
@@ -210,6 +210,7 @@ static void blit_nibbles(const image_t *im, int x, int y, uint16_t mask, int mir
 }
 /* 194C:6D42 (DS:[247C]): an 8-bit image; mode 0 copy, 1 and, 2 or, 3 xor, 4..7 the same with the source inverted,
  * 8 color 0 where the image is not 0, 10 copy leaving the screen where the image is 0 */
+static uint16_t bytes_mask;   /* nonzero: an 8-bit KID.DAT image's banks moved by the list's mask (194C:06E6) */
 static void blit_bytes(const image_t *im, int x, int y, int mode, int mirror, uint8_t add)
 {
 	int x0, x1, y0, y1; if (!clip_box(im, x, y, &x0, &x1, &y0, &y1)) return;
@@ -217,25 +218,34 @@ static void blit_bytes(const image_t *im, int x, int y, int mode, int mirror, ui
 		uint8_t s = px(im, sx - x, sy - y, mirror), *d = &port_bits[sy * SCREEN_W + sx];
 		if (render_owner) render_owner[sy * SCREEN_W + sx] = render_owner_id;
 		if (add && s) s = (uint8_t)(s + add);
+		if (bytes_mask && s) {   /* 194C:06E6: the table of the bits set (16 bytes on its stack, only the first ones written) */
+			int k = s >> 4, n = 0, b = 0; uint8_t hi = 0;   /* (past the bits set: stack bytes, 0 in every level-13 pass seen) */
+			for (; b < 16; b++) if (bytes_mask & (1u << b)) { if (n++ == k) { hi = (uint8_t)(b << 4); break; } }
+			s = (uint8_t)((s & 0xF) | hi);
+		}
 		if (mode == 8) { if (s) *d = 0; continue; }
 		if (mode == 10) { if (s) *d = s; continue; }
 		if (mode & 4) s = (uint8_t)~s;
 		switch (mode & 3) { case 0: *d = s; break; case 1: *d &= s; break; case 2: *d |= s; break; case 3: *d ^= s; break; }
 	}
 }
-uint8_t render_kid_colors = 0x10;   /* the colors KID.DAT's 4-bit images are converted with (the file's mask word, 0FB3:2C9C) */
-/* KID.DAT's images are converted to 8-bit when loaded, with the file's mask of that moment (2, colors 0x10.., unless a
- * sprite's mask is set around its load by 0FB3:0EE0), then kept: an image's colors are those of its first load since
- * the level's image sets were made (1286:066A; images 0x83, 0x84, 0xD8..0xDA are loaded then, with mask 2). (The
- * game can also purge images when short of memory: not modelled.) */
-static uint8_t kid_base[0x200];
-void render_reset_images(void) { memset(kid_base, 0, sizeof kid_base); }
+/* KID.DAT's images (0993:0E70) are kept as their raw SHAP resources (194C:6F4C, purgeable 194C:1870): the list entry's
+ * byte 0 stays 0, so 0993:1034 -> 26BC:0630 converts the image again at every draw (26BC:040A -> 194C:0AFE -> 0B28 into a
+ * new handle, with the shape list's mask word of that moment, header +4) and 0FB3:0EE0 frees the copy once drawn
+ * (26BC:0000: bytes 0 and 1 set). The mask is 2 but while 0FB3:0EE0 draws a sprite with a mask (0FB3:0F76 -> 2C9C sets
+ * it, 0FB3:0FB4 puts 2 back): the colors follow the sprite's mask at each draw (a purge and reload changes nothing).
+ * The conversion (194C:0B28): 4-bit images (flags bit 15, depth 4) nibble | 16 * (the lowest bit set, 194C:0784),
+ * 8-bit ones (bit 15, depth 8) a pixel's high nibble k -> the k-th bit set (194C:06E6, as 122C). Only ids 0x83, 0x84 and
+ * 0xD8..0xDA (the hit points) are converted once, into the list entry itself (0993:0EF0: 26BC:040A with the entry and
+ * flag 1: byte 0 set, byte 1 clear, kept), when the level's image sets are made (1286:066A), with mask 2. */
+static uint16_t kid_mask = 2;   /* the KID shape list's mask word (header +4) */
+void render_reset_images(void) { }
+static uint8_t mask_low_bit(uint16_t m) { uint8_t hi = 0; if (!m) return 0; while (!(m & 1)) { m >>= 1; hi += 0x10; } return hi; }   /* 194C:0784 (x 16) */
 static uint8_t kid_colors(int n)
 {
-	int i = n - 1; if (i < 0 || i >= 0x200) return render_kid_colors;
+	int i = n - 1;
 	if (i == 0x83 || i == 0x84 || (i >= 0xD8 && i <= 0xDA)) return 0x10;
-	if (!kid_base[i]) kid_base[i] = render_kid_colors;
-	return kid_base[i];
+	return mask_low_bit(kid_mask);
 }
 static int kid_image_n;   /* the KID.DAT image being drawn (1-based) */
 static uint16_t rows_mask = 0xFFF0;   /* the row-run image's file mask (the scenery files: 0xFFF0; 0FB3:21AC's pieces: 0xFFFE) */
@@ -251,7 +261,8 @@ static void draw_image(const image_t *im, int type, int x, int y, int mode, uint
 {
 	if (!im) return;
 	uint8_t add = 0;
-	if (im->depth == 4 && type == 1) add = kid_image_n ? kid_colors(kid_image_n) : render_kid_colors;
+	if (im->depth == 4 && type == 1) add = kid_image_n ? kid_colors(kid_image_n) : mask_low_bit(kid_mask);
+	bytes_mask = kid_image_n && type == 1 && im->depth == 8 && (im->flags & 0x80FF) == 0x8000 ? kid_mask : 0;   /* 194C:06E6 */
 	if (im->depth == 1) blit_color(im, x, y, (uint8_t)mode, mirror);   /* 0FB3:127A */
 	else
 	switch (mode) {
@@ -278,7 +289,7 @@ void render_image_to_screen(int chtab, int n, int x, int y, int mode, int type)
 	if (im->depth == 1) blit_color(im, x, y, (uint8_t)mode, 0);
 	else if (type == 2) blit_rows(im, x, y, mode, 0, 0xFFF0);
 	else if (type == 3) blit_nibbles(im, x, y, 0x2000, 0);
-	else blit_bytes(im, x, y, mode, 0, im->depth == 4 ? (chtab == 2 ? kid_colors(n) : render_kid_colors) : 0);
+	else blit_bytes(im, x, y, mode, 0, im->depth == 4 ? (chtab == 2 ? kid_colors(n) : mask_low_bit(kid_mask)) : 0);
 	port_bits = sp; memcpy(clip, sc, sizeof sc); redraw_all_flag = sf;
 }
 /* 194C:4D72 on the screen port: a rectangle in color 0 */
@@ -382,8 +393,7 @@ void render_draw_sprite(const sprite_entry *s)
 	if (s->chtab == 2) { type = 1; mask = 0; }
 	else if (s->chtab == 4) { type = 2; mask = 0; }
 	else { type = 3; mask = s->chtab == 0 ? 0x8000 : s->chtab == 1 ? 0x4000 : s->mask; }
-	uint8_t save = render_kid_colors;
-	if (s->chtab == 2 && s->mask) { uint8_t hi = 0; for (uint16_t m = s->mask >> 1; m; m >>= 1) hi += 0x10; render_kid_colors = hi; }   /* 0FB3:2C9C */
+	if (s->chtab == 2 && s->mask) kid_mask = s->mask;   /* 0FB3:0F76 -> 2C9C */
 	int k = (int)(s - sprite_table); if (k >= 0 && k < SPRITE_MAX && s->chtab == 3) render_guard_type = sprite_guard[k];
 	const image_t *im;
 	if (s->chtab == 4 && s->id >= 0x62D7 && s->id <= 0x62E2) im = render_image(4, s->id);   /* 0FB3:0F04 -> 37F0:03AC(id - 0x62D7) */
@@ -404,7 +414,8 @@ void render_draw_sprite(const sprite_entry *s)
 			clip[0] = 0; clip[1] = 0; clip[2] = 192; clip[3] = 320;
 		}
 	}
-	render_kid_colors = save; kid_image_n = 0; rows_mask = 0xFFF0;
+	if (s->chtab == 2 && s->mask) kid_mask = 2;   /* 0FB3:0FB4 */
+	kid_image_n = 0; rows_mask = 0xFFF0; bytes_mask = 0;
 }
 void render_draw_table(int n)
 {

@@ -48,11 +48,11 @@ static void obj_dx(int16_t dx) { obj_x = (int16_t)(obj_x + (sv.dir ? -dx : dx));
 /* 0AFF:1846: the rect DS:6103 of the image at obj_x / obj_y (the bottom row included; one row more above) */
 static void obj_rect(void)
 {
-	if (obj_id == -1) return;
+	if (obj_id == -1) { set_rect(sv.rect, 0x1F12); return; }   /* 0AFF:18AE: no image: the empty rect DS:1F12 */
 	render_guard_type = obj_chtab == 3 && (Char.charid == 10 || Char.charid == 12) ? charid_to_type[Char.charid] : 0xFF;   /* (0993:0F36: by the character's type) */
 	const image_t *im = render_image(obj_chtab, obj_id + 1);   /* 0993:0FE2 */
 	render_guard_type = 0xFF;
-	if (!im) return;
+	if (!im) { set_rect(sv.rect, 0x1F12); return; }
 	sv.rect[0] = (int16_t)(obj_y - im->height); sv.rect[2] = (int16_t)(obj_y + 1);
 	if (sv.dir == 0) { sv.rect[3] = obj_x; sv.rect[1] = (int16_t)(obj_x - im->width); }
 	else { sv.rect[1] = obj_x; sv.rect[3] = (int16_t)(obj_x + im->width); }

@@ -34,6 +34,9 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
   held inputs); `tools/plan2script.py`: turns a per-tick plan into a script that pokes the key table DS:1D00 (phys
   3CF50) and BIOS shift flags (0040:0017, phys 417) at each tick's start. The oracle then follows the plan exactly
   (X4_1: 14 rooms, 1003 ticks, all fields identical).
+- `tools/framecap.py` (frame captures, 5.16) also samples DS:8000..9000 at each pass (the game's offscreen port
+  DS:[5CC2] lies there: its bits, +0, a far pointer); with BUF2=PHYS it repeats the buffer probes at PHYS, for a run
+  across a story scene that moves the buffer (level 8's scene 6: 0x514B2); tests/frametest.c uses the port's.
 
 ### Tests (`tests/run_all.sh`)
 - snaptest (tick/chars/room/between modes over DS snapshots), inputtest, e2e (free-running whole runs from the
@@ -544,10 +547,20 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   images are converted at load (194C:122C) with the file mask (a pixel's high nibble k -> the k-th set bit; scenery
   0x3FF0, rooftops 0x7FF0, final 0xFFF0, the pieces 0x6370..0x6372 0xFFFE); big ones are decoded in chunks of
   0xE37E / ((w + 1) * 2) rows, each its own LZG/RLE stream; resources are read with one extra byte (LZG needs it).
-- KID.DAT 4-bit images get 8-bit colors when first loaded (0993:0E70) with the file mask of that moment (2 = colors
-  0x10..; a sprite's mask set around the load by 0FB3:0EE0 / 2C9C), ids 0x83, 0x84, 0xD8..0xDA preloaded with 2.
-  They are purgeable (194C:1870): under memory pressure a later load reconverts with the then-current mask (seen
-  once, level 11); the memory manager is not modelled.
+- KID.DAT images are converted at every draw, with the shape list's mask word of that moment (corrected 2026-09-24;
+  it was thought to be a first-load conversion undone by purges). 0993:0E70 keeps the raw SHAP resource (194C:6F4C,
+  made purgeable by 194C:1870) in the list entry and leaves the entry's byte 0 clear, so 0993:1034 -> 26BC:0630 calls
+  26BC:040A on a copy of the entry at each draw: 194C:0AFE -> 0B28 converts into a new handle with the list header's
+  +4 (the mask), and 0FB3:0EE0 frees that copy after drawing it (26BC:0000: bytes 0 and 1 set). The mask is 2 (colors
+  0x10..) except while 0FB3:0EE0 draws a sprite whose mask is set (0FB3:0F76 -> 2C9C writes it, 0FB3:0FB4 puts 2
+  back): e.g. the prince's flashes in mask 8 (colors 0x30..) on levels 11 and 13. 0B28's rules: 4-bit images (flags
+  bit 15) nibble | 16 * the mask's lowest bit (194C:0784); 8-bit images with bit 15 (KID.DAT 24882.., level 13's
+  merge) a pixel's high nibble k -> the k-th bit set (194C:06E6, the same table as 122C); a purge and reload changes
+  nothing. Only ids 0x83, 0x84, 0xD8..0xDA (the hit points) are converted once, into the entry itself (0993:0EF0:
+  26BC:040A with flag 1 sets byte 0, not byte 1: kept), when the image sets are made (1286:066A), with mask 2. Both
+  tables (06E6 and 122C) are 16 bytes on the stack of which only the first "bits set" are written: a high nibble past
+  them reads stack bytes (0 in the level-13 captures, but once 0x09 for k = 1 in 06E6: the LZG unpacker's leftovers;
+  the renderer uses 0).
 - Image sets: 0 PRINCE 1000+n (sword type 2: 1200; type 1 with DS:4410: ids 47..57 -> 1101+i), 1 PRINCE 3000+n,
   2 KID 25001+n (-0x190 from 0xDE), 3 the guard file 750+n (ranges DS:06BC / 06D2 per type enabled by 1286:07EE ->
   851+i; charids 10/12 by their own type), 4 the scenery file 3500+n (+200 from DS:05AC[kind]).
@@ -573,7 +586,8 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   death); the level's first room (169B:03AE) erases the whole screen (DS:1F2A) or calls 2136(1), then 24EA.
 - Verified (tests/frametest.c on tools/framecap.py captures of all 14 levels, four script seeds): every frame's
   tables, dirty rectangles and offscreen buffer exact over ~32,000 passes (full mode, from the game state at
-  169B:0A98 with the saved-screen list chained; one pass off: the purge case above); the screen (VGA dumps every
+  169B:0A98 with the saved-screen list chained; the one pass that differed on level 11 (FR11_4, the prince in mask 8)
+  was the per-draw conversion above); the screen (VGA dumps every
   3rd frame of one seed, ~13,000 dumps, status line included but for the message text) exact apart from dumps taken
   mid-copy or within two frames of a tick-time write, and captures made before the msgclral probe.
 - The level 5 / 8 / 13 overlay parts and the tick-time palette rotations: 5.17.
@@ -634,25 +648,31 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   id is below the description's count are its objects: 0CD6:0224 / 01EC). 0782 (falling object 0xB, a bubble): its
   position as the drawn room sees it and its tile key; in level 5 room 10: moved by DS:1C9A / 1CAE[step], the
   floor-depth entries of type 0xB (DS:0826 / 0840) = its object's image height / width + 1, requests, the object.
-  (Bubbles need both swimmers at the plug for 0x3C ticks: no capture has them; transcribed only.)
+  Verified by P5_plug (explorer EXPLORE_KEY=plug EXPLORE_STOPPLUG=1, hp 12: the prince and room 7's guard fight in
+  room 10's water until DS:693C passes 0x3C; five bubbles, the floor opens under them): 1834 ticks identical (strict,
+  warm and cold) and FRP5_plug 1854 passes exact, 350 of them with the bubbles' type-0x8B objects.
 - Level 13 room 4 (OVL13, description 0x20): 0486 (the temple's tile 0x2B, layer 0xB, whole-screen clip): modifier bit
   7: object DS:1CC2[m & 0x7F] in the foreground (layer 1 for the call), else object 0xB + m. The enter hook 0510
   reloads objects 0xB..0x26 from a copy of the prince's shape list header with the description's first resource and
   mask 0x4000 (26BC:040A: colors 0xE0.., the palette the hook loads at 0xE0); render_image_set_mask keeps that per
   image. 05FC (0993:0888, frames 0x132..0x13E; itself tests room 4 and level 13): the sword table's entry (DS:[6110],
   cur_frame's sword) names description object image + 0x17, placed at its offsets from obj_x / obj_y (0AFF:0390),
-  clipped to its own rect, drawn in the background layer (0 for the call). 05FC is transcribed only (the frames were not
-  reached in a capture: P13_shadow dies on seq 0xE6's frames 7 / 0x32 / 0xB9).
+  clipped to its own rect, drawn in the background layer (0 for the call). 05FC is verified: FRP13_shadow reaches
+  frames 0x132..0x13E (the merge, passes 3284..3354), tables exact; its entry keeps the drawing globals DS:6B6F / 6B6E of the last tile
+  loop (0x0A / 0xFF: frametest now loads them from the pass's state), and the prince's own object on these frames
+  (image -1) has the empty rect DS:1F12 (0AFF:1846 / 18AE; the renderer kept the screen clip, which reordered two
+  sprites).
 - Level 8 room 9 (OVL14): the chomper drawer's room-9 case (34A3:0A33 -> 2A31:0E43 -> 37F0:0000): description
   object 7 drawn in layer 1 for the call (then its layer is 0), within the clip the drawer cut.
 - Verified (tests/frametest.c full mode; new captures FRX5_3, FRX5_2, FRG8_sword, FRP2_raft, FRP13_shadow): FRX5_3
   (the trap, the lift, caught) 1072 passes exact (408 differing before), FRX5_2 (the water rooms) 1784 exact (49
-  before), FRP2_raft (level 2's puzzle and the raft) 472 exact (44 before: the clue's images). FRG8_sword: exact up to
-  the sword scene; after it the game does not draw the prince's standing sprite (table 3 entry chtab 2 id 14 is in the
-  table, its pixels are not drawn: 1276 px a pass for the rest of the capture), not explained (the memory manager
-  after scene 6's allocations, it seems). FRP13_shadow: tables exact, pixels of the prince's sprite in colors 0x30..
-  instead of 0x10.. (the KID.DAT images' first-load colors, 5.16) in every room, and one pass with two table-3 entries
-  in the other order: not overlay work, open.
+  before), FRP2_raft (level 2's puzzle and the raft) 472 exact (44 before: the clue's images). FRG8_sword: the
+  passes after scene 6 differed (1276 px each) only because the capture read the wrong memory: the scene's allocations reallocate the game's offscreen port (DS:5CC2 0x8546 ->
+  0x85AA) and its bits move from phys 0x4CF22 to 0x514B2, so 0x4CF22 no longer changed (bar a heap block over its
+  first rows). FRG8_sword2 (tools/framecap.py BUF2=514B2: frametest takes the buffer the port names) is exact in all
+  554 passes (the saved-screen list after the scene synced from the game's: 0AAC:0376's whole redraw is not probed).
+  FRP13_shadow: 231 differing passes -> 1 (9 px: the stack bytes of 194C:06E6 above), by the per-draw KID.DAT colors
+  (5.16), the 8-bit bank mapping and the empty rect of image -1.
 - The shell with the hooks (tests/shelltest.c SHELL_VRAM on a framecap capture with VRAM_STEP and a ds_tick probe;
   probepoke plans played): P2_raft (level 2: the waves, the puzzle, the raft) 1350 VGA dumps, 1300 exact, 44 within
   two frames, 6 differ (the room switch: DOS draws the new room ~10 frames later, under the blacked-out palette);
@@ -663,6 +683,26 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   the sea's palette rotations, the ship): 1789 shots, 1219 exact, 451 within four frames, 119 differ (636 / 271 / 880
   before); the rotations are in phase in every shot; the rest is a tick of timing in the ship scene and, after tick
   550, the sound model's death wait (the state differs there: e2e takes the capture's answers, the shell does not).
+
+### 5.18 The renderer's last differences (2026-09-24)
+- FRG8_sword (level 8 after scene 6, "the prince's standing sprite not drawn"): not the game's drawing. After
+  37F0:007C's scene 6 and the level's reload, the offscreen port (DS:5CC2 0x8546 -> 0x85AA) and its 64000-byte
+  buffer are allocated anew, at phys 0x514B2 instead of 0x4CF22; the capture kept sampling 0x4CF22 (a stale copy,
+  rows 0..2 overwritten by a heap block, the prince not in it). With the buffer the port names (FRG8_sword2) all 554
+  passes are exact; nothing in the core or the renderer changed for it (DS:2BA6, 0993:07F8's skips and the purges are
+  not involved).
+- FRP13_shadow (colors 0x30.. instead of 0x10..) and FR11_4's one pass ("a KID.DAT image purged and reloaded"): both
+  the same rule, deterministic: KID.DAT images are converted at each draw with the list's mask of that moment (5.16);
+  the prince's sprite carries mask 8 in some passes (table-3 entry +0x10 = Kid.pal_slot, +0x34, through 0993:09B6),
+  so those draws are in 0x30... The memory manager is not involved (a purged raw resource is reloaded unconverted).
+  The 8-bit KID.DAT images of level 13's merge (flags 0xF300 / 0xF400) go through 194C:06E6's bank table too.
+- The two table-3 entries in swapped order (FRP13_shadow 3342..3354): the prince's object on frames 0x132..0x13E has
+  image -1, whose rect is DS:1F12 (empty; 0AFF:18AE) - the renderer kept the screen clip, so the object met every
+  other object's rect and changed 0FB3:18DE's drawing order.
+- Left: FRP13_shadow pass 3284, 9 px: 194C:06E6 maps KID.DAT 24882's pixels of high nibble 1 through its table's
+  second byte, which mask 8 (one bit) never writes: a stack byte left by the calls 0B28 made before (the unpacker
+  194C:0886 -> 77CE for these LZG images, it seems): 0x09 there, 0 for nibble 15 in the passes after. Modelling it
+  would need those routines' stack frames byte for byte; the renderer uses 0.
 
 ## 6. The C core (`source/core.h`)
 - `pop2_init(dir)`, `pop2_new_game(level, seed)`, `pop2_frame(&input)` (one tick), `pop2_save/load/hash`,
@@ -684,8 +724,7 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
-- The shell's rendering after the sword scene (level 8: the prince's standing sprite not drawn by the game, 5.17) and
-  the KID.DAT first-load colors in P13_shadow; 37F0:05FC and the bubbles (0782 / 08D2) not seen in a capture;
+- Rendering: one pass of FRP13_shadow (9 px of stack bytes read by 194C:06E6, 5.16);
 - Story scenes;
   sound: packed digital sample lengths (0x20 0x26 0x2F 0x258), draw-time jitter; the prince's drawing-pass hooks; hotkeys besides restart; the stubs still logged by
   note()/note_missing() (see `grep -n 'note(' source/*.c`).
@@ -786,3 +825,10 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - 2026-09-24: cheat keys K, g, k, S (0823:0682 / 0768 / 07A6 / 06F0) in the shell; CK1 / CK10 (keys pressed between two
   ticks: those letters are movement keys too) identical tick for tick. Sound model (run_soundmodel.sh): 83 of 163
   captures identical as before, differing ticks 8878 -> 6852 (level 5's room-3 music).
+- 2026-09-24: the renderer's last differences (5.18): FRG8_sword's after-scene passes were a capture artefact (scene 6
+  moves the offscreen buffer to 0x514B2; framecap.py BUF2 + the port probe, FRG8_sword2 554/554 exact); KID.DAT images
+  are converted at every draw with the list's mask (0FB3:2C9C / 26BC:0630 / 040A / 26BC:0000), 8-bit ones through
+  194C:06E6's banks: FRP13_shadow 231 -> 1 differing pass, FR11_4's "purge" pass exact; image -1 has the empty rect
+  DS:1F12 (0AFF:18AE); frametest loads DS:6B6E / 6B6F. 37F0:05FC verified (FRP13_shadow frames 0x132..0x13E).
+  P5_plug (explorer EXPLORE_KEY=plug / EXPLORE_STOPPLUG): level 5's plug and bubbles, 1834 ticks identical; FRP5_plug
+  1854 passes exact (OVL12 0782 / 08D2 drawn in 350). All frame captures exact but that one pass (9 px of stack bytes).

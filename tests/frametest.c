@@ -30,6 +30,31 @@ static void load_frames(const char *p)
 	}
 	fclose(f);
 }
+/* a capture across a story scene that moves the offscreen buffer (tools/framecap.py BUF2): the buffer records of the
+ * address the game's offscreen port names (DS:[5CC2] +0, from the 'port' records DS:8000..9000) take the place of
+ * those at 0x4CF22 */
+static void pick_buffers(void)
+{
+	uint32_t alt = 0; for (int i = 0; i < nrecs; i++) if (!strcmp(recs[i].label, "bf2addr") && recs[i].len >= 4) memcpy(&alt, recs[i].data, 4);
+	uint32_t bits = 0x4CF22; const uint8_t *dsw_ = NULL; int moved = 0;
+	for (int i = 0; i < nrecs; i++) {
+		rec *r = &recs[i];
+		if (!strcmp(r->label, "pre_ds") || !strcmp(r->label, "rd_ds")) dsw_ = r->data;
+		else if (!strcmp(r->label, "port") && dsw_) {
+			uint16_t pp = (uint16_t)(dsw_[0x5CC2 - 0x2900] | dsw_[0x5CC3 - 0x2900] << 8);
+			if (pp >= 0x8000 && pp + 4 <= 0x9000 && r->len >= 0x1000) { const uint8_t *q = r->data + pp - 0x8000; bits = (uint32_t)((q[2] | q[3] << 8) * 16 + (q[0] | q[1] << 8)); }
+		}
+		else if (alt && (!strcmp(r->label, "pre_bf2") || !strcmp(r->label, "rd_bf2") || !strcmp(r->label, "bf2"))) {
+			const char *main_ = r->label[0] == 'p' ? "pre_buf" : r->label[0] == 'r' ? "rd_buf" : "buf";
+			if (bits == alt) for (int d = 1; d <= 12; d++) {   /* (the same probe's record at 0x4CF22: before or after it) */
+				int k = i - d; if (k < 0 || strcmp(recs[k].label, main_) || recs[k].frame != r->frame) k = i + d;
+				if (k < nrecs && !strcmp(recs[k].label, main_) && recs[k].frame == r->frame) { uint8_t *t = recs[k].data; recs[k].data = r->data; r->data = t; moved++; break; }
+			}
+			strcpy(r->label, "xbuf");
+		}
+	}
+	if (moved) printf("(%d buffer records at %05X, the offscreen port's)\n", moved, alt);
+}
 static uint8_t *load(const char *p) { FILE *f = fopen(p, "rb"); if (!f) { perror(p); exit(2); } uint8_t *b = malloc(655360); if (fread(b, 1, 655360, f) != 655360) exit(2); fclose(f); return b; }
 static void write_pgm(const char *path, const uint8_t *a, int h)
 {
@@ -90,6 +115,7 @@ static void frame_state(const uint8_t *ds)
 	memcpy(objs, ds + 0x5D3A - 0x2900, sizeof objs); obj_count = dsw(0x60F8);
 	for (int k = 0; k < 4; k++) draw_clip[k] = (int16_t)dsw(0x60DE + 2 * k);
 	memcpy(sv.rect, ds + 0x6103 - 0x2900, 8);
+	draw_row = (int8_t)ds[0x6B6E - 0x2900]; draw_col = (int8_t)ds[0x6B6F - 0x2900];   /* (the tile loops' last values: 37F0:05FC's entry keeps them) */
 }
 static int compare_tables(const uint8_t *tables, const uint8_t *counts, int verbose)
 {
@@ -168,7 +194,7 @@ int main(int argc, char **argv)
 	if (argc < 3) { fprintf(stderr, "usage: frametest FRAMES RAM [draw|full] [-v] [-o DIR]\n"); return 2; }
 	const char *mode = "draw", *outdir = NULL; int verbose = 0;
 	for (int i = 3; i < argc; i++) { if (!strcmp(argv[i], "-V") && i + 1 < argc) vram_dir = argv[++i]; else if (!strcmp(argv[i], "-v")) verbose = 1; else if (!strcmp(argv[i], "-o") && i + 1 < argc) outdir = screen_out = argv[++i]; else mode = argv[i]; }
-	load_frames(argv[1]);
+	load_frames(argv[1]); pick_buffers();
 	uint32_t last_frame = 0; for (int i = 0; i < nrecs; i++) if (strcmp(recs[i].label, "vram") && strcmp(recs[i].label, "shot") && recs[i].frame > last_frame) last_frame = recs[i].frame;
 	for (int i = 0; i < nrecs; i++) { if (!strcmp(recs[i].label, "lfr_hp")) has_lfr = 1; if (!strcmp(recs[i].label, "blkgo")) has_blkgo = 1; }
 	for (int i = 0; i < nrecs; i++) if (!strcmp(recs[i].label, "vram")) { dump_idx = realloc(dump_idx, (n_dumps + 1) * sizeof *dump_idx); dump_idx[n_dumps++] = i; }
@@ -312,7 +338,8 @@ int main(int argc, char **argv)
 							uint16_t h = dsw((uint16_t)(0x5FEE + 6 * k));   /* (and its rect: 33FD:0B12 narrows one at tick time) */
 							if (heap && h >= 0x9800 && h + 0x18 < 0xB800) for (int q = 0; q < 4; q++) saved_bgs[k].rect[q] = (int16_t)(heap[h - 0x9800 + 0x10 + 2 * q] | heap[h - 0x9800 + 0x11 + 2 * q] << 8);
 						}
-					} else if (verbose) printf("  saved screens: %d, game %d\n", saved_count, dsw(0x5FEC));
+					} else if (dsw(0x5FEC) == 0) render_free_saved();   /* (freed by a whole redraw not probed: 0AAC:0376's, the room of a story scene, 0993:075E) */
+					else if (verbose) printf("  saved screens: %d, game %d\n", saved_count, dsw(0x5FEC));
 					render_frame_tables(); render_draw_tables();
 				}
 				for (int t = 0; t < 2; t++) { draw_entry *e = t ? fore_table : back_table; for (int k = 0; k < table_counts[t]; k++) if (e[k].id >= 0x6370 && e[k].id <= 0x6372) e[k].id = 0; }

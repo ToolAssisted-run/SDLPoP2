@@ -55,3 +55,9 @@ This is an unofficial reconstruction of Prince of Persia 2 (DOS) for research an
 with or endorsed by the game's rights holders, who own the game, its code, data and trademarks; the contributors
 claim no ownership of it, and no game data is included (you need your own copy). The [Nuked OPL3](https://github.com/nukeykt/Nuked-OPL3) emulator
 (`source/audio_opl3.*`) stays under the LGPL 2.1 or later. Details: `NOTICE`.
+
+**Getting the game:** SDLPoP2 needs the original game's data files, which are not included. The game is not
+currently sold digitally; the legal way to obtain them is an original copy of *Prince of Persia 2: The Shadow and
+the Flame* for MS-DOS (1993, Brøderbund) or the *Prince of Persia Collection Limited Edition* CD (the version this
+project targets). You can ask for an official re-release by voting on its
+[GOG Dreamlist page](https://www.gog.com/dreamlist/game/prince-of-persia-2-the-shadow-and-the-flame).

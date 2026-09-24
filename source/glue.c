@@ -44,7 +44,7 @@ int seq_condition(uint16_t c) { char t[32]; snprintf(t, sizeof t, " COND(%u)?", 
 void seq_jump_to(uint16_t id) { Char.seq_id = id; Char.seq_pos = 0; }
 
 void seq_ctl_1954(void) { drink(); }   /* items.c */
-void ovl_366c_1704(void) { note(" ovl1704"); }
+void ovl_366c_1704(void) { small_prince_appears(); }   /* 366C:1704 (skeleton.c) */
 void flash_on(uint16_t v) { (void)v; note(" flash_on"); } void flash_off(void) { note(" flash_off"); }
 int ovl_366c_11f8(uint8_t r) { return room_draws_sword_pub(r); }   /* 366C:11F8 (OVL10, guard.c) */
 
@@ -183,7 +183,7 @@ void glue_load_ds_tables(const uint8_t *ram)   /* DS:0096 type->charid, DS:00A2 
 /* guard.c / play_all_chars stubs */
 
 void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); } void ovl_366c_11(void) { note(" 11da?"); }
-int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */  void ovl_37d28(void) { note(" 37d28"); }
+int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */  void ovl_37d28(void) { small_prince_tick(); }   /* 366C:1668 (skeleton.c) */
 
 /* fight/tick stubs */
 int ovl_366c_6ac(void) { if (level_kind == 4) return head_hit(); note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } 

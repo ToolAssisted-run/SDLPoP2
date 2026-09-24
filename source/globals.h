@@ -154,7 +154,7 @@ int read_input(void); extern int (*read_input_hook)(void); int hotkeys_02be(void
 /* kidctl.c */ extern int8_t kid_ctrl1_saved[5]; extern uint16_t word_5d38, word_5cd0, word_5cda, word_5cdc; int play_kid_control(void);
 void seq_music_1611(uint8_t m); void restart_prompt(void); int death_sound_playing(int both);   /* platform: 194C:8426 on DS:0882 (and DS:0884) */
 /* level.c */ extern uint8_t start_hp, byte_5cbb; extern uint16_t word_0996, word_0880, word_5cbe, word_5d36;
-void init_kid_record_pub(void); void checkpoint_save(int n); void checkpoint_restore(void); void checkpoint_free(void); void checkpoints_0db4(void); void level_postprocess(void); void level_begin(void);
+void init_kid_record_pub(void); void small_prince_appears(void); void small_prince_tick(void); void checkpoint_save(int n); void checkpoint_restore(void); void checkpoint_free(void); void checkpoints_0db4(void); void level_postprocess(void); void level_begin(void);
 /* game.c */ extern uint16_t minutes_left, clock_ticks, word_5cb6, word_5cc0, frame_delay; extern int8_t byte_016a; void game_clock(void); void frame_begin(void);
 void chars_fell_below(void);
 int tick_main(void); int tick_tail(void);

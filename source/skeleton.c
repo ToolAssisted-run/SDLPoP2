@@ -150,3 +150,37 @@ void skel_row_shake(int8_t row, uint8_t room)
 	}
 	Char = saved;
 }
+
+/* 366C:1704 (sequence opcode FFF? control 3, from the drink of level 12's potion): the small prince (charid 0xC, type 9)
+ * appears 0x55 pixels ahead of the prince, facing left, in the prince's room: a new record, sequence 0xB4 (he walks
+ * to the door and opens it), music 0xC4 */
+void small_prince_appears(void)
+{
+	Kid = Char;
+	int16_t x = (int16_t)(Kid.x + 0x55 * (int8_t)ds_byte((uint16_t)(0xCF9 + (int8_t)Kid.direction)));
+	int8_t col = col_from_x18(x), row = Kid.curr_row;   /* 0AFF:1010 */
+	level_room *room = ROOM_REC(Kid.room); uint8_t n = room->nchars++;
+	Char.index = n;
+	level_char_init *rec = &room->chars[n];   /* 2D3E:08AC */
+	Char.charid = 0xC; rec->type = 9;
+	Char.room = Kid.room; Char.curr_row = row;
+	rec->tilepos = (int8_t)(row_tilepos(row) + col);   /* 0AFF:07D4 */
+	char_y_to_floor();                                  /* 0AFF:07B0 */
+	rec->x = x; Char.x = x; Char.curr_col = col;
+	rec->direction = -1; Char.direction = -1;
+	rec->f38 = 0; Char.f38 = 0; rec->opp_index = 0; Char.opp_index = 0; Char.f23 = 0;
+	Char.f2a = 0; Char.f26 = 0; Char.f28 = 0; Char.f24 = 0;
+	Char.pal_slot = 4; Char.f0f = 1; Char.f10 = 1;
+	rec->seq_id = 0xB4; rec->seq_pos = 0;
+	seqtbl_offset_char(0xB4); sound_1611_01a8(0xC4);
+	rec->max_hp = 6; init_hp_pub(rec);                  /* 2D3E:0008 */
+	rec->f04 = 0xA;
+	Char.alive = -1;
+	word_6140 = 0; word_68f0 = 0; word_922e = 0;   /* (DS:6140, 68F0, 68EE) */
+	Char.fall_x = Char.fall_y = 0;                      /* 0AFF:0952 */
+	Char.action = 1;
+	load_guard_sprites(rec->type);                      /* 1286:0066 */
+	save_char(); loadkid();
+}
+/* 366C:1668 (every tick, the drawn room's charid-0xC character): gone once off the room (column below -1 or past 10) */
+void small_prince_tick(void) { if (Char.curr_col < -1 || Char.curr_col > 10) clear_char(); }

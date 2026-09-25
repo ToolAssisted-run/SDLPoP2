@@ -10,7 +10,9 @@ tools/__pycache__/
 build-windows/
 dist/
 extern/*/
-extern/packagecache/
+!extern/packagecache/
+extern/packagecache/*
+!extern/packagecache/sdl2_2.32.8-1_patch.zip
 build-linux/
 ci-rehearse/
 build-bundle-*/

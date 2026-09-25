@@ -112,7 +112,7 @@ static void tick_cmp(void)
 	ticks_seen++;
 	if (d && getenv("SHELL_CMP_LIST")) { printf("sample %d differs:", cur_sample); for (int i = 0; regions[i]; i++) { const char *one[2] = {regions[i], NULL}; if (snap_diff(got, samples[cur_sample], one, 0)) printf(" %s", regions[i]); } printf("\n"); }
 	if (d) { bad_ticks++; if (bad_ticks <= (getenv("SHELL_CMP_MAX") ? atoi(getenv("SHELL_CMP_MAX")) : 5)) { printf("frame=%d tick sample %d (tick %u): %d fields differ\n", cmp_frame, cur_sample, (unsigned)tick, d); snap_diff(got, samples[cur_sample], regions, 1); } }
-	if (getenv("SHELL_LOAD")) {   /* (the capture's state from here: only the drawing is compared) */
+	if (getenv("SHELL_LOAD") && !(getenv("SHELL_LOAD_UNTIL") && cur_sample >= atoi(getenv("SHELL_LOAD_UNTIL")))) {   /* (the capture's state from here: only the drawing is compared; SHELL_LOAD_UNTIL=n: up to sample n, then the shell's own) */
 		uint8_t room = drawn_room;
 		snap_load(samples[cur_sample]);
 		if (drawn_room != room && drawn_room) { render_redraw_all(); render_hp_bars(); }   /* (the capture switched rooms where this tick did not: its room and hit points drawn) */

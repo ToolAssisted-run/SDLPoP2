@@ -476,6 +476,7 @@ static int highlighted_settings_subsection = 0;
 static int scroll_position = 0;
 static int menu_control_y;
 static int menu_control_x;
+static int menu_digit = -1, menu_clear;   // SDLPoP2: a digit typed (0..9, else -1), Delete pressed (the random seed field)
 static int menu_control_back;
 
 enum menu_setting_style_ids {
@@ -664,9 +665,9 @@ static setting_type gameplay_settings[] = {
 				LINK(random_seed), .min = -1, .max = 99999, .names_list = &random_seed_setting_names_list,
 				.ini = "AdditionalFeatures/random_seed",
 				.text = "Random seed",
-				.explanation = "The game's random numbers (the copy protection's question, the guards, ...) at the start "
-						"and when the game is restarted (RESTART GAME).\nTimer (default): different each time. "
-						"A number: the same game every time."},
+				.explanation = "Timer (default): a different game each time.\n"
+						"A number: the same game every time you start or restart.\n"
+						"Type the number in. Delete goes back to Timer."},
 		{.id = SETTING_ENABLE_QUICKSAVE, .style = SETTING_STYLE_TOGGLE, LINK(enable_quicksave), .ini = "AdditionalFeatures/enable_quicksave",
 				.text = "Enable quicksave",
 				.explanation = "Enable quicksave/load feature.\nPress F6 to quicksave, F9 to quickload."},
@@ -1535,6 +1536,10 @@ static void draw_setting(setting_type* setting, rect_type* parent, int* y_offset
 				increase_setting(setting, value);
 			} else if (menu_control_x < 0) {
 				decrease_setting(setting, value);
+			} else if (setting->id == SETTING_RANDOM_SEED && menu_clear) {   // SDLPoP2: Delete: the timer
+				set_setting_value(setting, -1);
+			} else if (setting->id == SETTING_RANDOM_SEED && menu_digit >= 0) {   // SDLPoP2: digits typed in (the last five kept)
+				set_setting_value(setting, (int) (((long) (value < 0 ? 0 : value) * 10 + menu_digit) % ((long) setting->max + 1)));
 			}
 		}
 
@@ -2122,6 +2127,7 @@ static void clear_menu_controls(void) {
 	mouse_button_clicked_right = 0;
 	have_mouse_input = 0;
 	have_keyboard_or_controller_input = 0;
+	menu_digit = -1; menu_clear = 0;
 	menu_control_x = 0;
 	menu_control_y = 0;
 	menu_control_back = 0;
@@ -2130,7 +2136,7 @@ static void clear_menu_controls(void) {
 
 static void process_additional_menu_input(void) {
 	read_mouse_state();
-	have_keyboard_or_controller_input = (menu_control_x || menu_control_y || menu_control_back || pressed_enter);
+	have_keyboard_or_controller_input = (menu_control_x || menu_control_y || menu_control_back || pressed_enter || menu_digit >= 0 || menu_clear);
 	have_mouse_input = (mouse_moved || mouse_clicked || mouse_button_clicked_right || menu_control_scroll_y);
 
 	if (host.window == NULL) return;
@@ -2153,6 +2159,7 @@ static bool_type joy_menu_button_released;   // SDLPoP2: button_menu (SDLPoP: St
 
 #define CB(button) (1u << (button))
 static int key_test_paused_menu(int key) {
+	menu_digit = -1; menu_clear = 0;
 	menu_control_x = 0;
 	menu_control_y = 0;
 	menu_control_back = 0;
@@ -2271,6 +2278,21 @@ static int key_test_paused_menu(int key) {
 		case SDL_SCANCODE_RETURN:
 		case SDL_SCANCODE_SPACE:
 			pressed_enter = 1;
+			break;
+		case SDL_SCANCODE_1: case SDL_SCANCODE_2: case SDL_SCANCODE_3: case SDL_SCANCODE_4: case SDL_SCANCODE_5:
+		case SDL_SCANCODE_6: case SDL_SCANCODE_7: case SDL_SCANCODE_8: case SDL_SCANCODE_9:
+			menu_digit = key - SDL_SCANCODE_1 + 1;   // SDLPoP2: typed into the random seed field
+			break;
+		case SDL_SCANCODE_KP_1: case SDL_SCANCODE_KP_2: case SDL_SCANCODE_KP_3: case SDL_SCANCODE_KP_4: case SDL_SCANCODE_KP_5:
+		case SDL_SCANCODE_KP_6: case SDL_SCANCODE_KP_7: case SDL_SCANCODE_KP_8: case SDL_SCANCODE_KP_9:
+			menu_digit = key - SDL_SCANCODE_KP_1 + 1;
+			break;
+		case SDL_SCANCODE_0:
+		case SDL_SCANCODE_KP_0:
+			menu_digit = 0;
+			break;
+		case SDL_SCANCODE_DELETE:
+			menu_clear = 1;   // SDLPoP2: the random seed field back to the timer
 			break;
 		case SDL_SCANCODE_ESCAPE:
 		case SDL_SCANCODE_BACKSPACE:

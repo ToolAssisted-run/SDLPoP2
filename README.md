@@ -163,6 +163,8 @@ You can change the window, scaling, sound, intro and story scenes, keys, quicksa
 
 Most settings can also be changed in the menu. The menu saves your changes to `SDLPoP2.cfg`.
 
+To replay the same game, set a random seed: in the menu (SETTINGS, GAMEPLAY) type the number in, or press Delete to go back to the timer.
+
 The copy protection cannot be turned off: as in the original, the question is asked the first time you reach level 3 or later.
 
 ## Building

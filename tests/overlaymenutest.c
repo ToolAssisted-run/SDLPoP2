@@ -561,6 +561,22 @@ int main(int argc, char **argv)
 		shell_input_type(&in, 'G'); frames(20);
 		CHECK(!cheat_god, "Shift+G again: god mode off");
 	}
+	/* the random seed (GAMEPLAY's second setting): digits typed in, Delete back to the timer */
+	press(SDL_SCANCODE_ESCAPE); to_pause_item("SETTINGS");
+	press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN); press(SDL_SCANCODE_RETURN); press(SDL_SCANCODE_DOWN);
+	CHECK(at_setting("Random seed"), "GAMEPLAY: Random seed (%s)", setting);
+	press(SDL_SCANCODE_DELETE);
+	CHECK(S.random_seed_clock, "Delete: the timer");
+	press(SDL_SCANCODE_4); press(SDL_SCANCODE_KP_2);
+	CHECK(!S.random_seed_clock && S.random_seed == 42, "4, keypad 2: 42 (%u)", (unsigned)S.random_seed);
+	for (int k = 0; k < 4; k++) press(SDL_SCANCODE_9);
+	CHECK(S.random_seed == 29999, "four 9s more: the last five digits (%u)", (unsigned)S.random_seed);
+	press(SDL_SCANCODE_RIGHT);
+	CHECK(S.random_seed == 30000, "Right: one more (%u)", (unsigned)S.random_seed);
+	if (shots) screenshot("menu-seed");
+	press(SDL_SCANCODE_DELETE);
+	CHECK(S.random_seed_clock, "Delete: the timer again");
+	close_menu();
 	/* off again */
 	set_cheats_in_menu(0, NULL);
 	CHECK(overlay_menu_cheats() == 0 && !cheats_item_shown(), "Enable cheats off: the CHEATS item goes (%s)", item);

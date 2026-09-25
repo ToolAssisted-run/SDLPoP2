@@ -1,7 +1,7 @@
 #!/bin/bash
 # build-bundle.sh --platform linux|windows --out DIR: build SDLPoP2 for the platform and put what a user downloads in
-# DIR, flat (the files unpack straight into the game's folder): the executable, SDLPoP2.ini, README.md, LICENSE,
-# NOTICE, LICENSES/ and BUILD.txt (the commit and the toolchain it was built with). CI and the releases use it
+# DIR, flat (the files unpack straight into the game's folder): the executable, SDLPoP2.ini, README.md, LICENSE
+# and BUILD.txt (the commit and the toolchain it was built with). CI and the releases use it
 # (.github/workflows); it needs meson, ninja and, for Windows, mingw-w64.
 #   linux:   SDL2 built in from the WrapDB wrap (--force-fallback-for=sdl2): the executable needs only the C library
 #   windows: cross-compiled with cross/mingw-w64.ini (static), stripped
@@ -29,9 +29,8 @@ else
 	meson compile -C $build
 	exe=$build/sdl/sdlpop2.exe; cc=$(x86_64-w64-mingw32-gcc --version | head -1)
 fi
-rm -rf "$out"; mkdir -p "$out/LICENSES"
-cp "$exe" SDLPoP2.ini README.md LICENSE NOTICE "$out/"
-cp LICENSES/* "$out/LICENSES/"
+rm -rf "$out"; mkdir -p "$out"
+cp "$exe" SDLPoP2.ini README.md LICENSE "$out/"
 if [ "$platform" = windows ]; then x86_64-w64-mingw32-strip "$out/sdlpop2.exe"; else strip "$out/sdlpop2"; fi
 {
 	echo "SDLPoP2 ($platform x86-64)"

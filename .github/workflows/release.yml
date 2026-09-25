@@ -2,9 +2,9 @@ name: Release
 
 # What users download, built only from what CI passed (as Chimera's releases).
 #
-#   dev      a ROLLING prerelease, replaced on every green push to master: one link that is always the newest. The
+#   dev      a ROLLING release (GitHub's "Latest"), replaced on every green push to master: one link that is always the newest. The
 #            assets carry the short commit in their names, so a downloaded file still says what it is.
-#   nightly  an IMMUTABLE dated prerelease (nightly-YYYY-MM-DD), once a day and only when master moved. Not for
+#   nightly  an IMMUTABLE dated release (nightly-YYYY-MM-DD), once a day and only when master moved. Not for
 #            freshness (dev has that) but permanence: a replay (.p2r) plays back on the build that recorded it, so
 #            nightlies are never deleted.
 #
@@ -185,7 +185,7 @@ jobs:
         gh release delete dev --yes --cleanup-tag 2>/dev/null || true
         gh release create dev --target "${{ needs.what.outputs.sha }}" \
           --title "Development build ${{ needs.what.outputs.short }}" \
-          --notes-file build/release/NOTES.md --prerelease
+          --notes-file build/release/NOTES.md --latest
         gh release upload dev build/release/sdlpop2-* build/release/BUILD-*.txt --clobber
     - name: Publish the nightly
       if: needs.what.outputs.kind == 'nightly'
@@ -196,5 +196,5 @@ jobs:
         gh release view "$tag" >/dev/null 2>&1 && { echo "$tag already exists"; exit 0; }
         gh release create "$tag" --target "${{ needs.what.outputs.sha }}" \
           --title "Nightly ${{ needs.what.outputs.date }} (${{ needs.what.outputs.short }})" \
-          --notes-file build/release/NOTES.md --prerelease
+          --notes-file build/release/NOTES.md --latest=false
         gh release upload "$tag" build/release/sdlpop2-* build/release/BUILD-*.txt --clobber

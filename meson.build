@@ -1,7 +1,7 @@
 project('sdlpop2','c',
   version: '0.9.0',
   license: ['GPL-3.0-or-later', 'LGPL-2.1-or-later'],
-  license_files: ['LICENSE', 'NOTICE', 'LICENSES/LGPL-2.1.txt'],
+  license_files: ['LICENSE'],
   default_options : ['c_std=gnu11', 'buildtype=release', 'warning_level=1'],
   subproject_dir: 'extern'
 )

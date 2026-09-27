@@ -614,6 +614,17 @@ static void quick_do(void)
 	quick_redraw(); qs_result = 2;
 	memcpy(render_palette, qs_dac, sizeof qs_dac);
 }
+/* for tools (JaffarPlus's player): a savestate (pop2_save's) drawn afresh into screen_buf / render_palette, as a
+ * quickload shows it (the level's images loaded first when it is another level's); after shell_init, between steps.
+ * The core is left in that state. */
+void shell_draw_state(const void *state)
+{
+	static int images_level = -1;
+	pop2_load(state);
+	int lv = (int8_t)word_32d8;
+	if (lv != images_level) { load_level_ex(lv, 1); images_level = lv; pop2_load(state); }
+	quick_redraw();
+}
 static int play_loop(void)   /* 169B:0504 */
 {
 	for (;;) {

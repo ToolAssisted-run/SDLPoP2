@@ -48,6 +48,7 @@ uint32_t shell_frame_count(void);
  * SDLPoP2.ini's enable_quicksave_penalty = false). */
 void shell_quicksave(void);
 void shell_quickload(void);
+void shell_draw_state(const void *state);   /* (tools) a savestate drawn afresh into screen_buf / render_palette, as a quickload shows it */
 int  shell_quick_result(void);    /* since the last call: 1 saved, 2 loaded, -1 nothing to load, 0 none */
 void shell_quick_clear(void);     /* forget the slot */
 /* the cheats (DS:10C2, 0823:0528's keys, Alt+N past level 3): on at start with the cheat word "yippeeyahoo", which

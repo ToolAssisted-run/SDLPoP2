@@ -624,6 +624,11 @@ void shell_draw_state(const void *state)
 	int lv = (int8_t)word_32d8;
 	if (lv != images_level) { load_level_ex(lv, 1); images_level = lv; pop2_load(state); }
 	quick_redraw();
+	/* the room's first drawing takes its characters from the room's records (where they were when they came in); the
+	 * frame after it, as the next tick's drawing, puts them where the state has them */
+	for (int i = 0; i < 5; i++) chars[i].f26 = 0;
+	hook_draw(0);
+	pop2_load(state);
 }
 static int play_loop(void)   /* 169B:0504 */
 {

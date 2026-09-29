@@ -727,6 +727,10 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 ## 8. Open list
 - Sound devices not reconstructed: MCMS101.DRV (CMS MIDI interfaces), PRESET32 (AdLib), MIDI type 0x20; the core's
   game logic does not follow a General MIDI device's missing level music (docs/AUDIO.md 1, 6);
+- Story scenes on an MPU-401 device: nis.c's timing model is the FM setup's whatever the MIDI type (the sequencer
+  interrupt's cost counted from OPL writes, sequencer commands filtered on dev 0x21, PRESETS.DEF's first byte read as
+  the bank count). On an MT-32 the original's interrupt sends MPU bytes instead, so its scene timing may differ: not
+  yet measured (an oracle scene capture on popmt32.hdd against nis.c; noted by the Chimera core's wiring, 2026-09-29);
 - Rendering: one pass of FRP13_shadow (9 px of stack bytes read by 194C:06E6, 5.16);
 - Story scenes;
   sound: packed digital sample lengths (0x20 0x26 0x2F 0x258), draw-time jitter; the prince's drawing-pass hooks; hotkeys besides restart; the stubs still logged by

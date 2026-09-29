@@ -306,14 +306,14 @@ The plan:
 - Sound: the drivers are SDLPoP2's own. The music choices of §3.4 and §3.8 are per-version conditions.
   Tandy/fragment sound (IR and 1.0) can come later, as an optional device.
 
-### 5.6 Copy protection (a decision for you)
+### 5.6 Copy protection
 
 IR asks its question only after level 2. With a LEVELn start at level 3 or later, it never asks. 1.0 and 1.1 ask
 before the first level of such a game.
 
-The protection must never be removed or skipped, so I recommend that IR mode also asks up front on a level-3+
-start, as 1.x does. This is a deliberate deviation from IR, and it will be documented as one. The faithful IR timing
-(no question on a direct level-3+ start) should only be adopted if you decide so.
+SDLPoP2's publication rule already settles this: there is no way to skip the protection, and level skips must show
+it from level 3 on. IR mode therefore also asks up front on a level-3+ start, as 1.x does. This is a documented
+deviation from IR.
 
 ### 5.7 Tests
 

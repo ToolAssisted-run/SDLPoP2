@@ -221,6 +221,12 @@ digitized sounds play through DIGI.DRV alongside, unchanged. The core's game log
 stays the CD setup's whatever device renders, as for the speaker: with General MIDI the original would answer "no music
 playing" in the level (death waits, the level end), the core answers as with the FM chip.
 
+SDLPoP2's frontend (sdl/main.c) plays the MT-32 through Munt (libmt32emu, the extern/munt submodule; meson option
+`mt32`) with `sound_device = mt32_digital` or `mt32`: the stereo SDL device gets Munt's output plus the mono
+`audio_render` mix, the bytes are scheduled with `mt32emu_parse_stream_at` at their sample times. It waits for the setup
+piece before the shell's first frame (a black window) rather than through `shell_sound_setup_hook`, so that replays do
+not depend on the sound device.
+
 Frontend wiring (sdl/ is not part of this work): open an SDL audio device (mono s16, e.g. 44100 Hz) whose callback calls
 `audio_render`; set the core's hooks (source/sound.c) `sound_start_hook = n -> audio_request(10000 + n)` and
 `sound_stop_hook = n -> audio_stop(n == -10000 ? 0 : 10000 + n)`, calling them under SDL_LockAudioDevice; the story

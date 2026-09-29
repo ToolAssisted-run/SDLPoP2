@@ -61,6 +61,8 @@ jobs:
         { echo "sha=$sha"; echo "short=$(echo "$sha" | cut -c1-8)"; echo "kind=$kind"; echo "date=$(date -u +%Y-%m-%d)"; } >> "$GITHUB_OUTPUT"
     - uses: actions/checkout@v4
       with:
+        submodules: true
+      with:
         ref: ${{ steps.what.outputs.sha }}
         fetch-depth: 0
     - name: Has master moved since the last nightly?
@@ -96,11 +98,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
+        submodules: true
+      with:
         ref: ${{ needs.what.outputs.sha }}
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends build-essential pkg-config python3-pip \
+        sudo apt-get install -y --no-install-recommends build-essential cmake pkg-config python3-pip \
           libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libxkbcommon-dev \
           libwayland-dev wayland-protocols libdecor-0-dev libegl-dev libgl-dev libgles-dev \
           libasound2-dev libpulse-dev libdbus-1-dev libudev-dev
@@ -126,11 +130,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
+        submodules: true
+      with:
         ref: ${{ needs.what.outputs.sha }}
     - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends meson ninja-build pkg-config mingw-w64 zip
+        sudo apt-get install -y --no-install-recommends meson ninja-build cmake pkg-config mingw-w64 zip
     - name: Build the bundle
       run: ./tools/build-bundle.sh --platform windows --out build/bundle
     - name: Pack
@@ -149,6 +155,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: true
       with:
         ref: ${{ needs.what.outputs.sha }}
     - uses: actions/download-artifact@v4

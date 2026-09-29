@@ -67,7 +67,8 @@ static const field fields[] = {
 	F("General", enable_music, T_BOOL, 0, 1, 0),
 	F("General", enable_sounds, T_BOOL, 0, 1, 0),
 	F("General", volume, T_INT, 0, 15, 0),
-	F("General", sound_device, T_SOUNDDEV, 0, 3, 0),
+	F("General", sound_device, T_SOUNDDEV, 0, 5, 0),
+	F("General", mt32_roms, T_STR, 0, 0, 0),
 	F("General", enable_pause_menu, T_BOOL, 0, 1, 0),
 	F("General", enable_intro, T_BOOL, 0, 1, 1),
 	F("General", enable_story_scenes, T_BOOL, 0, 1, 1),
@@ -134,6 +135,7 @@ static int set_field(pop2_settings *s, const pop2_settings *d, const field *f, c
 		*(int *)p = b; return 1;
 	case T_SOUNDDEV:
 		if (ieq(v, "fm_digital")) b = SOUND_DEVICE_FM_DIGITAL; else if (ieq(v, "fm")) b = SOUND_DEVICE_FM;
+		else if (ieq(v, "mt32_digital")) b = SOUND_DEVICE_MT32_DIGITAL; else if (ieq(v, "mt32")) b = SOUND_DEVICE_MT32;
 		else if (ieq(v, "digital")) b = SOUND_DEVICE_DIGITAL; else if (ieq(v, "speaker")) b = SOUND_DEVICE_SPEAKER; else return 0;
 		*(int *)p = b; return 1;
 	case T_SEED:

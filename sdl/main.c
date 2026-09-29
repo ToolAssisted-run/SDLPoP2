@@ -4,10 +4,14 @@
  * Settings: SDLPoP2.ini (source/settings.h); replays: source/replay.h.
  * usage: sdlpop2 [--path-to-game DIR] [--enable-cheats] [--level N] [--ini PATH] [--record NAME | --replay NAME] */
 #include <SDL.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "platform.h"
+#ifndef _WIN32
+#include <dirent.h>
+#endif
 #include <time.h>
 #include "../source/core.h"
 #include "../source/render.h"
@@ -29,7 +33,87 @@ static pop2_settings S;   /* SDLPoP2.ini (the defaults when there is none) */
 /* ---- sound ---- */
 extern void (*sound_start_hook)(int), (*sound_stop_hook)(int);   /* source/sound.c: where the game calls the driver */
 static SDL_AudioDeviceID adev;
-static void audio_cb(void *u, Uint8 *out, int len) { (void)u; audio_render((int16_t *)out, len / 2, 44100); }
+static int audio_channels = 1;   /* 2 with the MT-32 (its output is stereo) */
+
+#ifdef HAVE_MT32EMU
+/* The Roland MT-32 (sound_device mt32_digital / mt32): the game's MT-32 setup (source/audio.c: MMPU401.DRV, MIDI type
+ * 0x28, PRESET40.DEF) sends its MIDI bytes to Munt's emulation at their sample times; Munt's stereo output is added to
+ * the digitized sound */
+#define MT32EMU_API_TYPE 1
+#include <mt32emu.h>
+static mt32emu_context mt32;
+static mt32emu_report_handler_version MT32EMU_C_CALL mt32_version(mt32emu_report_handler_i i) { (void)i; return MT32EMU_REPORT_HANDLER_VERSION_0; }
+static void MT32EMU_C_CALL mt32_debug(void *d, const char *f, va_list l) { (void)d, (void)f, (void)l; }
+static void MT32EMU_C_CALL mt32_lcd(void *d, const char *m) { (void)d; fprintf(stderr, "sdlpop2: the MT-32's display: %s\n", m); }
+static const mt32emu_report_handler_i_v0 mt32_reports = { mt32_version, mt32_debug, NULL, NULL, mt32_lcd };
+static void mt32_byte(uint8_t b, uint64_t sample) { mt32emu_parse_stream_at(mt32, &b, 1, mt32emu_convert_output_to_synth_timestamp(mt32, (mt32emu_bit32u)sample)); }
+/* every file of a folder tried for each machine in turn (the old MT-32s, whose sound the game was made for, first; then
+ * the later ones and the CM-32L): the first machine whose control and PCM ROMs are there */
+static int mt32_try(const char *dir)
+{
+	static const char *machines[] = { "mt32_1_07", "mt32_1_06", "mt32_1_05", "mt32_1_04", "mt32_bluer", "mt32_2_07", "mt32_2_06",
+	                                  "mt32_2_04", "mt32_2_03", "cm32l_1_02", "cm32l_1_00", "cm32ln_1_00" };
+	if (!dir || !dir[0]) return 0;
+	char **names = NULL; int n = 0;
+#ifdef _WIN32
+	char pat[1024]; snprintf(pat, sizeof pat, "%s\\*", dir); WIN32_FIND_DATAA fd; HANDLE h = FindFirstFileA(pat, &fd);
+	if (h == INVALID_HANDLE_VALUE) return 0;
+	do { if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && n < 256) { names = realloc(names, (n + 1) * sizeof *names); names[n++] = strdup(fd.cFileName); } } while (FindNextFileA(h, &fd));
+	FindClose(h);
+#else
+	DIR *d = opendir(dir); if (!d) return 0;
+	for (struct dirent *e; (e = readdir(d)) && n < 256;) if (e->d_name[0] != '.') { names = realloc(names, (n + 1) * sizeof *names); names[n++] = strdup(e->d_name); }
+	closedir(d);
+#endif
+	int ok = 0; mt32emu_report_handler_i reports = { &mt32_reports };
+	for (unsigned m = 0; m < sizeof machines / sizeof *machines && !ok; m++) {
+		mt32 = mt32emu_create_context(reports, NULL);
+		int control = 0, pcm = 0; char path[4400];
+		for (int k = 0; k < n; k++) {
+			snprintf(path, sizeof path, "%s/%s", dir, names[k]);
+			mt32emu_return_code rc = mt32emu_add_machine_rom_file(mt32, machines[m], path);
+			if (rc == MT32EMU_RC_ADDED_CONTROL_ROM) control = 1;
+			if (rc == MT32EMU_RC_ADDED_PCM_ROM) pcm = 1;
+		}
+		mt32emu_set_stereo_output_samplerate(mt32, 44100);
+		if (control && pcm && mt32emu_open_synth(mt32) == MT32EMU_RC_OK) { fprintf(stderr, "sdlpop2: the MT-32 (%s) from %s\n", machines[m], dir); ok = 1; }
+		else { mt32emu_free_context(mt32); mt32 = NULL; }
+	}
+	for (int k = 0; k < n; k++) free(names[k]);
+	free(names);
+	return ok;
+}
+/* the ROMs: mt32_roms (SDLPoP2.ini), the "roms" folder of SDLPoP2's user data (SDL's: ~/.local/share/SDLPoP2/roms on
+ * Linux, %APPDATA%\\SDLPoP2\\roms on Windows) or next to the program, the game's folder */
+static int mt32_open(const char *game_dir)
+{
+	char dirs[4][1024]; int n = 0;
+	if (S.mt32_roms[0]) snprintf(dirs[n++], sizeof dirs[0], "%s", S.mt32_roms);
+	char *pref = SDL_GetPrefPath("", "SDLPoP2"); if (pref) { snprintf(dirs[n++], sizeof dirs[0], "%sroms", pref); SDL_free(pref); }
+	char *base = SDL_GetBasePath(); if (base) { snprintf(dirs[n++], sizeof dirs[0], "%sroms", base); SDL_free(base); }
+	snprintf(dirs[n++], sizeof dirs[0], "%s", game_dir);
+	for (int k = 0; k < n; k++) if (mt32_try(dirs[k])) return 1;
+	fprintf(stderr, "sdlpop2: no MT-32 ROMs (a control ROM and a PCM ROM, any names) in:\n");
+	for (int k = 0; k < n; k++) fprintf(stderr, "  %s\n", dirs[k]);
+	return 0;
+}
+#endif
+static void audio_cb(void *u, Uint8 *out, int len)
+{
+	(void)u;
+	if (audio_channels == 1) { audio_render((int16_t *)out, len / 2, 44100); return; }
+	static int16_t mono[8192]; int16_t *st = (int16_t *)out; int frames = len / 4;
+	while (frames > 0) {
+		int n = frames > 8192 ? 8192 : frames;
+		audio_render(mono, n, 44100);   /* (the MIDI bytes of these samples reach Munt, timed, before it renders them) */
+#ifdef HAVE_MT32EMU
+		if (mt32) mt32emu_render_bit16s(mt32, st, (mt32emu_bit32u)n); else
+#endif
+		memset(st, 0, (size_t)n * 4);
+		for (int k = 0; k < n; k++) for (int c = 0; c < 2; c++) { int v = st[2 * k + c] + mono[k]; st[2 * k + c] = (int16_t)(v > 32767 ? 32767 : v < -32768 ? -32768 : v); }
+		st += 2 * n; frames -= n;
+	}
+}
 static int audio_allowed(uint16_t id)   /* enable_music / enable_sounds, by the resource's kind (0 speaker, 1 digitized, 2 MIDI) */
 {
 	uint32_t n; const uint8_t *r = audio_resource(id, &n);
@@ -41,16 +125,37 @@ static void on_stop(int n) { audio_stop(n == -10000 ? 0 : (uint16_t)(10000 + n))
 static void open_audio(const char *dir)
 {
 	if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) { fprintf(stderr, "sdlpop2: no audio (%s): playing without sound\n", SDL_GetError()); return; }
-	if (!audio_init(dir, S.sound_device)) { fprintf(stderr, "sdlpop2: the sound files could not be loaded: playing without sound\n"); return; }
-	char p[512];
-	snprintf(p, sizeof p, "%s/NISDIGI.DAT", dir); audio_add_file(p);
-	snprintf(p, sizeof p, "%s/NISMIDI.DAT", dir); audio_add_file(p);
+	int caps = sound_device_caps(S.sound_device), midi = AUDIO_MIDI_FM;
+	if (sound_device_mt32(S.sound_device)) {
+#ifdef HAVE_MT32EMU
+		if (mt32_open(dir)) { midi = AUDIO_MIDI_MT32; audio_channels = 2; audio_midi_out = mt32_byte; }
+		else fprintf(stderr, "sdlpop2: the FM chip instead\n");
+#else
+		fprintf(stderr, "sdlpop2: this build has no MT-32 (Munt): the FM chip instead\n");
+#endif
+	}
+	if (!audio_init_midi(dir, caps, midi, NULL)) { fprintf(stderr, "sdlpop2: the sound files could not be loaded: playing without sound\n"); return; }
+	audio_add_scene_files(dir);
 	audio_volume(S.volume);   /* (audio_init leaves it at 15) */
-	SDL_AudioSpec want = {0}, have; want.freq = 44100; want.format = AUDIO_S16SYS; want.channels = 1; want.samples = 1024; want.callback = audio_cb;
+	SDL_AudioSpec want = {0}, have; want.freq = 44100; want.format = AUDIO_S16SYS; want.channels = (Uint8)audio_channels; want.samples = 1024; want.callback = audio_cb;
 	adev = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
 	if (!adev) { fprintf(stderr, "sdlpop2: no audio device (%s): playing without sound\n", SDL_GetError()); return; }
 	sound_start_hook = on_start; sound_stop_hook = on_stop;
 	SDL_PauseAudioDevice(adev, 0);
+}
+/* The MT-32's setup piece (PRESET40.DEF: its timbres, 9.35 s): the original's start-up waits for it (2D3E:03EE) before
+ * the title music would cut it short. Waited for here, before the program's first frame (a black window, events
+ * handled), not inside the shell's frames: replays stay the same whatever the sound device. 0: the window was closed */
+static int wait_audio_setup(SDL_Renderer *r)
+{
+	if (!adev) return 1;
+	for (;;) {
+		SDL_LockAudioDevice(adev); int busy = audio_setup_playing(); SDL_UnlockAudioDevice(adev);
+		if (!busy) return 1;
+		SDL_Event e; while (SDL_PollEvent(&e)) if (e.type == SDL_QUIT) return 0;
+		SDL_SetRenderDrawColor(r, 0, 0, 0, 255); SDL_RenderClear(r); SDL_RenderPresent(r);
+		SDL_Delay(10);
+	}
 }
 static int game_volume = 15;   /* the game's own: 15 sound on, 0 off */
 static void platform_sound_volume(int v) { game_volume = v; audio_volume(v >= 15 ? S.volume : v * S.volume / 15); }   /* (194C:3380: the game's 15 = on, 0 = off; Alt+S) */
@@ -400,6 +505,7 @@ int main(int argc, char **argv)
 	if (!setup_video()) { SDL_Quit(); return 1; }
 	build_keymap();
 	open_audio(dir);
+	if (!wait_audio_setup(ren)) { if (adev) SDL_CloseAudioDevice(adev); SDL_Quit(); return 0; }
 	controller_init(&S, 0);
 	controller_set_pause_menu(S.enable_pause_menu);
 	{   /* SDLPoP's in-game menu (sdl/overlay_menu.c) */

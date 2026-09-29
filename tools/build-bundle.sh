@@ -1,10 +1,11 @@
 #!/bin/bash
 # build-bundle.sh --platform linux|windows --out DIR: build SDLPoP2 for the platform and put what a user downloads in
-# DIR, flat (the files unpack straight into the game's folder): the executable, SDLPoP2.ini, README.md, LICENSE
-# and BUILD.txt (the commit and the toolchain it was built with). CI and the releases use it
+# DIR, flat (the files unpack straight into the game's folder): the executable, SDLPoP2.ini, README.md, LICENSE,
+# Munt's licence (licenses/) and BUILD.txt (the commit and the toolchain it was built with). CI and the releases use it
 # (.github/workflows); it needs meson, ninja and, for Windows, mingw-w64.
 #   linux:   SDL2 built in from the WrapDB wrap (--force-fallback-for=sdl2): the executable needs only the C library
 #   windows: cross-compiled with cross/mingw-w64.ini (static), stripped
+#   both:    the MT-32 (Munt's libmt32emu, the extern/munt submodule) linked in statically
 set -e
 platform=; out=
 while [ $# -gt 0 ]; do
@@ -17,20 +18,24 @@ done
 [ "$platform" = linux ] || [ "$platform" = windows ] || { echo "usage: build-bundle.sh --platform linux|windows --out DIR" >&2; exit 2; }
 [ -n "$out" ] || { echo "build-bundle.sh: --out DIR is required" >&2; exit 2; }
 root=$(cd "$(dirname "$0")/.." && pwd); cd "$root"
+git submodule update --init extern/munt
 build=build-bundle-$platform
 if [ "$platform" = linux ]; then
-	[ -f $build/build.ninja ] || meson setup $build --buildtype=release --force-fallback-for=sdl2
+	[ -f $build/build.ninja ] || meson setup $build --buildtype=release --force-fallback-for=sdl2 -Dmt32=enabled
 	meson compile -C $build
 	exe=$build/sdl/sdlpop2; cc=$(cc --version | head -1)
 	# nothing but the C library (SDL loads X11 / Wayland / ALSA / PulseAudio at run time)
 	if ldd "$exe" | grep -vE "linux-vdso|libc\.so|libm\.so|ld-linux"; then echo "build-bundle.sh: unexpected shared library dependency" >&2; exit 1; fi
 else
-	[ -f $build/build.ninja ] || meson setup $build --buildtype=release --cross-file cross/mingw-w64.ini
+	[ -f $build/build.ninja ] || meson setup $build --buildtype=release --cross-file cross/mingw-w64.ini -Dmt32=enabled
 	meson compile -C $build
 	exe=$build/sdl/sdlpop2.exe; cc=$(x86_64-w64-mingw32-gcc --version | head -1)
 fi
 rm -rf "$out"; mkdir -p "$out"
 cp "$exe" SDLPoP2.ini README.md LICENSE "$out/"
+mkdir -p "$out/licenses"
+cp extern/munt/mt32emu/COPYING.LESSER.txt "$out/licenses/munt-libmt32emu-COPYING.LESSER.txt"
+cp extern/munt/mt32emu/AUTHORS.txt "$out/licenses/munt-libmt32emu-AUTHORS.txt"
 if [ "$platform" = windows ]; then x86_64-w64-mingw32-strip "$out/sdlpop2.exe"; else strip "$out/sdlpop2"; fi
 {
 	echo "SDLPoP2 ($platform x86-64)"
@@ -39,5 +44,6 @@ if [ "$platform" = windows ]; then x86_64-w64-mingw32-strip "$out/sdlpop2.exe"; 
 	echo "compiler: $cc"
 	echo "meson:    $(meson --version)"
 	echo "SDL2:     $(sed -n 's/^directory = SDL2-//p' extern/sdl2.wrap) (WrapDB, static)"
+	echo "Munt:     $(git -C extern/munt describe --tags --always 2>/dev/null || echo unknown) (libmt32emu, static)"
 } > "$out/BUILD.txt"
 ls -la "$out"

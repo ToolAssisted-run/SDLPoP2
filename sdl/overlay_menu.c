@@ -573,8 +573,8 @@ typedef struct setting_type {
 
 static const char* const bool_ini_values[] = {"false", "true"};
 static const char* const scaling_ini_values[] = {"sharp", "fuzzy", "blurry"};
-static const char* const sound_device_ini_values[] = {"speaker", "digital", "fm", "fm_digital"};
-NAMES_LIST(sound_device_setting_names, {"PC speaker", "Digital", "FM", "FM + digital",});
+static const char* const sound_device_ini_values[] = {"speaker", "digital", "fm", "fm_digital", "mt32_digital", "mt32"};
+NAMES_LIST(sound_device_setting_names, {"PC speaker", "Digital", "FM", "FM + digital", "MT-32 + digital", "MT-32",});
 
 static setting_type general_settings[] = {
 		{.id = SETTING_SHOW_MENU_ON_PAUSE, .style = SETTING_STYLE_TOGGLE, LINK(enable_pause_menu), .ini = "General/enable_pause_menu",
@@ -595,12 +595,13 @@ static setting_type general_settings[] = {
 				.text = "Volume",
 				.explanation = "The volume when the sound is on, from 0 (silent) to 15 (full).\n"
 						"The game's Alt+S still turns the sound on and off."},
-		{.id = SETTING_SOUND_DEVICE, .style = SETTING_STYLE_NUMBER, .number_type = SETTING_INT, .max = 3,
+		{.id = SETTING_SOUND_DEVICE, .style = SETTING_STYLE_NUMBER, .number_type = SETTING_INT, .max = 5,
 				LINK(sound_device), .names_list = &sound_device_setting_names_list,
 				.ini = "General/sound_device", .ini_values = sound_device_ini_values,
 				.text = "Sound device",
 				.explanation = "FM + digital - Sound Blaster Pro: FM music and digitized sounds.\n"
 						"FM - Music only.\nDigital - Digitized sounds only.\nPC speaker - The PC speaker.\n"
+						"MT-32 + digital / MT-32 - Roland MT-32 music (needs its ROMs), with or without the digitized sounds.\n"
 						"Note: This requires a restart."},
 		{.id = SETTING_ENABLE_CONTROLLER, .style = SETTING_STYLE_TOGGLE, LINK(enable_controller), .ini = "Controller/enable_controller",
 				.text = "Enable controller",

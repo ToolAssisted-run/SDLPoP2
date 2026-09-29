@@ -163,14 +163,21 @@ You can change the window, scaling, sound, intro and story scenes, keys, quicksa
 
 Most settings can also be changed in the menu. The menu saves your changes to `SDLPoP2.cfg`.
 
+### The Roland MT-32
+
+The game was also made for the Roland MT-32, and SDLPoP2 plays its music on an emulated one (Munt). Set `sound_device = mt32_digital` (MT-32 music, Sound Blaster digitized sounds) or `mt32` in `SDLPoP2.ini`, or choose it in the menu (SETTINGS, GENERAL). The game then uploads its own instruments to the MT-32 first. Like the original, it waits about 9 seconds on a black screen before the title.
+
+You need the MT-32's ROMs, which are not included: a control ROM and a PCM ROM, under any names. SDLPoP2 looks in the folder `mt32_roms` gives, then in a `roms` folder in SDLPoP2's user data folder (`~/.local/share/SDLPoP2/roms` on Linux, `%APPDATA%\SDLPoP2\roms` on Windows) or next to the program, then in the game's folder. The instruments come from the game's `SNDDRVRS/PRESET40.DEF`. Without the ROMs, SDLPoP2 falls back to the FM chip.
+
 To replay the same game, set a random seed: in the menu (SETTINGS, GAMEPLAY) type the number in, or press Delete to go back to the timer.
 
 The copy protection cannot be turned off: as in the original, the question is asked the first time you reach level 3 or later.
 
 ## Building
 
-SDLPoP2 builds with [meson](https://mesonbuild.com):
+SDLPoP2 builds with [meson](https://mesonbuild.com). The MT-32 is [Munt](https://github.com/munt/munt)'s libmt32emu, a git submodule built with CMake (without it, or with `-Dmt32=disabled`, SDLPoP2 has no MT-32):
 
+    git submodule update --init
     meson setup build
     meson compile -C build
     build/sdl/sdlpop2 --path-to-game path/to/prince2
@@ -225,6 +232,7 @@ SDLPoP2 does not let you skip the original game's copy protection.
 - [SDLPoP](https://github.com/NagyD/SDLPoP), by Dávid Nagy and its contributors. SDLPoP2 is modelled on it, and the in-game menu is SDLPoP's.
 - The menu's small font has letters from Yuji Oshimoto's font 04b_03.
 - [Nuked OPL3](https://github.com/nukeykt/Nuked-OPL3), by Nuke.YKT, emulates the sound chip.
+- [Munt](https://github.com/munt/munt), by the Munt team (LGPL-2.1-or-later), emulates the Roland MT-32.
 - *Prince of Persia 2: The Shadow and the Flame* (Brøderbund, 1993) was designed by Jordan Mechner.
 
 ## Getting the game

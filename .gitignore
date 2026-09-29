@@ -10,6 +10,7 @@ tools/__pycache__/
 build-windows/
 dist/
 extern/*/
+!extern/munt/
 !extern/packagecache/
 extern/packagecache/*
 !extern/packagecache/sdl2_2.32.8-1_patch.zip

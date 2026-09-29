@@ -30,3 +30,9 @@ option('oracleTests',
   value : false,
   description : 'Register the oracle comparison suites (need the captures in $POP2_WORKSPACE/oracle and /work, default ~/pop2dec)',
 )
+
+option('mt32',
+  type : 'feature',
+  value : 'auto',
+  description : 'The Roland MT-32 sound (Munt\'s libmt32emu: from the extern/munt submodule, else an installed one)',
+)

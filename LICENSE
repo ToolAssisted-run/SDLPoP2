@@ -33,6 +33,11 @@ Nuked OPL3, by Nuke.YKT (LGPL-2.1-or-later). https://github.com/nukeykt/Nuked-OP
 The sound chip emulator in source/audio_opl3.c and source/audio_opl3.h. The
 LGPL text is at the end of this file.
 
+Munt's libmt32emu, by the Munt team (LGPL-2.1-or-later). https://github.com/munt/munt
+The Roland MT-32 emulator, built from the extern/munt submodule and linked into the
+frontend. The same LGPL text at the end of this file applies; the release packages
+also carry its licence and authors in licenses/.
+
 SDL2, by Sam Lantinga and the SDL contributors (zlib license).
 https://www.libsdl.org
 Built into the released programs.
@@ -728,7 +733,7 @@ Public License instead of this License.  But first, please read
 
 
 ================================================================================
-GNU LESSER GENERAL PUBLIC LICENSE, VERSION 2.1 (Nuked OPL3)
+GNU LESSER GENERAL PUBLIC LICENSE, VERSION 2.1 (Nuked OPL3, Munt's libmt32emu)
 ================================================================================
 
                   GNU LESSER GENERAL PUBLIC LICENSE

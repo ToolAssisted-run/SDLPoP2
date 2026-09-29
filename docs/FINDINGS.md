@@ -406,8 +406,8 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   interrupt (DS:1FBA = 240, DS:1FBC = 480) adds a 16.16 increment (194C:2FB4 with the 16.16 divide 194C:7C68:
   trunc(trunc(256e6/240) * 65536 / trunc(tempo * 256 / 480)); runtime DS:1FC0 = 0x28AFF for 75 bpm) until the
   end-of-track tick. Predicted 441.25 frames for the level-3 pieces: measured 441.
-- Ambient pieces (169B:0AFC -> 1611:03CC(DS:2B98), struct: [0] on = DS:2085 & 2 (DS:2085 = 3 at runtime, set by
-  1611:02AC at program start), [1] variant group, word [2] = the piece): if the prince is in a room, after
+- Ambient pieces (169B:0AFC -> 1611:03CC(DS:2B98), struct: [0] on = DS:2085 & 2 (DS:2085 = 3 on the CD's setup: the
+  device's drivers, docs/AUDIO.md 8; set by 1611:02AC at program start), [1] variant group, word [2] = the piece): if the prince is in a room, after
   loadkid, when should_change (1611:0700) and DS:091E[kind] != 0: di = 2FDF:1DD4 (a live opponent in his room;
   cleared if DS:093A[kind] == 0xFF); special pieces (1611:0606): di and level 5 rooms 10/7/12 -> 0x40, di and
   chars[0].charid 0xC -> 0xC6, 0xA -> 0xC7, the shadow (Kid charid 1) with f12 > 2 -> 0x3C, level 13 rooms 4/0x1D ->
@@ -725,8 +725,9 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
-- Sound devices not reconstructed: MCMS101.DRV (CMS MIDI interfaces), PRESET32 (AdLib), MIDI type 0x20; the core's
-  game logic does not follow a General MIDI device's missing level music (docs/AUDIO.md 1, 6);
+- Sound devices not reconstructed: MCMS101.DRV (CMS MIDI interfaces), PRESET32 (AdLib), MIDI type 0x20;
+- Story scenes on other setups: nis.c's timing is the CD setup's; without the digitizer the original times the narration
+  out by the timer (2D7D:009C / 00E4) and plays NISIBM's speaker pieces (docs/AUDIO.md 8);
 - Story scenes on an MPU-401 device: nis.c's timing model is the FM setup's whatever the MIDI type (the sequencer
   interrupt's cost counted from OPL writes, sequencer commands filtered on dev 0x21, PRESETS.DEF's first byte read as
   the bank count). On an MT-32 the original's interrupt sends MPU bytes instead, so its scene timing may differ: not
@@ -892,3 +893,12 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   the MT-32's timbres); the sequencer's `00 00 34 dev` commands follow DS:1FAE (the MIDI type); 2797:0260 opens no level
   MIDI DAT and NIS3VC.DAT for General MIDI. Oracle disks popmt32.hdd / popgm.hdd; MT1, MT4, MT12, MT14, MTV8 and GM4
   identical byte for byte (MTV8 shows the driver's buffer race on Alt+S).
+- 2026-09-29: the sound device reaches the game logic (issue #1; docs/AUDIO.md 8). DS:2085 (bit 0 DIGI.DRV, bit 1
+  MIDI.DRV) and 2797:0260's file set (IBMSND unless both drivers, newest file first) decide which sounds play on the PC
+  speaker (a third channel: the note list's ticks at 0x1234DD / rate), the ambient music (bit 1), 1611:0582's speaker
+  wait, "Music Unavailable", level 2's chime and level 1's waves. sound_set_device / shell_set_sound_device /
+  pop2_set_sound_device; the SDL frontend passes sound_device (a gameplay setting now: replays record it; restart-only).
+  audio.c plays the same files (it opened IBMSND for the speaker alone and searched oldest first). Oracle disks
+  popdig.hdd (digital only) and popfm.hdd (FM only) beside popspk.hdd; captures SPKE/DIGE/FME<level>_41 for levels 1, 2,
+  3, 5, 8, 12, 14: all identical with the capture's answers, snapshot and cold; model-only too but for the known ambient
+  jitter (FME3, FME8); with the CD setup forced 16 of 21 diverge.

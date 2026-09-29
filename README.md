@@ -167,6 +167,8 @@ Most settings can also be changed in the menu. The menu saves your changes to `S
 
 The game was also made for the Roland MT-32, and SDLPoP2 plays its music on an emulated one (Munt). Set `sound_device = mt32_digital` (MT-32 music, Sound Blaster digitized sounds) or `mt32` in `SDLPoP2.ini`, or choose it in the menu (SETTINGS, GENERAL). The game then uploads its own instruments to the MT-32 first. Like the original, it waits about 9 seconds on a black screen before the title.
 
+The sound device is chosen before the game starts, as the original's SETUP did, and the game follows it: without a digitizer or without an FM chip, the sounds that device lacks play on the PC speaker, and the ambient music, the level-2 chime and how long death and level-end sounds hold the game depend on it. A new device therefore takes effect at the next start, and replays record it.
+
 You need the MT-32's ROMs, which are not included: a control ROM and a PCM ROM, under any names. SDLPoP2 looks in the folder `mt32_roms` gives, then in a `roms` folder in SDLPoP2's user data folder (`~/.local/share/SDLPoP2/roms` on Linux, `%APPDATA%\SDLPoP2\roms` on Windows) or next to the program, then in the game's folder. The instruments come from the game's `SNDDRVRS/PRESET40.DEF`. Without the ROMs, SDLPoP2 falls back to the FM chip.
 
 To replay the same game, set a random seed: in the menu (SETTINGS, GAMEPLAY) type the number in, or press Delete to go back to the timer.

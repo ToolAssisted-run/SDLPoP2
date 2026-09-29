@@ -151,7 +151,7 @@ int music_toggle_msg(void)   /* 1611:07D4 -> the message */
 }
 int joystick_toggle_msg(void)   /* 0823:0B1A: no joystick here */
 {
-	if ((sound_caps & 1) && config.w[4] == 0x20) return 0xA56;   /* "Joystick Unavailable" */
+	if ((sound_caps & 1) && sound_midi_type == 0x20) return 0xA56;   /* "Joystick Unavailable" (CONFIG.DAT +8: the device's MIDI type) */
 	input_device = 0;
 	memset(&joy_y, 0, sizeof joy_y); joy_x = joy_cx = joy_cy = 0; joy_button = 0;   /* (DS:1D04, 9 bytes) */
 	return 0xA7A;   /* "Joystick Not Found" */
@@ -732,6 +732,7 @@ static void shell_main(void)   /* 0823:0000 */
 
 /* ---- the host side ---- */
 void shell_set_seed(uint32_t seed) { seed_value = seed; seed_set = 1; }
+void shell_set_sound_device(int caps, int midi_type) { sound_set_device(caps, midi_type); }
 void shell_reseed(uint32_t seed) { random_seed = seed; }
 void shell_goto(int level, int entry) { if (cheat_mode && mode == SH_PLAY) cheat_goto(level, entry); }
 int shell_level_entries(int *levels, int *entries, int *rooms, int max) { return cheat_level_entries(levels, entries, rooms, max); }

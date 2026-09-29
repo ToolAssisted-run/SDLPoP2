@@ -598,11 +598,12 @@ static setting_type general_settings[] = {
 		{.id = SETTING_SOUND_DEVICE, .style = SETTING_STYLE_NUMBER, .number_type = SETTING_INT, .max = 5,
 				LINK(sound_device), .names_list = &sound_device_setting_names_list,
 				.ini = "General/sound_device", .ini_values = sound_device_ini_values,
-				.text = "Sound device",
-				.explanation = "FM + digital - Sound Blaster Pro: FM music and digitized sounds.\n"
-						"FM - Music only.\nDigital - Digitized sounds only.\nPC speaker - The PC speaker.\n"
-						"MT-32 + digital / MT-32 - Roland MT-32 music (needs its ROMs), with or without the digitized sounds.\n"
-						"Note: This requires a restart."},
+				.text = "Sound device (after a restart)",
+				.explanation = "Takes effect at the next start (the game knows its device from the start, as with SETUP).\n"
+						"FM + digital - Sound Blaster Pro: FM music, digitized sounds.\n"
+						"FM - FM music; the sounds on the PC speaker.\nDigital - Digitized sounds; the music on the PC speaker.\n"
+						"PC speaker - Everything on the PC speaker.\n"
+						"MT-32 + digital / MT-32 - Roland MT-32 music (needs its ROMs); the sounds digitized / on the speaker."},
 		{.id = SETTING_ENABLE_CONTROLLER, .style = SETTING_STYLE_TOGGLE, LINK(enable_controller), .ini = "Controller/enable_controller",
 				.text = "Enable controller",
 				.explanation = "Play with a game controller (SDL's game controllers: plugged in or unplugged at any time)."},
@@ -1279,6 +1280,7 @@ static int setting_apply_group(int setting_id) {
 		case SETTING_KEY_UPRIGHT: case SETTING_KEY_DOWNLEFT: case SETTING_KEY_DOWNRIGHT: case SETTING_KEY_SHIFT:
 		case SETTING_KEY_CTRL: return OVERLAY_MENU_APPLY_KEYS;
 		case SETTING_ENABLE_CHEATS: return OVERLAY_MENU_APPLY_CHEATS;
+		case SETTING_SOUND_DEVICE: return OVERLAY_MENU_APPLY_SOUND_DEVICE;
 	}
 }
 // SDLPoP2: the random seed setting as the menu shows it: -1 the clock, else the number (shown up to 99999)

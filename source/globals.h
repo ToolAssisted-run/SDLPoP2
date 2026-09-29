@@ -221,7 +221,8 @@ void floor_collapse_pub(void);
 int room_draws_sword_pub(uint8_t room);
 void lever5_enter(void); void lever5_leave(void); void lever5_draw_state(void); void hook_lever5_mouth(void); void hook_lever5_trap(void); void hook_bridge_sway(int8_t tp, uint8_t v); void anim_tile1b(void); extern uint16_t lever5_flag3c, lever5_flag3e;   /* lever5.c */
 /* sound.c: the sound queue, the ambient sounds and the driver's timing model */
-extern uint16_t word_0882, word_0884; extern uint8_t amb_state[2], sound_caps; extern int sound_ambient_enabled;
+extern uint16_t word_0882, word_0884; extern uint8_t amb_state[2], sound_caps; extern int sound_ambient_enabled, sound_midi_type;
+void sound_set_device(int caps, int midi_type);   /* the setup's device: DS:2085 (1 digital, 2 MIDI) and the MIDI type (sound.c) */
 extern int (*sound_query_hook)(int what, uint16_t res, int model); extern uint32_t (*sound_clock_hook)(void);
 void sound_stop_all(void); void sound_pass_done(void); int sound_on(void); int sound_digital(void); int music_playing(void);
 void fall_scream_room(uint8_t room); int snd_ch_id(int k); int snd_ch_left(int k); extern int sound_phase, sound_pass_late; int level_end_effect_playing(void); void sound_init_ambient(void);

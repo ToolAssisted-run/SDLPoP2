@@ -7,7 +7,15 @@
  * and "playing(id)" is the busy flag of the channel whose current resource is id (194C:33CE; id 0: any channel).
  * The model keeps each channel's sound and the time it ends; the time is a clock advanced by one frame period
  * (DS:24DE's reload, frame_delay ticks of 60 Hz) per pass of the main loop, replaceable by the platform
- * (sound_clock_hook). The two ids sets are disjoint; an id in neither file never plays. */
+ * (sound_clock_hook). The two ids sets are disjoint; an id in neither file never plays.
+ *
+ * The device is the setup's (SETUP.CFG -> CONFIG.DAT +6 / +8): DS:2085 has bit 0 when DIGI.DRV loaded and bit 1 when
+ * MIDI.DRV did (194C:31E2). The level sounds come from the files 2797:0260 opens for it (DS:12A8): IBMSND.DAT unless
+ * both drivers are there, DIGISND.DAT with the digital one, MIDISND.DAT with the MIDI one (none for the MIDI types 0x20
+ * and 0x29, General MIDI); a resource is taken from the newest file that has it. IBMSND's are PC speaker note lists,
+ * played on a third channel (194C:370A; 163 of its 263 are 3-byte placeholders that never play): so the speaker plays
+ * the effects on an FM-only machine and the music on a digital-only one. sound_set_device() chooses (the CD's setup,
+ * FM + digital, by default). */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,7 +26,8 @@
 uint16_t word_0882 = 0xFFFF, word_0884 = 0xFFFF;   /* DS:0882 / 0884: the effect / music started last */
 uint8_t amb_state[2];                             /* DS:2B98 ambient on (DS:2085 & 2), 2B99 its variant group (0xFF: music) */
 #define amb_cur (*(uint16_t *)tiles0)             /* DS:2B9A: the ambient sound (or music) started last */
-uint8_t sound_caps = 3;                           /* DS:2085: 1 digital, 2 MIDI (3 at runtime) */
+uint8_t sound_caps = 3;                           /* DS:2085: 1 digital, 2 MIDI (3: the CD's Sound Blaster Pro setup) */
+int sound_midi_type = 0x21;                       /* CONFIG.DAT +8: 0x21 the Sound Blaster's FM, 0x28 MT-32, 0x29 General MIDI */
 int sound_debug;                                  /* tests: 1 log starts, stops and waits, 2 log the queue (stderr) */
 int sound_ambient_enabled = 1;                    /* tests: 0 leaves the ambient sounds (and their random draws) out */
 int (*sound_query_hook)(int what, uint16_t res, int model);   /* tests: replace an answer (what: 0 playing, 1/2 death waits, 3/4 level end music / effect) */
@@ -28,10 +37,10 @@ void (*sound_stop_hook)(int n);                   /* platform: where it calls 19
 
 /* driver model state (kept in savestates) */
 typedef struct snd_channel { int16_t id; uint32_t end; } snd_channel;
-snd_channel snd_ch[2] = {{-1, 0}, {-1, 0}};
+snd_channel snd_ch[3] = {{-1, 0}, {-1, 0}, {-1, 0}};   /* digital (DS:2088), MIDI (DS:209E), PC speaker (DS:20B0) */
 uint32_t snd_time;                                /* the model's clock (us) */
 
-/* resources: kind (1 digital, 2 MIDI) and length in microseconds by sound number */
+/* resources: kind (1 digital, 2 MIDI, 3 PC speaker; its channel is kind - 1) and length in microseconds by sound number */
 #define NSND 0x200
 static uint8_t snd_kind[NSND]; static uint32_t snd_len[NSND]; static int snd_loaded;
 uint32_t snd_start_delay = 5000;   /* the pass's end (1611:04D0 after the tick and the drawing): this long after its start */
@@ -59,19 +68,49 @@ static uint32_t midi_length(const uint8_t *b, int n)
 	}
 	return (uint32_t)(irq * 1000000 / 240);
 }
+/* a PC speaker note list (IBMSND): +1 the player's timer rate, then {frequency word, duration byte} entries: 0 a rest,
+ * 1 vibrato, 2 a cue (no time), 3..0x12 the end (a loop when byte 0 has bit 7), else a tone. The channel is busy from
+ * the start (the first entry at once) until the timer reaches the end: the durations' sum of ticks (a duration 0 is 256,
+ * the byte counting down) at 0x1234DD / rate (0x10000 below 0x13 Hz). Placeholders (3 bytes) never play. */
+static uint32_t speaker_length(const uint8_t *b, int n)
+{
+	if (n < 5) return 0;
+	unsigned rate = b[1] | b[2] << 8; uint32_t div = rate > 0x12 ? 0x1234DDu / rate : 0x10000, ticks = 0;
+	for (int p = 3; p + 3 <= n + 1; p += 3) {   /* (n: dat_find's count, one byte short) */
+		unsigned f = b[p] | b[p + 1] << 8, d = b[p + 2] ? b[p + 2] : 256;
+		if (f == 1 || f == 2) continue;
+		if (f >= 3 && f < 0x13) { if (b[0] & 0x80) return 0x7FFFFFFF; break; }
+		ticks += d;
+	}
+	return (uint32_t)((uint64_t)ticks * div * 1000000 / 1193182);
+}
 static void snd_load(void)
 {
 	if (snd_loaded) return;
-	snd_loaded = 1;
+	snd_loaded = 1; memset(snd_kind, 0, sizeof snd_kind); memset(snd_len, 0, sizeof snd_len);
 	extern char glue_dir[400]; const char *dir = glue_dir[0] ? glue_dir : getenv("PRINCE2_DIR"); if (!dir) return;
-	char p[512]; dat_file d; uint16_t n;
-	snprintf(p, sizeof p, "%s/DIGISND.DAT", dir);
-	if (dat_open(&d, p)) for (int i = 0; i < NSND; i++) { const uint8_t *r = dat_find(&d, "DNS", 10000 + i, &n); if (r && n >= 6) { unsigned rate = r[1] | r[2] << 8, len = r[4] | r[5] << 8; snd_kind[i] = 1;
-		if (r[3] == 0xFF && n >= 12) len = r[10] | r[11] << 8;   /* packed (0x20 0x26 0x2F 0x31 0x36 0x258): the unpacked length at +0xA (docs/AUDIO.md) */
-		snd_len[i] = (r[0] & 0x80) ? 0x7FFFFFFF : (uint32_t)((double)len * 1e6 / (rate ? rate : 11000)); } }   /* byte 0 bit 7: loops until stopped */
-	snprintf(p, sizeof p, "%s/MIDISND.DAT", dir);
-	if (dat_open(&d, p)) for (int i = 0; i < NSND; i++) { const uint8_t *r = dat_find(&d, "DNS", 10000 + i, &n); if (r && !snd_kind[i] && (r[0] & 2)) { snd_kind[i] = 2; snd_len[i] = (r[0] & 0x80) ? 0x7FFFFFFF : midi_length(r, n); } }   /* byte 0: 2 MIDI, 0x80 loops (level 14's room music) */
+	/* 2797:0260 on DS:12A8, in its order; searched newest first */
+	const char *names[3]; int nf = 0;
+	if (!((sound_caps & 1) && (sound_caps & 2))) names[nf++] = "IBMSND.DAT";
+	if (sound_caps & 1) names[nf++] = "DIGISND.DAT";
+	if ((sound_caps & 2) && sound_midi_type != 0x20 && sound_midi_type != 0x29) names[nf++] = "MIDISND.DAT";
+	static dat_file d[3]; int open[3] = {0}; char p[512];
+	for (int k = 0; k < nf; k++) { snprintf(p, sizeof p, "%s/%s", dir, names[k]); open[k] = dat_open(&d[k], p); }
+	for (int i = 0; i < NSND; i++) for (int k = nf - 1; k >= 0; k--) {
+		uint16_t n; const uint8_t *r = open[k] ? dat_find(&d[k], "DNS", 10000 + i, &n) : NULL;
+		if (!r) continue;
+		switch (r[0] & 0x7F) {
+		case 1: if (n >= 6) { unsigned rate = r[1] | r[2] << 8, len = r[4] | r[5] << 8; snd_kind[i] = 1;
+			if (r[3] == 0xFF && n >= 12) len = r[10] | r[11] << 8;   /* packed (0x20 0x26 0x2F 0x31 0x36 0x258): the unpacked length at +0xA (docs/AUDIO.md) */
+			snd_len[i] = (r[0] & 0x80) ? 0x7FFFFFFF : (uint32_t)((double)len * 1e6 / (rate ? rate : 11000)); }   /* byte 0 bit 7: loops until stopped */
+			break;
+		case 2: snd_kind[i] = 2; snd_len[i] = (r[0] & 0x80) ? 0x7FFFFFFF : midi_length(r, n); break;   /* byte 0: 2 MIDI, 0x80 loops (level 14's room music) */
+		case 0: snd_kind[i] = 3; snd_len[i] = speaker_length(r, n); break;
+		}
+		break;
+	}
 }
+void sound_set_device(int caps, int midi_type) { sound_caps = (uint8_t)(caps & 3); sound_midi_type = caps & 2 ? midi_type : 0; snd_loaded = 0; }
 uint32_t snd_midi_extra = 0, snd_digi_extra = 0;   /* driver latencies */
 int sound_phase; int32_t amb_margin;   /* diagnostics: the MIDI channel's time left at the last ambient check */   /* 1 during the pass's end (1611:04D0 / 03CC), after the tick and the drawing */
 static uint32_t now(void) { return sound_clock_hook ? sound_clock_hook() : snd_time + (sound_phase ? snd_start_delay : 0); }
@@ -93,14 +132,14 @@ static void snd_start(int n)
 	snd_load();
 	if (n < 0 || n >= NSND || !snd_kind[n]) return;
 	snd_channel *c = &snd_ch[snd_kind[n] - 1];
-	c->id = n; c->end = now() + snd_len[n] + (snd_kind[n] == 2 ? snd_midi_extra : snd_digi_extra);
+	c->id = n; c->end = now() + snd_len[n] + (snd_kind[n] == 2 ? snd_midi_extra : snd_kind[n] == 1 ? snd_digi_extra : 0);
 	if (sound_debug & 1) fprintf(stderr, "snd start %X ch%d at %u until %u (%.1f frames)\n", n, snd_kind[n] - 1, now(), c->end, snd_len[n] / (1e6 / 70.086));
 }
 /* 194C:83D2 with 10000 + n; 0 stops everything */
 static void snd_stop(int n)
 {
 	if (sound_stop_hook) sound_stop_hook(n);
-	for (int k = 0; k < 2; k++) if (n == -10000 || snd_ch[k].id == n) { if ((int32_t)(snd_ch[k].end - now()) > 0) snd_ch[k].end = now(); }
+	for (int k = 0; k < 3; k++) if (n == -10000 || snd_ch[k].id == n) { if ((int32_t)(snd_ch[k].end - now()) > 0) snd_ch[k].end = now(); }
 }
 void sound_stop_all(void) { snd_stop(-10000); }
 void sound_194c_83d2(uint16_t res) { if (sound_debug & 1) fprintf(stderr, "snd stop %X at %u\n", res, now()); snd_stop(res == 0 ? -10000 : (int)res - 10000); }
@@ -108,7 +147,8 @@ void sound_194c_83d2(uint16_t res) { if (sound_debug & 1) fprintf(stderr, "snd s
 int sound_pass_late;
 void sound_pass_done(void) { snd_time += (uint32_t)((frame_delay ? frame_delay : 5) + sound_pass_late) * 16667u; sound_pass_late = 0; }
 static int ask(int what, uint16_t res, int model) { return sound_query_hook ? sound_query_hook(what, res, model) : model; }
-int sound_playing(uint16_t res) { return ask(0, res, res == 0 ? (snd_ch[0].id >= 0 && snd_playing(snd_ch[0].id)) || (snd_ch[1].id >= 0 && snd_playing(snd_ch[1].id)) : snd_playing((int)res - 10000)); }
+static int any_playing(void) { for (int k = 0; k < 3; k++) if (snd_ch[k].id >= 0 && snd_playing(snd_ch[k].id)) return 1; return 0; }
+int sound_playing(uint16_t res) { return ask(0, res, res == 0 ? any_playing() : snd_playing((int)res - 10000)); }
 int sound_on(void) { return amb_state[0] != 0; }
 int sound_digital(void) { return sound_caps & 1; }
 int music_playing(void) { return ask(0, (uint16_t)(word_0884 + 10000), snd_playing((int16_t)word_0884)); }

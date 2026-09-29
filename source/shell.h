@@ -57,6 +57,11 @@ void shell_quick_clear(void);     /* forget the slot */
 int  shell_cheats(void);
 void shell_set_cheats(int on);
 void shell_set_seed(uint32_t seed);   /* before shell_init: the random seed the program takes from the clock (DOS time()) */
+/* before shell_init: the sound device the game logic knows, as the original's SETUP chose it before the program ran
+ * (DS:2085: caps 1 digital, 2 MIDI; the MIDI type 0x21 FM, 0x28 MT-32, 0x29 General MIDI). It decides the sound files,
+ * which sounds play on the PC speaker, the ambient music, "Music Unavailable", level 2's chime and, with no driver at
+ * all, the effects waiting for the music. Default: 3, 0x21 (the CD's Sound Blaster Pro setup). A restart-only choice. */
+void shell_set_sound_device(int caps, int midi_type);
 void shell_reseed(uint32_t seed);
 /* the cheats' level jump (the overlay menu's CHEATS page; a replay records it): with the cheats on while playing, to
  * level `level` at one of its entry points (shell_level_entries: the start, its checkpoints, level 7's second start) */

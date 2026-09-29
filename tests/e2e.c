@@ -124,6 +124,13 @@ int main(int argc, char **argv)
 		for (const char *q = getenv("E2E_EXE_DS"); *q; ) { unsigned a0, n0; int used; if (sscanf(q, "%x:%x%n", &a0, &n0, &used) != 2) break; memcpy(img + 0x3B250 + a0, ram + 0x3B250 + a0, n0); q += used; if (*q == ',') q++; }
 		glue_load_ds_tables(img);
 	} else glue_load_ds_tables(ram);
+	{ /* the setup's sound device, from the capture's RAM: DS:2085 (the drivers loaded) and CONFIG.DAT +8 (DS:[1FB8]) */
+		const uint8_t *ds = ram + 0x3B250; unsigned cfg = ds[0x1FB8] | ds[0x1FB9] << 8;
+		int caps = ds[0x2085] & 3, mt = cfg && cfg < 0xFFF0 ? ds[cfg + 8] | ds[cfg + 9] << 8 : 0x21;
+		if (getenv("E2E_DEVICE")) sscanf(getenv("E2E_DEVICE"), "%i,%i", &caps, &mt);   /* (E2E_DEVICE=caps,type: another device, to see what it changes) */
+		sound_set_device(caps, mt);
+		if (caps != 3 || mt != 0x21) printf("sound device: caps %d, MIDI type 0x%X\n", caps, mt);
+	}
 	level_roomlinks = (uint8_t *)&level + 0x17BC;
 	FILE *sf = fopen(argv[5], "r"); char line[65536];
 	while (sf && fgets(line, sizeof line, sf)) {

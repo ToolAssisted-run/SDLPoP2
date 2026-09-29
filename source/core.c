@@ -23,6 +23,7 @@ int pop2_init(const char *dir)
 	glue_load_exe_tables(p); glue_load_ds_tables(ram);
 	return 1;
 }
+void pop2_set_sound_device(int caps, int midi_type) { sound_set_device(caps, midi_type); }
 /* the program's memory as it starts: zeroes, then PRINCE.EXE's initialised data (the shell starts from here too) */
 void pop2_reset_state(void)
 {

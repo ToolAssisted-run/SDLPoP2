@@ -111,7 +111,7 @@ static snd_res *res_add(uint16_t id, const uint8_t *p, uint32_t n)
 static snd_res *res_get(uint16_t id)
 {
 	for (int i = 0; i < ncache; i++) if (cache[i].id == id) return &cache[i];
-	for (int f = 0; f < nfiles; f++) { uint16_t n; const uint8_t *p = dat_find(&files[f], "DNS", id, &n); if (p) return res_add(id, p, n); }
+	for (int f = nfiles - 1; f >= 0; f--) { uint16_t n; const uint8_t *p = dat_find(&files[f], "DNS", id, &n); if (p) return res_add(id, p, n); }   /* newest file first */
 	return NULL;
 }
 
@@ -714,9 +714,12 @@ int audio_init_midi(const char *dir, int c, int type, const char *presets_path)
 	opl_rate = 49716; OPL3_Reset(&opl, opl_rate);
 	memset(&dg, 0, sizeof dg); memset(&sq, 0, sizeof sq); memset(&sp, 0, sizeof sp); dg.q = 90;
 	memcpy(sq.map, map_init, 16); volume = 0; cue = 0; now = 0; rendered = cur_sample = 0; presets_done = 1;
+	/* 2797:0260 with the table DS:12A8 {IBMSND, DIGISND, MIDISND, 0, 0, 0}: IBMSND unless both drivers are there (the PC
+	 * speaker then plays the sounds the other device lacks: the effects with FM alone, the music with the digital one
+	 * alone), DIGISND with the digital driver, MIDISND with the MIDI one; the MIDI types 0x20 and 0x29 take the sixth
+	 * entry, which is empty: no level music on a General MIDI device. Searched newest first (res_get) */
+	if ((caps & 3) != 3) { snprintf(p, sizeof p, "%s/IBMSND.DAT", dir); audio_add_file(p); }
 	if (caps & AUDIO_CAP_DIGI) { dg.speaker = 1; snprintf(p, sizeof p, "%s/DIGISND.DAT", dir); audio_add_file(p); }
-	/* 2797:0260 with the table DS:12A8 {IBMSND, DIGISND, MIDISND, 0, 0, 0}: the MIDI types 0x20 and 0x29 take the sixth
-	 * entry, which is empty: no level music on a General MIDI device */
 	if (caps & AUDIO_CAP_MIDI && midi_type != 0x20 && midi_type != AUDIO_MIDI_GM) { snprintf(p, sizeof p, "%s/MIDISND.DAT", dir); audio_add_file(p); }
 	if (caps & AUDIO_CAP_MIDI && midi_type < 0x28) {
 		fm_init();
@@ -734,18 +737,18 @@ int audio_init_midi(const char *dir, int c, int type, const char *presets_path)
 			if (try[k] && load_file(try[k], &presets.d, &presets.n) && !is_piece(presets.d, presets.n)) { free(presets.d); presets.d = NULL; presets.n = 0; }
 		drv_call(1, 0, 0, 0, NULL, 0, 0);                     /* 194C:31E2(0, 0): init, no bank */
 	}
-	if (!caps) { snprintf(p, sizeof p, "%s/IBMSND.DAT", dir); audio_add_file(p); }
 	audio_volume(15);
 	if (presets.d) { presets_done = 0; if (!midi_start(&presets)) presets_done = 1; }   /* 2B8C: 3339(PRESETS.DEF, 2CC8) */
 	return nfiles > 0;
 }
 int audio_setup_playing(void) { return !presets_done; }
-/* the story scenes' sound DATs: 2797:0260 with the table DS:1394 {NISIBM, NISDIGI, NISMIDI, 0, 0, NIS3VC}; the MIDI types
- * 0x20 and 0x29 (General MIDI) take NIS3VC.DAT, the same 30 pieces arranged for General MIDI */
+/* the story scenes' sound DATs: 2797:0260 with the table DS:1394 {NISIBM, NISDIGI, NISMIDI, 0, 0, NIS3VC}: NISIBM unless
+ * both drivers are there; the MIDI types 0x20 and 0x29 (General MIDI) take NIS3VC.DAT, the same 30 pieces arranged for
+ * General MIDI */
 int audio_add_scene_files(const char *dir)
 {
 	char p[1024]; int n = 0;
-	if (!caps) { snprintf(p, sizeof p, "%s/NISIBM.DAT", dir); n += audio_add_file(p); }
+	if ((caps & 3) != 3) { snprintf(p, sizeof p, "%s/NISIBM.DAT", dir); n += audio_add_file(p); }
 	if (caps & AUDIO_CAP_DIGI) { snprintf(p, sizeof p, "%s/NISDIGI.DAT", dir); n += audio_add_file(p); }
 	if (caps & AUDIO_CAP_MIDI) { snprintf(p, sizeof p, "%s/%s", dir, midi_type == 0x20 || midi_type == AUDIO_MIDI_GM ? "NIS3VC.DAT" : "NISMIDI.DAT"); n += audio_add_file(p); }
 	return n;

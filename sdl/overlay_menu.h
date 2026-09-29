@@ -20,7 +20,8 @@ enum { OVERLAY_MENU_APPLY_VIDEO = 1,        /* use_correct_aspect_ratio, use_int
        OVERLAY_MENU_APPLY_AUDIO = 4,        /* enable_sounds, enable_music, volume */
        OVERLAY_MENU_APPLY_KEYS = 8,         /* key_* */
        OVERLAY_MENU_APPLY_CONTROLLER = 16,  /* enable_controller, controller_rumble, joystick_*, enable_pause_menu */
-       OVERLAY_MENU_APPLY_CHEATS = 32 };    /* "Enable cheats" (not a setting: the game's DS:10C2, overlay_menu_cheats) */
+       OVERLAY_MENU_APPLY_CHEATS = 32,      /* "Enable cheats" (not a setting: the game's DS:10C2, overlay_menu_cheats) */
+       OVERLAY_MENU_APPLY_SOUND_DEVICE = 64 };   /* sound_device: the game knows its device from the start (a restart) */
 /* what overlay_menu_frame asks of the frontend */
 enum { OVERLAY_MENU_NONE, OVERLAY_MENU_QUICKSAVE, OVERLAY_MENU_QUICKLOAD, OVERLAY_MENU_RESTART_LEVEL,
        OVERLAY_MENU_RESTART_GAME, OVERLAY_MENU_QUIT, OVERLAY_MENU_KEY, OVERLAY_MENU_CHEAT, OVERLAY_MENU_GOTO };

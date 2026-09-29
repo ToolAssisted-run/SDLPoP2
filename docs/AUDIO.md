@@ -217,9 +217,9 @@ SNDDRVRS/PRESET40.DEF or PRESET41.DEF; none: no upload, as the original with no 
 bytes) and the PRESETS.DEF piece's first events; `audio_setup_playing()` is 1 until that piece has ended, and the shell
 waits for it (`shell_sound_setup_hook`, the start-up's 2D3E:03EE) so that the title music does not cut the timbre
 upload short. `audio_add_scene_files(dir)` opens the scenes' DATs as the game does (NIS3VC.DAT for General MIDI). The
-digitized sounds play through DIGI.DRV alongside, unchanged. The core's game logic (sound.c's model, the scenes' timing)
-stays the CD setup's whatever device renders, as for the speaker: with General MIDI the original would answer "no music
-playing" in the level (death waits, the level end), the core answers as with the FM chip.
+digitized sounds play through DIGI.DRV alongside, unchanged. The game logic learns the device through
+`shell_set_sound_device` / `pop2_set_sound_device` (section 8): with General MIDI (no level MIDI file) the model answers
+"no music playing" as the original does. The story scenes' timing is still the CD setup's (section 8).
 
 SDLPoP2's frontend (sdl/main.c) plays the MT-32 through Munt (libmt32emu, the extern/munt submodule; meson option
 `mt32`) with `sound_device = mt32_digital` or `mt32`: the stereo SDL device gets Munt's output plus the mono
@@ -284,3 +284,37 @@ typically channel 9, the General MIDI drum channel) plus a few for device 1 (ign
 than 2 bytes; every file's last byte (the end-of-track length 00) lies just past the resource, never read. Not covered by
 the captures: controller events, MSeq resources and rhythm instruments (none in the data), the resampler (no rate below
 3920 Hz).
+
+## 8. The device and the game logic
+
+The setup (SETUP.EXE -> CONFIG.DAT +6 digital type, +8 MIDI type) is fixed before the program runs, and the game logic
+depends on it through DS:2085 (194C:31E2: bit 0 when DIGI.DRV loaded, bit 1 when MIDI.DRV did; 0 with neither):
+
+- **the files** (2797:0260 on DS:12A8): IBMSND.DAT unless both drivers are there, DIGISND.DAT with the digital driver,
+  MIDISND.DAT with the MIDI one (none for the MIDI types 0x20 / 0x29); a resource comes from the newest file that has it.
+  IBMSND holds 100 PC speaker note lists and 163 3-byte placeholders (never busy): so an FM-only machine plays 56 effects on
+  the speaker, and a digital-only one 44 music pieces (ambient pieces and level music) there. The speaker is a third
+  channel (DS:20B0), busy from the start until its note list's end: sum of the durations (0 = 256) of the tones and rests,
+  at 0x1234DD / rate PIT clocks a tick. The scenes likewise (DS:1394: NISIBM unless both);
+- **the ambient music**: 1611:02AC turns it on only with bit 1; with General MIDI no piece exists, the ambient is asked
+  for again every pass and draws a random number each time;
+- **1611:0582**: with neither driver, a queued effect does not start while the music plays (both need the speaker);
+- 1611:07D4 "Music Unavailable" without bit 1; level 2's chime (33FD, OVL03) only with bit 1; level 1's sea waves
+  (33FD:0240) only with bit 0; the joystick "unavailable" with bit 0 and MIDI type 0x20.
+
+The model (source/sound.c) follows all of it; `sound_set_device(caps, midi_type)` sets it, through
+`shell_set_sound_device` (before shell_init) or `pop2_set_sound_device` (before pop2_new_game). The SDL frontend passes
+`sound_device`: speaker (0, 0), digital (1, 0), fm (2, 0x21), fm_digital (3, 0x21), mt32_digital (3, 0x28), mt32
+(2, 0x28). The device changes the game's timing (the death waits and the level end wait for the sounds, whose lengths
+differ by device; effects dropped under the speaker's music) and its random numbers (the ambient music's draws).
+
+Verified (2026-09-29) with 21 captures on three setups (`<workspace>/oracle/popspk.hdd` types 0/0, `popdig.hdd` 1/0,
+`popfm.hdd` 0/0x21; gen_e2e.py runs of levels 1, 2, 3, 5, 8, 12 and 14, named SPKE/DIGE/FME<level>_41; tests/e2e.c takes
+the device from the capture's RAM): every tick identical, strict, from the captured post-load state and from a cold start,
+with the capture's sound answers; with the model's own answers too, but for FME3 (24 ticks) and FME8 (1), the ambient
+timing jitter the CD setup's own captures of those levels show (E3_5 first at tick 77, E8_5 one tick). With the CD setup
+forced instead (E2E_DEVICE=3,0x21), 16 of the 21 diverge (the cold start's ambient flag, the speaker's lengths).
+
+Not yet per device: the story scenes' timing (source/nis.c models the CD setup: without the digitizer the original
+times the narration out by the timer, 2D7D:009C / 00E4, and plays NISIBM's speaker pieces), which changes how long a
+scene lasts, not the game logic.

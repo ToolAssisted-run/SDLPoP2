@@ -13,6 +13,8 @@ enum { SOUND_DEVICE_SPEAKER = 0, SOUND_DEVICE_DIGITAL = 1, SOUND_DEVICE_FM = 2, 
        SOUND_DEVICE_MT32_DIGITAL = 4, SOUND_DEVICE_MT32 = 5 };   /* a Roland MT-32 (MIDI type 0x28) with / without the digitized sounds */
 static inline int sound_device_caps(int d) { return d == SOUND_DEVICE_MT32_DIGITAL ? 3 : d == SOUND_DEVICE_MT32 ? 2 : d; }
 static inline int sound_device_mt32(int d) { return d == SOUND_DEVICE_MT32_DIGITAL || d == SOUND_DEVICE_MT32; }
+/* the setup's MIDI type (CONFIG.DAT +8) of a device: 0 none, 0x21 the Sound Blaster's FM, 0x28 the MT-32 */
+static inline int sound_device_midi_type(int d) { return sound_device_mt32(d) ? 0x28 : sound_device_caps(d) & 2 ? 0x21 : 0; }
 /* the remappable controls: the PC scan codes the game reads (input.c's key table, 0823:1178) */
 enum { KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_UPLEFT, KEY_UPRIGHT, KEY_DOWNLEFT, KEY_DOWNRIGHT, KEY_SHIFT, KEY_CTRL, KEY_COUNT };
 extern const char *const settings_key_ini_names[KEY_COUNT];   /* "key_left", ... */

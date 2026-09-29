@@ -14,6 +14,8 @@ typedef struct pop2_input {
 enum { POP2_PLAYING = -2, POP2_QUIT = -1 };
 
 int  pop2_init(const char *game_dir);             /* PRINCE.EXE, SEQUENCE.DAT, PRINCE.DAT, KID.DAT, ... ; 0 on failure */
+void pop2_set_sound_device(int caps, int midi_type);   /* before pop2_new_game: the setup's device (shell.h's shell_set_sound_device;
+                                                          default 3, 0x21: FM + digital, the CD's setup). The game logic depends on it */
 void pop2_new_game(int level, uint32_t seed);     /* a new game at `level` (1 = the menu's start; 2..14 = LEVELn with the cheat word) */
 int  pop2_frame(const pop2_input *in);            /* one tick: POP2_PLAYING, POP2_QUIT, or the level just entered */
 int  pop2_level(void);                            /* the current level */

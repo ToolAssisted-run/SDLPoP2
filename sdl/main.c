@@ -321,6 +321,7 @@ static uint32_t start_seed(void)
 	return h;
 }
 static int quiet_cheats;   /* (the start's own toggle shows no message) */
+static int started_device;   /* the sound device of this run (a change takes effect at the next start) */
 static int menu_music, menu_sounds, menu_controller, menu_cheats = -1;   /* (menu_cheats: "Enable cheats" changed, -1 not) */
 static void menu_apply(int what)
 {
@@ -335,6 +336,7 @@ static void menu_apply(int what)
 	menu_music = S.enable_music; menu_sounds = S.enable_sounds;
 	if (what & OVERLAY_MENU_APPLY_KEYS) build_keymap();
 	if (what & OVERLAY_MENU_APPLY_CHEATS) menu_cheats = overlay_menu_cheats();   /* (the game's, at the next step: a replay records it) */
+	if (what & OVERLAY_MENU_APPLY_SOUND_DEVICE) message(S.sound_device != started_device ? "Sound device: restart SDLPoP2 to use it" : "Sound device: the one in use");
 	if (what & OVERLAY_MENU_APPLY_CONTROLLER) {
 		if (menu_controller != S.enable_controller) { controller_quit(); controller_init(&S, 0); menu_controller = S.enable_controller; }
 		controller_settings(&S);
@@ -481,6 +483,8 @@ int main(int argc, char **argv)
 	}
 	platform_sound_volume_hook = platform_sound_volume;   /* (Alt+S / the game's volume -> the audio module) */
 	shell_set_seed(seed);
+	/* the device the game logic knows (DS:2085, the MIDI type), fixed for the run as the original's SETUP made it */
+	shell_set_sound_device(sound_device_caps(S.sound_device), sound_device_midi_type(S.sound_device)); started_device = S.sound_device;
 	if (!shell_init(dir, nwords, words)) {
 		char m[1400]; snprintf(m, sizeof m, "Cannot load the game from \"%s\": it needs the original game's files (PRINCE.EXE, the .DAT files). Use --path-to-game DIR.", dir);
 		fatal(m); SDL_Quit(); return 1;

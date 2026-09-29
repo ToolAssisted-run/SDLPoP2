@@ -34,7 +34,7 @@ const int snap_nfields = sizeof snap_fields / sizeof snap_fields[0];
  * later calls read, and the C side's own state (the checkpoint copy, the collapsing floors) */
 extern mob_type cur_mob; extern int16_t cur_mob_index; extern uint8_t curr_tilepos, anim_tile;
 extern uint8_t byte_2ab4, edge_type, start_room; extern int16_t word_3bf62;
-extern uint16_t word_2baa, word_927e; typedef struct snd_channel { int16_t id; uint32_t end; } snd_channel; extern snd_channel snd_ch[2]; extern uint32_t snd_time;
+extern uint16_t word_2baa, word_927e; typedef struct snd_channel { int16_t id; uint32_t end; } snd_channel; extern snd_channel snd_ch[3]; extern uint32_t snd_time;
 static int16_t room_ptr_tiles, room_ptr_attrs;   /* curr_room_tiles / attrs as offsets (DS:613C / 613A) */
 static const state_field extra_fields[] = {
 	{"byte_016a", 0x016A, 1, &byte_016a}, {"word_0366", 0x0366, 2, &word_0366}, {"word_087e", 0x087E, 2, &word_087e}, {"word_0880", 0x0880, 2, &word_0880},

@@ -67,7 +67,7 @@ static const field fields[] = {
 	F("General", enable_music, T_BOOL, 0, 1, 0),
 	F("General", enable_sounds, T_BOOL, 0, 1, 0),
 	F("General", volume, T_INT, 0, 15, 0),
-	F("General", sound_device, T_SOUNDDEV, 0, 5, 0),
+	F("General", sound_device, T_SOUNDDEV, 0, 5, 1),   /* (gameplay: the game logic knows the device; replays record it) */
 	F("General", mt32_roms, T_STR, 0, 0, 0),
 	F("General", enable_pause_menu, T_BOOL, 0, 1, 0),
 	F("General", enable_intro, T_BOOL, 0, 1, 1),
@@ -248,7 +248,10 @@ void settings_write_gameplay(const pop2_settings *s, FILE *f)
 		if (strcmp(sec, fl->section)) { sec = fl->section; fprintf(f, "[%s]\n", sec); }
 		fprintf(f, "%s = ", fl->key);
 		const char *p = (const char *)s + fl->off;
-		if (fl->type == T_BOOL) fprintf(f, "%s\n", *(const int *)p ? "true" : "false"); else fprintf(f, "%d\n", *(const int *)p);
+		static const char *const devs[] = {"speaker", "digital", "fm", "fm_digital", "mt32_digital", "mt32"};
+		if (fl->type == T_BOOL) fprintf(f, "%s\n", *(const int *)p ? "true" : "false");
+		else if (fl->type == T_SOUNDDEV) fprintf(f, "%s\n", devs[*(const int *)p >= 0 && *(const int *)p <= 5 ? *(const int *)p : SOUND_DEVICE_FM_DIGITAL]);
+		else fprintf(f, "%d\n", *(const int *)p);
 	}
 	for (int l = 1; l <= SETTINGS_LEVELS; l++) {
 		fprintf(f, "[Level %d]\n", l);

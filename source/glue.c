@@ -229,6 +229,7 @@ void glue_select_guard_dat(uint8_t type)
 }
 
 int pop2_keystrokes;   /* keystrokes waiting (core input) */
+int pop2_restart_level;   /* the key typed is Alt+A (core input) */
 int (*bios_key_hook)(void);   /* tests: replace the keystroke source */
 int bios_key(void) { if (bios_key_hook) return bios_key_hook(); if (pop2_keystrokes > 0) { pop2_keystrokes--; return 0x100; } return 0; }
 void platform_wait_frame(void) {}

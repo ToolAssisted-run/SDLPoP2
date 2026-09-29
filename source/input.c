@@ -53,6 +53,7 @@ int read_input(void)
 }
 
 uint16_t word_2baa;   /* DS:2BAA */
+extern int pop2_restart_level;
 /* 0823:02BE, the part that matters for play: a key or the action button after the prince died (or during a demo)
  * asks for the level to restart (DS:5CD8). The hotkeys themselves (pause, sound, restart, save) are not here yet. */
 int hotkeys_02be_core(void)
@@ -61,6 +62,7 @@ int hotkeys_02be_core(void)
 	if (control_shift != 0 || di != 0) {
 		if ((minutes_left != 0 && Kid.alive > 6) || word_2ba8) { restart = 1; if (word_2ba8) word_2baa = 1; }
 	}
+	if (di && pop2_restart_level && !level_end_sound_playing()) restart = 1;   /* Alt+A: restart the level (the shell's hotkeys_02be) */
 	if (restart && !word_5ce8 && !(drawn_room == 4 && level_number == 13 && shadow13_present())) { word_5cd8 = 1; sound_stop_all(); }   /* 0823:051C; 2A31:0E11 -> 37F0:03CA */
 	return di;
 }

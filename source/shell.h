@@ -69,6 +69,10 @@ int  shell_level_entries(int *levels, int *entries, int *rooms, int max);     /*
 void shell_sound(int res);        /* 194C:840E(res) / 1611:053C(res - 10000) */
 void shell_sound_stop(int res);   /* 194C:83D2(res); 0: everything */
 extern void (*platform_sound_volume_hook)(int v);   /* 194C:3380, 15 (sound on) or 0 (off): the frontend's audio_volume(v) */
+/* the start-up (2D3E:03EE) waits, frame after frame, while this answers 1: the frontend's audio_setup_playing() (locked
+ * like its other audio calls) when the MIDI device is an MT-32 or General MIDI one, whose PRESETS.DEF piece must end
+ * before the title music starts it over; unset (or the FM chip): no wait */
+extern int (*shell_sound_setup_hook)(void);
 
 /* inside the shell (the coroutine): the original's waits */
 void sh_frame(void);              /* one video frame passes (the 60 Hz timer runs on) */

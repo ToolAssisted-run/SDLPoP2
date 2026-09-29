@@ -107,6 +107,7 @@ if get_option('oracleTests') == true and not isWindows
     'ticks' : [ 'ticks', files('run_all.sh') ],
     'tiles' : [ 'tiles', files('../tools/tiletests.sh') ],
     'sound' : [ 'info', files('run_soundmodel.sh') ],
+    'audio' : [ 'audio', files('run_audio.sh') ],
     'shell' : [ 'info', files('run_shell.sh') ],
   }
   foreach name, how : oracleSuites

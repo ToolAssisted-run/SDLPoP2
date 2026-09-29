@@ -6,7 +6,10 @@
  * Three channels, each remembering its resource and a busy flag (194C:33CE answers "playing" from them):
  *   digitized (DS:2088..): 8-bit unsigned PCM through the SB Pro DSP (DIGI.DRV), loop points, packed samples;
  *   MIDI      (DS:209E..): a standard MIDI file played by a 240 Hz timer interrupt (194C:2DF0/2F10/2FFA) into the
- *                          driver, which is an OPL2 FM synthesizer with a 128-instrument bank (PRESETS.DEF);
+ *                          driver: MSB_PRO.DRV, an OPL2 FM synthesizer with a 128-instrument bank (PRESETS.DEF, MIDI type
+ *                          0x21), or MMPU401.DRV, an MPU-401 in UART mode whose bytes go to the frontend's synthesizer
+ *                          (MIDI types 0x28 Roland MT-32, 0x29 General MIDI; PRESETS.DEF is then a MIDI piece of timbre
+ *                          sysex that the start-up plays and waits for);
  *   speaker   (DS:20B0..): PC speaker note lists (IBMSND.DAT) on their own timer (194C:370A/377B).
  * The FM chip is emulated by Nuked OPL3 (source/audio_opl3.c, LGPL 2.1+, used in OPL2 mode as on a Sound Blaster Pro 2). */
 #include <stdio.h>
@@ -31,6 +34,9 @@ static uint8_t bank[1 + 128 * 16]; static int bank_ok;             /* PRESETS.DE
 static int caps = 3;                                               /* DS:2085 */
 static uint8_t volume;                                             /* DS:2086 (15 after the start) */
 static uint8_t cue;                                                /* DS:2087 */
+static int midi_type = AUDIO_MIDI_FM;                              /* DS:1FAE: CONFIG.DAT's MIDI type */
+void (*audio_midi_out)(uint8_t byte, uint64_t sample);
+static uint64_t rendered, cur_sample;                              /* samples rendered since audio_init; the sample being made */
 
 static unsigned rd8(const snd_res *r, uint32_t o) { return o < r->n ? r->d[o] : 0; }
 static unsigned rd16(const snd_res *r, uint32_t o) { return rd8(r, o) | rd8(r, o + 1) << 8; }
@@ -296,6 +302,48 @@ static void fm_call(uint8_t al, uint8_t ah, uint8_t d1, uint8_t d2, const snd_re
 	}
 }
 
+/* ------------------------------------------------------------------------------------------------ the MPU-401 driver (MMPU401.DRV) */
+/* "Roland MPU-401 MIDI interface" (960 bytes): the MPU-401 in UART mode, every MIDI byte written to the data port (0x330;
+ * the status/command port 0x331). No timing of its own: each byte waits only for the port's "ready to receive" status bit
+ * (0x2CD, no time-out, input bytes read and dropped meanwhile), so the bytes go out at the moment of the driver call. */
+/* (its ports and IRQ, 0x3B6 / 0x3B4 / 0x3B8, are 0x330, 0x331 and 2 unless CONFIG.DAT +0x14 / +0x16 give others) */
+static void mpu_byte(uint8_t b) { TRACE(AUDIO_T_MPU, b, 0); if (audio_midi_out) audio_midi_out(b, cur_sample); }   /* 0x2CD: out data port */
+static void mpu_command(uint8_t b) { TRACE(AUDIO_T_MPU, b, 1); }                                 /* 0x269 / 0x2AD: out command port */
+static void mpu_send(const snd_res *r, uint32_t o, uint32_t n) { while (n--) mpu_byte((uint8_t)rd8(r, o++)); }
+/* 0x2E9: the 3-byte message b0 d1 d2 on each of the 16 channels, 0..15 */
+static void mpu_all(uint8_t b0, uint8_t d1, uint8_t d2) { for (int c = 0; c < 16; c++) { mpu_byte((uint8_t)((b0 & 0xF0) | c)); mpu_byte(d1); mpu_byte(d2); } }
+/* 0x281: the interface answers a reset (command FF) with an acknowledge (FE) within five tries: 1, else -1 */
+static int mpu_probe(void) { mpu_command(0xFF); return 1; }   /* (the frontend's synthesizer is always there) */
+/* the driver's entry (0x100): functions 0..7 (table 0x155), or a MIDI status in al (ah channel, dl/dh data; for F0 / F7
+ * the bytes at ES:BX, CX of them) */
+static int mpu_call(uint8_t al, uint8_t ah, uint8_t d1, uint8_t d2, const snd_res *r, uint32_t o, uint32_t n)
+{
+	static const uint8_t len[7] = {3, 3, 3, 3, 2, 2, 3};                          /* 0x3AA: 8x..Ex */
+	if (al >= 0x80) {
+		if (al < 0xF0) { mpu_byte((uint8_t)(al | ah)); mpu_byte(d1); if (len[(al >> 4) - 8] == 3) mpu_byte(d2); }
+		else if (al == 0xF0) { mpu_byte(0xF0); mpu_send(r, o, n); }            /* 0x13B: F0, then the message */
+		else if (al == 0xF7) mpu_send(r, o, n);                               /* 0x150: a continuation (escape) */
+		return 0;
+	}
+	switch (al) {
+	case 0: return mpu_probe();                                               /* 0x1E6: detect (port / IRQ from CONFIG.DAT +0x14) */
+	case 1: if (mpu_probe() < 0) return -1; mpu_command(0x3F); return 0;     /* 0x229: UART mode (acknowledged), IRQ hooked */
+	case 2: mpu_command(0xFF); return 0;                                      /* 0x18C: reset, IRQ vector back */
+	case 4: mpu_all(0xB0, 0x7B, 0x00); mpu_all(0xE0, 0x00, 0x40); return 0;  /* 0x19C: all notes off, pitch bend centred */
+	case 5: mpu_all(0xB0, 0x07, (uint8_t)(ah << 3)); return 0;               /* 0x174: volume 0..15 -> controller 7 = v * 8 */
+	case 6:                                                                   /* 0x1C2: AH messages at ES:BX, each up to F7 */
+		if (r) for (unsigned k = rd8(r, o++); k; k--) { uint32_t e = o; while (e < r->n && r->d[e] != 0xF7) e++; mpu_send(r, o, e + 1 - o); o = e + 1; }
+		return 0;
+	}
+	return 0;                                                                 /* 3, 7: nothing */
+}
+/* MIDI.DRV's entry: the FM driver for MIDI types below 0x28, the MPU-401 one from 0x28 on */
+static int drv_call(uint8_t al, uint8_t ah, uint8_t d1, uint8_t d2, const snd_res *r, uint32_t o, uint32_t n)
+{
+	if (midi_type >= 0x28) return mpu_call(al, ah, d1, d2, r, o, n);
+	fm_call(al, ah, d1, d2, r, o); return 0;
+}
+
 /* ------------------------------------------------------------------------------------------------ the MIDI sequencer (194C:2DF0..3180) */
 typedef struct { int32_t count; uint32_t p; uint8_t rs; } track;   /* 7-byte records at DS:1FE8: ticks to the next event, pointer, running status */
 #define MAXTR 16
@@ -332,10 +380,10 @@ static uint32_t vlq(const snd_res *r, uint32_t *p)
 static uint32_t fixdiv(uint32_t a, uint32_t b) { return b ? (uint32_t)(((uint64_t)a << 16) / b) : 0xFFFFFFFFu; }
 /* 194C:2FB4: tempo (microseconds per quarter) -> ticks per interrupt */
 static void set_tempo(uint32_t t) { sq.inc = fixdiv(fixdiv(0x0F424000u, MIDI_RATE << 16), fixdiv(t << 8, (uint32_t)sq.division << 16)); }
-static void seq_driver(uint8_t al, uint8_t ah, uint8_t d1, uint8_t d2, const snd_res *r, uint32_t o)
+static void seq_driver(uint8_t al, uint8_t ah, uint8_t d1, uint8_t d2, const snd_res *r, uint32_t o, uint32_t n)
 {
 	TRACE(AUDIO_T_MIDI, al | (al < 0xF0 ? ah : 0), d1 | d2 << 8);
-	fm_call(al, ah, d1, d2, r, o);
+	drv_call(al, ah, d1, d2, r, o, n);
 }
 /* 194C:2FFA: the track's events due now (and then while the next delta leaves the count <= 0); 1: track 0 ended */
 static int seq_events(const snd_res *r, track *t, int first)
@@ -355,10 +403,10 @@ static int seq_events(const snd_res *r, track *t, int first)
 			if (st >= 0xF0) {                                 /* 194C:306E system exclusive */
 				uint32_t n = vlq(r, &t->p), b = t->p; t->p += n;
 				unsigned dev = rd8(r, b + 3);
-				if (!rd16(r, b) && rd8(r, b + 2) == 0x34 && (dev == 0 || dev == 0x21)) {   /* 00 00 34 dev cmd x: commands for this device (0x21 = CONFIG.DAT's FM type) */
+				if (!rd16(r, b) && rd8(r, b + 2) == 0x34 && (dev == 0 || dev == (unsigned)midi_type)) {   /* 00 00 34 dev cmd x: commands for this device (DS:1FAE, CONFIG.DAT's MIDI type); others go to the driver */
 					uint8_t cmd = (uint8_t)rd8(r, b + 4), x = (uint8_t)rd8(r, b + 5);
 					switch (cmd) {
-					case 0: seq_driver(0xF0, x, 0, 0, r, b); break;
+					case 0: seq_driver(0xF0, x, 0, 0, r, b, n); break;
 					case 1: if (x < 16) sq.map[x] |= 0x80; break;
 					case 2: if (x < 16) sq.map[x] &= 0x7F; break;
 					case 3: if (x < 16) sq.map[x] = (uint8_t)((sq.map[x] & 0x80) | rd8(r, b + 6)); break;
@@ -367,14 +415,14 @@ static int seq_events(const snd_res *r, track *t, int first)
 					case 6: sq.skip15 = 1; break;
 					case 7: sq.skip15 = 0; break;
 					}
-				} else seq_driver(st, 0, 0, 0, r, b);
+				} else seq_driver(st, 0, 0, 0, r, b, n);
 			} else {
 				if (!(st & 0x80)) { t->p--; st = t->rs; }
 				t->rs = st;
 				uint8_t ty = st & 0xF0, d1 = (uint8_t)rd8(r, t->p++), d2 = 0;
 				if (ty != 0xC0 && ty != 0xD0) d2 = (uint8_t)rd8(r, t->p++);
 				uint8_t m = sq.map[st & 0x0F];
-				if (!(ty == 0x90 && (m & 0x80)) && !((m & 0x0F) == 0x0F && sq.skip15) && ty >= 0x80) seq_driver(ty, m & 0x0F, d1, d2, r, 0);
+				if (!(ty == 0x90 && (m & 0x80)) && !((m & 0x0F) == 0x0F && sq.skip15) && ty >= 0x80) seq_driver(ty, m & 0x0F, d1, d2, r, 0, 0);
 			}
 		}
 		t->count += (int32_t)vlq(r, &t->p);                 /* 194C:3059 */
@@ -386,7 +434,7 @@ static void midi_end(void);
 /* 194C:2DF0: start the MIDI file at resource offset 1 */
 static void seq_start(snd_res *r)
 {
-	fm_call(4, 0, 0, 0, r, 0);
+	drv_call(4, 0, 0, 0, r, 0, 0);
 	for (int i = 0; i < 16; i++) sq.map[i] &= 0x0F;
 	sq.skip15 = 0;
 	uint32_t p = 1;
@@ -409,7 +457,7 @@ static void seq_start(snd_res *r)
 static uint64_t now;                                          /* audio time: PIT clocks << 16 */
 static void timer_start(uint64_t *next, uint32_t div) { *next = now + ((uint64_t)div << 16); }
 /* 194C:2EFD: the timer removed, the driver reset */
-static void seq_stop_timer(void) { sq.timer = 0; fm_call(4, 0, 0, 0, NULL, 0); }
+static void seq_stop_timer(void) { sq.timer = 0; drv_call(4, 0, 0, 0, NULL, 0, 0); }
 /* 194C:2F10: the 240 Hz interrupt */
 void audio_midi_irq(void)
 {
@@ -425,11 +473,13 @@ void audio_midi_irq(void)
 	}
 }
 /* 194C:34BA: end of the piece: a looping one (byte 0 bit 7) starts over unless released */
+static snd_res presets;                                       /* PRESETS.DEF as a MIDI piece (MIDI types >= 0x28) */
+static int presets_done = 1;                                  /* DS:2B7E (194C:2CE2 answers it) */
 static void midi_end(void)
 {
 	TRACE(AUDIO_T_MIDI_END, 0, 0);
 	if ((sq.res->d[0] & 0x80) && !sq.release) { seq_stop_timer(); seq_start(sq.res); if (sq.timer) timer_start(&sq.next, MIDI_DIV); }
-	else sq.busy = 0;
+	else { sq.busy = 0; if (sq.res == &presets) presets_done = 1; }   /* the channel's callback: 194C:2CC8 for the setup piece */
 }
 /* 194C:3579: stop the MIDI channel (r NULL: whatever plays) */
 static void midi_stop(const snd_res *r)
@@ -634,7 +684,7 @@ void audio_volume(int v)
 	if ((uint8_t)v == volume) return;
 	volume = (uint8_t)v;
 	if (caps & AUDIO_CAP_DIGI) digi_volume(volume);
-	if (caps & AUDIO_CAP_MIDI) fm_call(5, volume, 0, 0, NULL, 0);
+	if (caps & AUDIO_CAP_MIDI) drv_call(5, volume, 0, 0, NULL, 0, 0);
 	if (sp.busy) spk_gate(volume ? 3 : 0);
 }
 int audio_cue(void) { return cue; }
@@ -645,25 +695,60 @@ int audio_add_file(const char *path)
 	if (nfiles >= 8 || !dat_open(&files[nfiles], path)) return 0;
 	nfiles++; return 1;
 }
-/* 194C:2B8C / 31E2: drivers loaded and initialised (DIGI.DRV first, then MIDI.DRV with PRESETS.DEF), volume 15 */
-int audio_init(const char *dir, int c)
+/* 194C:2B8C / 31E2: drivers loaded and initialised (DIGI.DRV first, then MIDI.DRV with PRESETS.DEF), volume 15; from MIDI
+ * type 0x28 on, PRESETS.DEF is no instrument bank but a MIDI piece, started last (2B8C: 3339 with the callback 2CC8) */
+int audio_init(const char *dir, int c) { return audio_init_midi(dir, c, AUDIO_MIDI_FM, NULL); }
+static int load_file(const char *path, uint8_t **d, uint32_t *n)
+{
+	FILE *f = fopen(path, "rb"); if (!f) return 0;
+	fseek(f, 0, SEEK_END); long l = ftell(f); fseek(f, 0, SEEK_SET);
+	*d = l > 0 ? malloc((size_t)l) : NULL; *n = *d && fread(*d, 1, (size_t)l, f) == (size_t)l ? (uint32_t)l : 0;
+	fclose(f); if (!*n) { free(*d); *d = NULL; } return *n != 0;
+}
+static int is_piece(const uint8_t *d, uint32_t n) { return n > 15 && (d[0] & 0x7F) == 2 && !memcmp(d + 1, "MThd", 4); }
+int audio_init_midi(const char *dir, int c, int type, const char *presets_path)
 {
 	audio_shutdown();
 	caps = c & 3; char p[1024];
+	midi_type = caps & AUDIO_CAP_MIDI ? type : 0;
 	opl_rate = 49716; OPL3_Reset(&opl, opl_rate);
 	memset(&dg, 0, sizeof dg); memset(&sq, 0, sizeof sq); memset(&sp, 0, sizeof sp); dg.q = 90;
-	memcpy(sq.map, map_init, 16); volume = 0; cue = 0; now = 0;
+	memcpy(sq.map, map_init, 16); volume = 0; cue = 0; now = 0; rendered = cur_sample = 0; presets_done = 1;
 	if (caps & AUDIO_CAP_DIGI) { dg.speaker = 1; snprintf(p, sizeof p, "%s/DIGISND.DAT", dir); audio_add_file(p); }
-	if (caps & AUDIO_CAP_MIDI) {
-		snprintf(p, sizeof p, "%s/MIDISND.DAT", dir); audio_add_file(p);
+	/* 2797:0260 with the table DS:12A8 {IBMSND, DIGISND, MIDISND, 0, 0, 0}: the MIDI types 0x20 and 0x29 take the sixth
+	 * entry, which is empty: no level music on a General MIDI device */
+	if (caps & AUDIO_CAP_MIDI && midi_type != 0x20 && midi_type != AUDIO_MIDI_GM) { snprintf(p, sizeof p, "%s/MIDISND.DAT", dir); audio_add_file(p); }
+	if (caps & AUDIO_CAP_MIDI && midi_type < 0x28) {
 		fm_init();
 		snprintf(p, sizeof p, "%s/PRESETS.DEF", dir); FILE *f = fopen(p, "rb");
 		if (f) { bank_ok = fread(bank, 1, sizeof bank, f) == sizeof bank; fclose(f); }
 		if (bank_ok) { fm.bank = bank + 1; fm.count = bank[0]; fm_programs(); }   /* function 6 */
 	}
+	if (caps & AUDIO_CAP_MIDI && midi_type >= 0x28) {
+		drv_call(0, 0, 0, 0, NULL, 0, 0);                     /* 194C:319A: detect */
+		/* PRESETS.DEF: the given file, else the setup's copy in the game folder (a MIDI piece), else SNDDRVRS/PRESETnn.DEF */
+		const char *try[3] = {presets_path, NULL, NULL}; char p2[1024], p3[1024];
+		snprintf(p2, sizeof p2, "%s/PRESETS.DEF", dir); snprintf(p3, sizeof p3, "%s/SNDDRVRS/PRESET%d.DEF", dir, midi_type);
+		if (!presets_path) { try[0] = p2; try[1] = p3; }
+		for (int k = 0; k < 3 && !presets.d; k++)
+			if (try[k] && load_file(try[k], &presets.d, &presets.n) && !is_piece(presets.d, presets.n)) { free(presets.d); presets.d = NULL; presets.n = 0; }
+		drv_call(1, 0, 0, 0, NULL, 0, 0);                     /* 194C:31E2(0, 0): init, no bank */
+	}
 	if (!caps) { snprintf(p, sizeof p, "%s/IBMSND.DAT", dir); audio_add_file(p); }
 	audio_volume(15);
+	if (presets.d) { presets_done = 0; if (!midi_start(&presets)) presets_done = 1; }   /* 2B8C: 3339(PRESETS.DEF, 2CC8) */
 	return nfiles > 0;
+}
+int audio_setup_playing(void) { return !presets_done; }
+/* the story scenes' sound DATs: 2797:0260 with the table DS:1394 {NISIBM, NISDIGI, NISMIDI, 0, 0, NIS3VC}; the MIDI types
+ * 0x20 and 0x29 (General MIDI) take NIS3VC.DAT, the same 30 pieces arranged for General MIDI */
+int audio_add_scene_files(const char *dir)
+{
+	char p[1024]; int n = 0;
+	if (!caps) { snprintf(p, sizeof p, "%s/NISIBM.DAT", dir); n += audio_add_file(p); }
+	if (caps & AUDIO_CAP_DIGI) { snprintf(p, sizeof p, "%s/NISDIGI.DAT", dir); n += audio_add_file(p); }
+	if (caps & AUDIO_CAP_MIDI) { snprintf(p, sizeof p, "%s/%s", dir, midi_type == 0x20 || midi_type == AUDIO_MIDI_GM ? "NIS3VC.DAT" : "NISMIDI.DAT"); n += audio_add_file(p); }
+	return n;
 }
 void audio_shutdown(void)
 {
@@ -671,6 +756,7 @@ void audio_shutdown(void)
 	free(cache); cache = NULL; ncache = capcache = 0;
 	for (int f = 0; f < nfiles; f++) free(files[f].data);
 	nfiles = 0; bank_ok = 0;
+	free(presets.d); memset(&presets, 0, sizeof presets); presets_done = 1;
 }
 
 /* ------------------------------------------------------------------------------------------------ rendering */
@@ -690,7 +776,7 @@ void audio_render(int16_t *pcm, int frames, int rate)
 	uint64_t step = ((uint64_t)PIT_HZ << 16) / (unsigned)rate;
 	uint64_t dstep = (uint64_t)((1000000.0 / dg.q) / rate * 4294967296.0);
 	for (int i = 0; i < frames; i++) {
-		uint64_t end = now + step;
+		uint64_t end = now + step; cur_sample = rendered + (uint64_t)i;
 		while (!audio_manual_clock) {                        /* the timer interrupts due before this sample */
 			uint64_t t = UINT64_MAX; int which = 0;
 			if (sq.timer && sq.next < t) { t = sq.next; which = 1; }
@@ -723,4 +809,5 @@ void audio_render(int16_t *pcm, int frames, int rate)
 		if (audio_dc_block) { static int32_t xin, yout; int32_t y = s - xin + (int32_t)(((int64_t)yout * 32702) >> 15); xin = s; yout = y; s = y; }   /* the card's output coupling (~14 Hz high-pass) */
 		pcm[i] = (int16_t)(s > 32767 ? 32767 : s < -32768 ? -32768 : s);
 	}
+	rendered += (uint64_t)frames; cur_sample = rendered;
 }

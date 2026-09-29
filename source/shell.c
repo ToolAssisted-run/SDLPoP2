@@ -140,6 +140,7 @@ void shell_sound(int res) { if (sound_start_hook) sound_start_hook(res - 10000);
 void shell_sound_stop(int res) { if (res == 0) sound_stop_all(); else sound_194c_83d2((uint16_t)res); }   /* 194C:83D2 */
 void sound_res_start(uint16_t res) { if (running || sound_start_hook) shell_sound(res); }   /* (game.c: 169B:0B9C's beep) */
 void (*platform_sound_volume_hook)(int v);   /* the frontend: audio_volume */
+int (*shell_sound_setup_hook)(void);         /* the frontend: 1 while the MIDI device's setup piece plays (audio_setup_playing) */
 void sound_set_volume(int v) { sound_volume = (uint8_t)(v > 15 ? 15 : v); if (platform_sound_volume_hook) platform_sound_volume_hook(sound_volume); }   /* 194C:3380 */
 int music_toggle_msg(void)   /* 1611:07D4 -> the message */
 {
@@ -713,6 +714,9 @@ static void shell_main(void)   /* 0823:0000 */
 	if (config.w[3] == -1) sound_set_volume(0);
 	sound_init_ambient();          /* 1611:02AC(DS:2B98) */
 	pal_std16();                   /* 0FB3:293A */
+	/* 2D3E:03EE: the start-up waits (a blank screen, frames going by) until the MIDI device's setup piece has played:
+	 * PRESETS.DEF on an MT-32 (its timbres, ~9.4 s) or a General MIDI device; at once for the FM chip */
+	while (shell_sound_setup_hook && shell_sound_setup_hook()) sh_frame();
 	const char *cheat = txt4_get(10, NULL);   /* "YIPPEEYAHOO" */
 	cheat_mode = cheat_word = cheat && arg_find(cheat) ? 1 : 0;
 	options_load();                /* 0D5E:2166 */

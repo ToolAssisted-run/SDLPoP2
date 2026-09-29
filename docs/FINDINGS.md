@@ -725,6 +725,8 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - Old single-tick harness cases L1 D/E/F differ by a mid-tick room change the harness does not model.
 
 ## 8. Open list
+- Sound devices not reconstructed: MCMS101.DRV (CMS MIDI interfaces), PRESET32 (AdLib), MIDI type 0x20; the core's
+  game logic does not follow a General MIDI device's missing level music (docs/AUDIO.md 1, 6);
 - Rendering: one pass of FRP13_shadow (9 px of stack bytes read by 194C:06E6, 5.16);
 - Story scenes;
   sound: packed digital sample lengths (0x20 0x26 0x2F 0x258), draw-time jitter; the prince's drawing-pass hooks; hotkeys besides restart; the stubs still logged by
@@ -880,3 +882,9 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   differing ticks. Left: the tree scenes' timing, level 1's pixel, one-tick input races, and E9_1: the capture's first
   tick after a restart's scene still holds the dead prince's level state (its reload comes after that tick), which
   SHELL_LOAD brings back into the shell ("PRESS KEY TO CONTINUE" stays on its status line).
+- 2026-09-29: the MPU-401 path (docs/AUDIO.md 1, 4b): MMPU401.DRV reconstructed for the MIDI types 0x28 (Roland MT-32,
+  PRESET40.DEF) and 0x29 (General MIDI, PRESET41.DEF); its bytes go to `audio_midi_out(byte, sample)`. For types >= 0x28
+  PRESETS.DEF is a MIDI piece that the start-up plays and waits for (194C:2B8C / 2CC8, DS:2B7E, 2D3E:03EE: 9.35 s for
+  the MT-32's timbres); the sequencer's `00 00 34 dev` commands follow DS:1FAE (the MIDI type); 2797:0260 opens no level
+  MIDI DAT and NIS3VC.DAT for General MIDI. Oracle disks popmt32.hdd / popgm.hdd; MT1, MT4, MT12, MT14, MTV8 and GM4
+  identical byte for byte (MTV8 shows the driver's buffer race on Alt+S).

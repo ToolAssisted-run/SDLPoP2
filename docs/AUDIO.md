@@ -13,9 +13,12 @@ CS = its load paragraph - 0x10, so offsets equal file offsets; in the oracle MID
 The CD's setup leaves a Sound Blaster Pro configuration: CONFIG.DAT (32 bytes, loaded verbatim at DS:80FC, pointer
 DS:1FB8) has digital type 1 (word +6) and MIDI type 0x21 (word +8), port 0x220 (+0xE). `DIGI.DRV` = `SNDDRVRS/DSB_PRO.DRV`
 (Sound Blaster Pro DSP), `MIDI.DRV` = `SNDDRVRS/MSB_PRO.DRV` (Sound Blaster Pro FM = an OPL2 driver writing ports
-388h/389h), `PRESETS.DEF` = `SNDDRVRS/PRESET33.DEF` (the FM instrument bank; 0x21 = 33). The other drivers on the CD
-(MMPU401.DRV with PRESET40/41 for MPU-401 synthesizers, MCMS101.DRV, PRESET32 for AdLib) are not reconstructed. The
-oracle's DOSBox-X emulates an SB Pro 2 (`sbtype sbpro2`, IRQ 7, DMA 1, OPL3 by the default DBOPL emulator).
+388h/389h), `PRESETS.DEF` = `SNDDRVRS/PRESET33.DEF` (the FM instrument bank; 0x21 = 33). The setup (SETUP.CFG `[MIDI]`)
+also offers "Roland MT-32/LAPC-1/CM-32L" (type 40 = 0x28) and "General MIDI device" (41 = 0x29), both through
+`MIDI.DRV` = `SNDDRVRS/MMPU401.DRV` ("Roland MPU-401 MIDI interface", section 4b) with `PRESETS.DEF` = `PRESET40.DEF` /
+`PRESET41.DEF`; both are reconstructed. Not reconstructed: MCMS101.DRV (CMS MIDI interfaces), PRESET32 (AdLib). The
+oracle's DOSBox-X emulates an SB Pro 2 (`sbtype sbpro2`, IRQ 7, DMA 1, OPL3 by the default DBOPL emulator) and an
+intelligent-mode MPU-401 at 330h.
 
 194C:2B8C loads the drivers (`DIGI.DRV` if the digital type is nonzero, `MIDI.DRV` if the MIDI type is nonzero,
 PRESETS.DEF if the MIDI type is nonzero; types >= 0x28 get no bank), 194C:31BE / 319A call their detection (function 0),
@@ -23,7 +26,21 @@ PRESETS.DEF if the MIDI type is nonzero; types >= 0x28 get no bank), 194C:31BE /
 min rate 3920, max rate 65535), MIDI.DRV function 1 (bit 1, DS:20AA entry, 20AE = its timer rate 0) and function 6 with
 the bank, then volume 15 (194C:3380). With both types 0 no driver loads (DS:2085 = 0) and the game uses the PC speaker
 player built into 194C. The level sounds come from DIGISND.DAT / MIDISND.DAT (or IBMSND.DAT for the speaker), the story
-scenes' from NISDIGI.DAT / NISMIDI.DAT (NISIBM.DAT; NIS3VC.DAT belongs to a driver not on this setup).
+scenes' from NISDIGI.DAT / NISMIDI.DAT (NISIBM.DAT). 2797:0260 opens them from a table of six names by device
+(DS:12A8 {IBMSND, DIGISND, MIDISND, 0, 0, 0} for the levels, DS:1394 {NISIBM, NISDIGI, NISMIDI, 0, 0, NIS3VC} for the
+scenes): entry 0 unless both devices are there, 1 with the digital one, and with the MIDI one entry 2, or entry 5 for the
+MIDI types 0x20 and 0x29. So a **General MIDI device plays no level music at all** (no MIDI DAT is opened for the levels:
+the ambient pieces are asked for again and again and never start) and the scenes' music from NIS3VC.DAT (the same 30
+pieces, 25004..31031, arranged for General MIDI). Type 0x20 is not in SETUP.CFG.
+
+**MIDI types 0x28 and above** (194C:2B8C, from 2C58): 31E2 is called with no bank (function 6 is never used), and
+PRESETS.DEF, a MIDI piece (kind 2) of timbre and display sysex rather than an FM bank, is started like a sound
+(194C:3339 with the callback 2CC8, which frees it and sets DS:2B7E = 1; 194C:2CE2 answers DS:2B7E). The start-up (the
+end of OVL00's 2D3E:019A) then waits in 2D3E:03EE until DS:2B7E is 1: PRESET40.DEF takes 9.35 s (655 frames of the
+oracle, 19,934 bytes; the MT-32 shows "The saga continues.."), PRESET41.DEF 582 bytes. The sequencer's own sysex
+commands (`00 00 34 dev ...`) are those for dev 0 or the MIDI type (DS:1FAE); the pieces' commands for dev 0x21 (the FM
+driver's channel mutes) therefore go to an MT-32 as plain sysex, which it ignores (manufacturer 0). 2B8C also sets DS:1FB2
+= 1 when there is no digital device and the MIDI type is above 0x20 (194C:2CE6 answers it; no caller found).
 
 ## 2. Sound resources
 
@@ -137,6 +154,34 @@ Instrument (16 bytes): +0/+1 A0/B0 values for rhythm voices, +2 C0 (feedback/con
 - volume (+0x449): floor = 0x3F - 4v (v < 15), 0 at 15; every carrier level (and additive modulator) below the floor is
   raised to it (never lowered back; new notes use the floor).
 
+## 4b. MIDI.DRV (MMPU401.DRV: MPU-401, types 0x28 / 0x29)
+
+960 bytes; entry +0x100 as MSB_PRO's: AL 0..7 = function (table +0x155), AL >= 0x80 a MIDI status. Ports from
++0x3B4 (status/command, 0x331) and +0x3B6 (data, 0x330), IRQ +0x3B8 (2); function 0 takes others from ES:BX (CONFIG.DAT
++0x14 port 0x200..0x13F0, +0x16 IRQ 2..7, 9 = 2). Every byte goes out through +0x2CD: wait while the status port's bit 6
+(DRR, ready to receive) is set, reading and dropping input bytes meanwhile (bit 7 clear), then out to the data port; no
+time-out. Nothing in the driver measures time: the bytes of a call go out at once, in order.
+
+| function | what |
+|---|---|
+| 0 detect (+0x1E6) | ports/IRQ from CONFIG.DAT, then +0x281: flush input (500 polls), wait for DRR clear, command FF (reset) up to 5 times until the ACK FE is read: 1, else -1 |
+| 1 init (+0x229) | +0x281 again, then command 3F (UART mode) up to 5 times until acknowledged; hooks the IRQ (+0x37E drops input bytes) and unmasks it at the PIC |
+| 2 shutdown (+0x18C) | command FF, the IRQ vector and mask put back |
+| 4 reset (+0x19C) | `Bn 7B 00` (all notes off) then `En 00 40` (bend centred) for n = 0..15 |
+| 5 volume (+0x174) | `Bn 07 v*8` (controller 7) for n = 0..15 |
+| 6 bank (+0x1C2) | ES:BX: a count, then that many sysex messages each up to its F7, sent as they are (the game never calls it) |
+| 3, 7 | nothing |
+
+Channel messages: status | channel (AH), then DL and DH: 3 bytes for 8x 9x Ax Bx Ex, 2 for Cx Dx (table +0x3AA), no
+running status. F0: the byte F0 then CX bytes from ES:BX (the sequencer passes the event's data including its F7); F7:
+CX bytes (a continuation, as PRESET40.DEF sends its messages in pieces); F1..FF: nothing.
+
+The driver builds every channel message and the functions' messages in one 3-byte buffer (+0x3B1) and sends from it:
+the 240 Hz sequencer interrupt landing inside a call from the game (the volume change on Alt+S) overwrites it, and the
+interrupted call goes on sending the interrupt's bytes. Seen in MTV8: `BF` [the interrupt's `9C 47 36 9A 47 2F ...
+93 3B 12`] `3B 12` instead of `BF 07 78`. The C makes each call whole (the race depends on the instruction the interrupt
+lands on).
+
 ## 5. DIGI.DRV (Sound Blaster Pro DSP)
 
 Entry +0x100, table +0x118: 0 detect (DSP reset, E0 test, version E1, SB Pro mixer and OPL at base+8), 1 init (hooks
@@ -160,6 +205,21 @@ interrupt every 4971 ticks from the start call, the speaker player at its own ra
 (linear interpolation). Requests take effect at the current audio time. Mixing as DOSBox-X does: FM x 1.5 (adlib.cpp
 `SetScale(1.5)`), DAC x 1 ((s - 128) << 8, muted by DSP D3), speaker a +-4850 square wave; then a ~14 Hz high-pass
 (`audio_dc_block`) because the FM output of these instruments carries a large DC offset.
+
+MPU-401 devices: `audio_init_midi(dir, caps, type, presets)` with `AUDIO_MIDI_MT32` (0x28) or `AUDIO_MIDI_GM` (0x29)
+runs MMPU401.DRV's code (section 4b) instead of the FM driver and hands every data-port byte to
+`audio_midi_out(byte, sample)`, set before the init: `sample` is the audio time in samples since the init (inside
+`audio_render`, the sample being made when the timer interrupt sends it; between renders, the next sample), so the
+stream depends only on the requests and the samples rendered, never on wall time. The bytes are whole messages in order;
+a frontend renders them (Munt for the MT-32; a real MPU-401 takes 320 us a byte, which the frontend may add when it
+schedules them). `presets` names PRESETS.DEF (NULL: the game folder's PRESETS.DEF if it is a MIDI piece, else
+SNDDRVRS/PRESET40.DEF or PRESET41.DEF; none: no upload, as the original with no file). The init sends the volume (48
+bytes) and the PRESETS.DEF piece's first events; `audio_setup_playing()` is 1 until that piece has ended, and the shell
+waits for it (`shell_sound_setup_hook`, the start-up's 2D3E:03EE) so that the title music does not cut the timbre
+upload short. `audio_add_scene_files(dir)` opens the scenes' DATs as the game does (NIS3VC.DAT for General MIDI). The
+digitized sounds play through DIGI.DRV alongside, unchanged. The core's game logic (sound.c's model, the scenes' timing)
+stays the CD setup's whatever device renders, as for the speaker: with General MIDI the original would answer "no music
+playing" in the level (death waits, the level end), the core answers as with the FM chip.
 
 Frontend wiring (sdl/ is not part of this work): open an SDL audio device (mono s16, e.g. 44100 Hz) whose callback calls
 `audio_render`; set the core's hooks (source/sound.c) `sound_start_hook = n -> audio_request(10000 + n)` and
@@ -193,6 +253,16 @@ interrupts have run, so it is moved to its channel start. Results (2026-09-24), 
 | AU4..AU14 (E<L>_1 keys) | 3995..14457 each | 1978..12577 | 379..2335 | 130..247 | 62 MIDI ends (loops restarted), digital loops (AU12/13) |
 | AUV8 (Alt+S twice) | 5946 | 2354 | 582 | 74 | volume 0 / 15 |
 | SPK8 (`<workspace>/oracle/popspk.hdd`: pop.hdd with CONFIG.DAT's types 0; run oracle-run with `--rom` on it) | 1316 | - | - | - | 1362 speaker gate/divisor writes incl. vibrato |
+| MT1 (MT-32: `popmt32.hdd`, CONFIG.DAT type 0x28, MIDI.DRV = MMPU401.DRV, PRESETS.DEF = PRESET40.DEF; AU1's keys) | 15911 | - | 5956 | 179 | 40767 MPU bytes (the 19934 of the upload included) |
+| MT4, MT12, MT14, MTV8 (AU4/12/14/V8's keys 660 frames later) | 5k..8k each | - | 1072.. | 93.. | 22150..25608 MPU bytes; MTV8 volume 0 / 15 with the buffer race above |
+| GM4 (General MIDI: `popgm.hdd`, type 0x29, PRESET41.DEF) | 5530 | - | 334 | 178 | 1430 MPU bytes: no level music, scene 2649 from NIS3VC.DAT |
+
+The MPU captures add `probe 4BD9 0100 a_mpucall`, `probe 4BD9 02E4 a_mpu` (the data port write, AL) and `probe 4BD9 027F
+a_mpucmd`; run audiotest with `AUDIO_MIDI=0x28` (or 0x29): the init is then the capture's first input, and the MPU bytes
+are compared after being put back in driver-call order (by stack depth: an interrupt inside a call), the interrupted
+call's bytes after the interrupt not compared (the race). `tests/run_audio.sh` (meson suite `audio`, with
+-DoracleTests=true) runs every capture. `audiotest DIR --mid OUT.mid TYPE SECONDS ID...` writes the MPU stream of the
+start and of the sounds requested after the setup piece as a standard MIDI file.
 
 `audiotest DIR --pcm CAPTURE-snap.txt AUDIO.raw [PREFIX]` renders the capture's requests in real time (placed by
 instruction count inside the frame) and compares 10 ms RMS envelopes with the oracle's mixer output (oracle-run

@@ -3,6 +3,7 @@
 #   ticks: every "mismatching" count 0, except the known single-tick harness cases L1 D/E/F (1/1/2, a mid-tick room
 #          change the harness does not model); coretest 0 round trips differ
 #   tiles: every room build "0 entries differ"
+#   audio: every sound-driver capture identical (tests/run_audio.sh)
 #   info : the script ran (sound model / shell comparisons have documented, accepted differences)
 mode=$1; script=$2; shift 2
 out=$(bash "$script" "$@" 2>&1); rc=$?
@@ -15,6 +16,9 @@ ticks)
 	[ -z "$bad" ] || { echo "FAIL:"; echo "$bad"; exit 1; } ;;
 tiles)
 	bad=$(echo "$out" | grep -v " 0 entries differ")
+	[ -z "$bad" ] || { echo "FAIL:"; echo "$bad"; exit 1; } ;;
+audio)
+	bad=$(echo "$out" | grep -v -- "-> identical$")
 	[ -z "$bad" ] || { echo "FAIL:"; echo "$bad"; exit 1; } ;;
 esac
 exit 0

@@ -11,6 +11,7 @@
 #include "snap.h"
 #include "../source/state.h"
 #include "../source/core.h"
+#include "../source/version.h"
 
 static struct { const char *name; int pos; } keymap[] = {   /* oracle key names -> DS:1D00 key table positions */
 	{"left", 0x58}, {"right", 0x5A}, {"up", 0x55}, {"down", 0x5D}, {"home", 0x54}, {"pageup", 0x56}, {"end", 0x5C}, {"pagedown", 0x5E},
@@ -117,10 +118,11 @@ int main(int argc, char **argv)
 	{ extern uint32_t snd_start_delay; if (getenv("E2E_SNDDELAY")) snd_start_delay = atoi(getenv("E2E_SNDDELAY")); extern uint32_t snd_midi_extra, snd_digi_extra; if (getenv("E2E_MIDIX")) snd_midi_extra = atoi(getenv("E2E_MIDIX")); if (getenv("E2E_DIGIX")) snd_digi_extra = atoi(getenv("E2E_DIGIX")); }
 	if (argc < 6) { fprintf(stderr, "usage: e2e SEQUENCE.DAT ram.bin PRINCE.EXE events.txt capture.script\n"); return 2; }
 	glue_init(argv[1], "/dev/null"); glue_load_exe_tables(argv[3]);
+	{ static uint8_t d[0x10000]; if (version_load_exe(argv[3], d)) game_ver = getenv("E2E_VERSION") ? atoi(getenv("E2E_VERSION")) : exe_ver; }   /* (the release: the EXE's, E2E_VERSION 0 1.1 / 1 1.0 / 2 IR) */
 	static uint8_t ram[655360]; FILE *rf = fopen(argv[2], "rb"); if (!rf || fread(ram, 1, sizeof ram, rf) != sizeof ram) return 2; fclose(rf);
 	if (getenv("E2E_EXE_DS")) {   /* static tables from PRINCE.EXE's data segment (file 0x3CE40 = DS:0), runtime values from the dump */
-		static uint8_t img[655360]; memcpy(img, ram, sizeof img); FILE *xf = fopen(argv[3], "rb"); memset(img + 0x3B250, 0, 0x2900);
-		fseek(xf, 0x3CE40, SEEK_SET); if (fread(img + 0x3B250, 1, 0x27BF, xf) != 0x27BF) return 2; fclose(xf);
+		static uint8_t img[655360]; memcpy(img, ram, sizeof img); memset(img + 0x3B250, 0, 0x2900);
+		if (!version_load_exe(argv[3], img + 0x3B250)) return 2;   /* (any release: its tables in 1.1's layout) */
 		for (const char *q = getenv("E2E_EXE_DS"); *q; ) { unsigned a0, n0; int used; if (sscanf(q, "%x:%x%n", &a0, &n0, &used) != 2) break; memcpy(img + 0x3B250 + a0, ram + 0x3B250 + a0, n0); q += used; if (*q == ',') q++; }
 		glue_load_ds_tables(img);
 	} else glue_load_ds_tables(ram);

@@ -513,6 +513,7 @@ enum setting_ids {
 	SETTING_USE_INTEGER_SCALING,
 	SETTING_SCALING_TYPE,
 	SETTING_ENABLE_CHEATS,
+	SETTING_GAME_VERSION, // SDLPoP2
 	SETTING_RANDOM_SEED, // SDLPoP2
 	SETTING_ENABLE_QUICKSAVE,
 	SETTING_ENABLE_QUICKSAVE_PENALTY,
@@ -574,6 +575,8 @@ typedef struct setting_type {
 static const char* const bool_ini_values[] = {"false", "true"};
 static const char* const scaling_ini_values[] = {"sharp", "fuzzy", "blurry"};
 static const char* const sound_device_ini_values[] = {"speaker", "digital", "fm", "fm_digital", "mt32_digital", "mt32"};
+static const char* const game_version_ini_values[] = {"auto", "1.1", "1.0", "ir"};   // SDLPoP2: the DOS release
+NAMES_LIST(game_version_setting_names, {"Auto", "1.1", "1.0", "Initial release",});
 NAMES_LIST(sound_device_setting_names, {"PC speaker", "Digital", "FM", "FM + digital", "MT-32 + digital", "MT-32",});
 
 static setting_type general_settings[] = {
@@ -693,6 +696,15 @@ static setting_type gameplay_settings[] = {
 				.text = "Play the story scenes",
 				.explanation = "Play the story scenes between the levels (and the time-out and ending scenes).\n"
 						"A skipped scene counts as played to its end."},
+		// SDLPoP2: the DOS release (docs/VERSIONS.md), from the next start
+		{.id = SETTING_GAME_VERSION, .style = SETTING_STYLE_NUMBER, .number_type = SETTING_INT, .max = 3,
+				LINK(game_version), .names_list = &game_version_setting_names_list,
+				.ini = "General/game_version", .ini_values = game_version_ini_values, .gameplay = 1, .required = &gameplay_settings_editable,
+				.text = "Game version (after a restart)",
+				.explanation = "Which DOS release to play: the initial release (1993), 1.0 or 1.1 (the CD's).\n"
+						"Auto - the release of the game files.\n"
+						"1.0 and 1.1 share their files; the initial release needs its own.\n"
+						"Takes effect at the next start."},
 };
 
 static setting_type mods_settings[] = {
@@ -1281,6 +1293,7 @@ static int setting_apply_group(int setting_id) {
 		case SETTING_KEY_CTRL: return OVERLAY_MENU_APPLY_KEYS;
 		case SETTING_ENABLE_CHEATS: return OVERLAY_MENU_APPLY_CHEATS;
 		case SETTING_SOUND_DEVICE: return OVERLAY_MENU_APPLY_SOUND_DEVICE;
+		case SETTING_GAME_VERSION: return OVERLAY_MENU_APPLY_GAME_VERSION;
 	}
 }
 // SDLPoP2: the random seed setting as the menu shows it: -1 the clock, else the number (shown up to 99999)

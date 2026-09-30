@@ -2,6 +2,7 @@
  * (0AFF:0AAA start_fall, OVL01 02FE86 / 02FFE0 landing, 1375:06F2 / 0758 dispatchers). */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 uint16_t word_5cd8;          /* DS:5CD8 (8618): nonzero freezes the kid (cutscene / pause) */
 uint16_t word_6142, word_6146;   /* DS:6142 (8a82) fall scream played, DS:6146 (8a86) */
@@ -60,7 +61,8 @@ int8_t find_opponent(int8_t mode)
 		if (best != -1) {
 			int bdx = chars[best].x - Kid.x, bdy = chars[best].y - Kid.y; if (bdx < 0) bdx = -bdx; if (bdy < 0) bdy = -bdy;
 			int dd = dy - bdy; if (dd < 0) dd = -dd;
-			if ((dd < 0x2B || bdy <= dy) && (dd > 0x29 || bdx <= dx)) continue;
+			int lim = V_11 ? 0x2A : 0x2B;   /* (1.0 and the initial release: 43) */
+			if ((dd <= lim || bdy <= dy) && (dd >= lim || bdx <= dx)) continue;
 		}
 		best = i;
 	}
@@ -137,6 +139,21 @@ static void try_grab_ledge(void)
 }
 
 void try_grab_ledge_pub(void) { try_grab_ledge(); }
+/* IR and 1.0: the DOS command line's NEWBUMP (1.1 dropped it; shell.c sets it from the words) */
+int newbump_switch;
+/* 0AFF:0AAA's position correction against a wall or a ceiling beside or above the character */
+static void fall_bump_correction(void)
+{
+	if (tile_is_wall_kind(get_tile_infrontof(1)) || tile_is_wall_kind(get_tile_behind_char()) || !tile_is_empty_kind(get_tile_above_char())
+	    || !tile_is_empty_kind(get_tile_above_front()) || !tile_is_empty_kind(get_tile_above_behind())) {
+		int16_t d = distance_to_edge_weight();
+		if (d < 8) Char.x = char_dx_forward(d - 11);
+		else if (d > 0x18) Char.x = char_dx_forward(d - 0x15);
+		if (!tile_is_empty_kind(get_tile_above_char()) || !tile_is_empty_kind(get_tile_above_front())) {
+			int16_t yy = Char.curr_row * 63 + 1; if (Char.y < yy) Char.y = yy;
+		}
+	}
+}
 /* 0AFF:0AAA: start falling from the current frame */
 static void start_fall(void)
 {
@@ -162,20 +179,11 @@ static void start_fall(void)
 			else id = 7;
 		}
 	}
-	if (adjust) {
-		if (tile_is_wall_kind(get_tile_infrontof(1)) || tile_is_wall_kind(get_tile_behind_char()) || !tile_is_empty_kind(get_tile_above_char())
-		    || !tile_is_empty_kind(get_tile_above_front()) || !tile_is_empty_kind(get_tile_above_behind())) {
-			int16_t d = distance_to_edge_weight();
-			if (d < 8) Char.x = char_dx_forward(d - 11);
-			else if (d > 0x18) Char.x = char_dx_forward(d - 0x15);
-			if (!tile_is_empty_kind(get_tile_above_char()) || !tile_is_empty_kind(get_tile_above_front())) {
-				int16_t yy = Char.curr_row * 63 + 1; if (Char.y < yy) Char.y = yy;
-			}
-		}
-	}
+	if (adjust && !newbump_switch) fall_bump_correction();
 	if (level_kind == 1) { id = 0x1B; ovl_349be(); seq_set_85f8(8); }
 	else if (Char.charid == 0 && word_5d36 != 0 && Char.f19 != 0xE4) id = 0xE4;
 	seqtbl_offset_char(id); play_seq(); load_fram_det_col();
+	if (adjust && newbump_switch) fall_bump_correction();   /* (IR and 1.0 with NEWBUMP on the command line: after the sequence's first step) */
 	if (!tile_is_wall_kind(get_tile_at_char())) {
 		if (tile_is_wall_kind(get_tile_infrontof(1))) {
 			if (frame == 0x2C && distance_to_edge_weight() < 14) { seqtbl_offset_char(0x72); play_seq(); }

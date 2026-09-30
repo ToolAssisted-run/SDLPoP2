@@ -10,6 +10,7 @@
 #include "render.h"
 #include "image.h"
 #include "glue.h"
+#include "version.h"
 
 extern uint16_t word_5cda, word_5cdc, word_5cd8, minutes_left, clock_ticks;   /* DS:5CDA / 5CDC / 5CD8 / 5CD2 / 5CEA */
 extern uint16_t input_device;   /* DS:2BA2 */
@@ -74,7 +75,7 @@ void gfx_move(int dv, int dh) { the_port->pen_v += dv; the_port->pen_h += dh; }
 static const uint8_t *system_font(void)
 {
 	static uint8_t f[0x800]; static int loaded;
-	if (!loaded) { loaded = -1; FILE *e = fopen(game_path("PRINCE.EXE"), "rb"); if (e) { if (!fseek(e, 0x3B220, SEEK_SET) && fread(f, 1, sizeof f, e) == sizeof f) loaded = 1; fclose(e); } }
+	if (!loaded) { loaded = -1; FILE *e = fopen(game_path("PRINCE.EXE"), "rb"); if (e) { if (!fseek(e, (long)exe_data_base + 0xD20, SEEK_SET) && fread(f, 1, sizeof f, e) == sizeof f) loaded = 1; fclose(e); } }   /* (exe_data_base: version.c) */
 	return loaded > 0 ? f : NULL;
 }
 /* fonts a frontend supplies (not the game's; e.g. the overlay menu's): gfx_add_font */

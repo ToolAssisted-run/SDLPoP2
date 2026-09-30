@@ -17,6 +17,7 @@
 #include "loader.h"
 #include "menu.h"
 #include "shell.h"
+#include "version.h"
 #include "nis.h"
 #include "render_frame.h"
 #include "settings.h"
@@ -719,6 +720,7 @@ static void shell_main(void)   /* 0823:0000 */
 	while (shell_sound_setup_hook && shell_sound_setup_hook()) sh_frame();
 	const char *cheat = txt4_get(10, NULL);   /* "YIPPEEYAHOO" */
 	cheat_mode = cheat_word = cheat && arg_find(cheat) ? 1 : 0;
+	{ extern int newbump_switch; newbump_switch = !V_11 && arg_find("NEWBUMP") != NULL; }   /* (IR and 1.0: 0AFF:0AAA's correction after the first step) */
 	options_load();                /* 0D5E:2166 */
 	byte_6b6c = 0;                 /* 0823:0192: LEVELn with the cheat word */
 	const char *lv = cheat_word ? arg_find("LEVEL") : NULL;
@@ -733,6 +735,8 @@ static void shell_main(void)   /* 0823:0000 */
 /* ---- the host side ---- */
 void shell_set_seed(uint32_t seed) { seed_value = seed; seed_set = 1; }
 void shell_set_sound_device(int caps, int midi_type) { sound_set_device(caps, midi_type); }
+void shell_set_game_version(int v) { pop2_set_game_version(v); }
+const char *shell_init_error(void) { return pop2_init_error(); }
 void shell_reseed(uint32_t seed) { random_seed = seed; }
 void shell_goto(int level, int entry) { if (cheat_mode && mode == SH_PLAY) cheat_goto(level, entry); }
 int shell_level_entries(int *levels, int *entries, int *rooms, int max) { return cheat_level_entries(levels, entries, rooms, max); }

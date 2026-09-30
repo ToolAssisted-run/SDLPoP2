@@ -4,6 +4,7 @@
  * Transcribed from the disassembly (the decompiler loses most branches in this overlay). */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include "settings.h"
 #include <stdlib.h>
 
@@ -146,10 +147,52 @@ static void guard_after_drop(void)
 	}
 	if (back) { word_6146 = 0; move_backward(); }
 }
+/* 366C:090A: 0x60, and 0x18 more for each character after this one standing within 0x18 of it */
+static int16_t guard_crowd(void)
+{
+	int16_t si = 0x60; int8_t n = room_nchars(drawn_room);
+	for (int8_t i = (int8_t)(Char.index + 1); i < n; i++) { int d = Char.x - chars[i].x; if (d < 0) d = -d; if (d < 0x18) si += 0x18; }
+	return si;
+}
+static int opp_running(uint16_t f) { return (f >= 1 && f <= 0xE) || (f >= 0x31 && f <= 0x38) || (f >= 0x22 && f <= 0x2C); }
+static void guard_sheathe(void);
+/* 366C:08F0 (1.0 and the initial release: guard_armed with Char.f23 1 or 2; 1.1 tests f23 == 1 && f23 == 2, so never):
+ * with the sword drawn, keep clear of the others: step back from a gap or a closed gate, sheathe when the prince runs
+ * off, else go on */
+static void guard_keep_clear(void)
+{
+	int8_t o = find_opponent((int8_t)~Char.direction);
+	if (o == -1) o = find_opponent(1);
+	if (o == -1) return;
+	if ((int8_t)Char.index == o) {   /* 37162: the prince near: back off from what is in front */
+		int cx = Kid.x - Char.x; if (cx < 0) cx = -cx;
+		if (cx >= 0x40) return;
+		uint8_t t = get_tile_infrontof(cx < 0x20 ? 1 : 2);
+		if (!tile_is_loose_kind(t) && !tile_is_empty_kind(t) && (t != 4 || (uint8_t)curr_modifier >= 0x70)) return;
+	} else {
+		int si = 0;
+		if (tile_passable_2f800(curr_modifier, get_tile_infrontof(1)) && tile_passable_2f800(curr_modifier, get_tile_infrontof(2))
+		    && tile_passable_2f800(curr_modifier, get_tile_infrontof(3))) si = 1;
+		const char_type *c = &chars[o];
+		int di = Char.x - c->x; if (di < 0) di = -di;
+		int16_t reach = guard_crowd();
+		int running = Char.direction == Opp.direction && opp_running(Opp.frame) && Opp.action != 7;
+		if (reach + 0x18 >= di && !(c->direction == Char.direction && c->f19 == 0x54)) {
+			if (si && running && Char.f38 != 0 && ((Char.x < Opp.x && Opp.direction == 0) || (Char.x > Opp.x && Opp.direction == -1))) { guard_sheathe(); return; }
+			if (di >= reach) return;
+		} else {
+			if (!si || Char.f19 == 0x54) return;
+			if (((c->f19 == 0x54 && c->direction == Char.direction) || running) && Char.f38 != 0) { guard_sheathe(); return; }
+			move_forward(); return;
+		}
+	}
+	if (tile_passable_2f800(curr_modifier, get_tile_behind_char())) move_backward();   /* 371AD */
+}
 /* 366C:0774: sword drawn */
 static void guard_armed(void)
 {
 	uint16_t f = Char.frame;
+	if (!V_11 && (Char.f23 == 1 || Char.f23 == 2)) { guard_keep_clear(); return; }
 	if (f == 0xA6 || f < 0x96) return;
 	if (Char.f23 == 0) {
 		if (word_6146 != 0) { guard_after_drop(); return; }
@@ -245,7 +288,7 @@ static void guard_turning(void)
 	if (id == -1) return;
 	seqtbl_offset_char(id);
 	uint8_t t = get_tile_behind_char();
-	if (Char.frame == 0xD4 && !tile_passable_2f800(curr_modifier, t)) Char.x = char_dx_forward(8);
+	if (Char.frame == 0xD4 && !tile_passable_2f800(curr_modifier, t)) Char.x = char_dx_forward(V_11 ? 8 : 10);   /* (1.0 and IR: 10) */
 }
 /* 2D3E:192C (02ED0C): charid-2 guards */
 static void guard_ai(void)

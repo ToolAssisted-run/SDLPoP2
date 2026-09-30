@@ -37,6 +37,8 @@ typedef struct pop2_settings {
 	int enable_music, enable_sounds;
 	int volume;                               /* 0..15: what "sound on" (the game's 15) plays at */
 	int sound_device;                         /* SOUND_DEVICE_* (audio_init's caps; 4 / 5 the MT-32) */
+	int game_version;                         /* the DOS release played: 0 the game files' own, 1 1.1, 2 1.0, 3 the initial
+	                                             release (version.h's POP2_VER_* + 1; docs/VERSIONS.md) */
 	char mt32_roms[256];                      /* the MT-32's ROMs folder ("": the default places) */
 	char keys[KEY_COUNT][32];                 /* SDL scancode names ("Left", "Left Shift", ...) */
 	int enable_pause_menu;                    /* Esc (and the controller's menu button) opens the overlay menu (SDLPoP's) */

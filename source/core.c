@@ -7,19 +7,25 @@
 #include "glue.h"
 #include "state.h"
 #include "core.h"
+#include "version.h"
 
 extern char glue_dir[400]; extern int pop2_keystrokes, pop2_restart_level; extern uint8_t key_table[0x70], bios_shift_flags;
 static int scene; static uint8_t ram[655360];   /* DS at 0x3B250, as the program starts */
 
+static int want_ver = POP2_VER_AUTO; static const char *init_error;
+void pop2_set_game_version(int v) { want_ver = v; }
+const char *pop2_init_error(void) { return init_error; }
 int pop2_init(const char *dir)
 {
 	snprintf(glue_dir, sizeof glue_dir, "%s", dir);
-	char p[512];
+	char p[512]; init_error = NULL;
 	snprintf(p, sizeof p, "%s/SEQUENCE.DAT", dir); if (!glue_open_seq(p)) return 0;
 	snprintf(p, sizeof p, "%s/PRINCE.EXE", dir);
-	/* the data segment as the program starts: PRINCE.EXE's initialised data (file 0x3CE40 = DS:0), the rest zero */
-	FILE *f = fopen(p, "rb"); if (!f) return 0;
-	fseek(f, 0x3CE40, SEEK_SET); size_t n = fread(ram + 0x3B250, 1, 0x27BF, f); fclose(f); if (n != 0x27BF) return 0;
+	/* the data segment as the program starts: PRINCE.EXE's initialised data (DS:0 at its data + 0x2940; 1.1's layout,
+	 * version.c), the rest zero */
+	memset(ram + 0x3B250, 0, 0x10000);
+	if (!version_load_exe(p, ram + 0x3B250)) { init_error = "PRINCE.EXE is not Prince of Persia 2's."; return 0; }
+	if ((init_error = version_choose(want_ver)) != NULL) return 0;
 	glue_load_exe_tables(p); glue_load_ds_tables(ram);
 	return 1;
 }

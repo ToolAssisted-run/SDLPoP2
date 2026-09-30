@@ -34,7 +34,7 @@ void settings_defaults(pop2_settings *s)
 {
 	memset(s, 0, sizeof *s);   /* (whole: the structs compare with memcmp) */
 	s->use_correct_aspect_ratio = 1; s->scaling_type = SCALING_SHARP;
-	s->enable_music = s->enable_sounds = 1; s->volume = 15; s->sound_device = SOUND_DEVICE_FM_DIGITAL;
+	s->enable_music = s->enable_sounds = 1; s->volume = 15; s->sound_device = SOUND_DEVICE_FM_DIGITAL; s->game_version = 0;
 	for (int k = 0; k < KEY_COUNT; k++) snprintf(s->keys[k], sizeof s->keys[k], "%s", key_defaults[k]);
 	s->enable_pause_menu = 1;   /* (SDLPoP's default) */
 	s->enable_intro = s->enable_story_scenes = 1; s->skip_title = 0;
@@ -54,7 +54,7 @@ void settings_defaults(pop2_settings *s)
 }
 
 /* ---- the options ---- */
-typedef enum { T_BOOL, T_INT, T_SIZE, T_STR, T_SCALING, T_SOUNDDEV, T_SEED, T_KEY } ftype;
+typedef enum { T_BOOL, T_INT, T_SIZE, T_STR, T_SCALING, T_SOUNDDEV, T_SEED, T_KEY, T_GAMEVER } ftype;
 typedef struct { const char *section, *key; ftype type; size_t off, size; int min, max; int gameplay; } field;
 #define F(sec, name, t, lo, hi, g) { sec, #name, t, offsetof(pop2_settings, name), sizeof ((pop2_settings *)0)->name, lo, hi, g }
 static const field fields[] = {
@@ -68,6 +68,7 @@ static const field fields[] = {
 	F("General", enable_sounds, T_BOOL, 0, 1, 0),
 	F("General", volume, T_INT, 0, 15, 0),
 	F("General", sound_device, T_SOUNDDEV, 0, 5, 1),   /* (gameplay: the game logic knows the device; replays record it) */
+	F("General", game_version, T_GAMEVER, 0, 3, 1),
 	F("General", mt32_roms, T_STR, 0, 0, 0),
 	F("General", enable_pause_menu, T_BOOL, 0, 1, 0),
 	F("General", enable_intro, T_BOOL, 0, 1, 1),
@@ -137,6 +138,9 @@ static int set_field(pop2_settings *s, const pop2_settings *d, const field *f, c
 		if (ieq(v, "fm_digital")) b = SOUND_DEVICE_FM_DIGITAL; else if (ieq(v, "fm")) b = SOUND_DEVICE_FM;
 		else if (ieq(v, "mt32_digital")) b = SOUND_DEVICE_MT32_DIGITAL; else if (ieq(v, "mt32")) b = SOUND_DEVICE_MT32;
 		else if (ieq(v, "digital")) b = SOUND_DEVICE_DIGITAL; else if (ieq(v, "speaker")) b = SOUND_DEVICE_SPEAKER; else return 0;
+		*(int *)p = b; return 1;
+	case T_GAMEVER:
+		if (ieq(v, "auto")) b = 0; else if (ieq(v, "1.1")) b = 1; else if (ieq(v, "1.0")) b = 2; else if (ieq(v, "ir")) b = 3; else return 0;
 		*(int *)p = b; return 1;
 	case T_SEED:
 		if (ieq(v, "clock")) { s->random_seed_clock = 1; s->random_seed = 0; return 1; }
@@ -251,6 +255,7 @@ void settings_write_gameplay(const pop2_settings *s, FILE *f)
 		static const char *const devs[] = {"speaker", "digital", "fm", "fm_digital", "mt32_digital", "mt32"};
 		if (fl->type == T_BOOL) fprintf(f, "%s\n", *(const int *)p ? "true" : "false");
 		else if (fl->type == T_SOUNDDEV) fprintf(f, "%s\n", devs[*(const int *)p >= 0 && *(const int *)p <= 5 ? *(const int *)p : SOUND_DEVICE_FM_DIGITAL]);
+		else if (fl->type == T_GAMEVER) { static const char *const vers[] = {"auto", "1.1", "1.0", "ir"}; int g = *(const int *)p; fprintf(f, "%s\n", vers[g >= 0 && g <= 3 ? g : 0]); }
 		else fprintf(f, "%d\n", *(const int *)p);
 	}
 	for (int l = 1; l <= SETTINGS_LEVELS; l++) {

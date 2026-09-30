@@ -2,6 +2,7 @@
  * (-1 = newly pressed, 0 = not pressed, 1 = consumed). seqtbl_offset_char(id) starts a sequence. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 /* 0AFF:1010 / 0FFC: 32-pixel tiles; xl = (x-18) % 32 kept in DS:94B0 (obj_xl) */
 int8_t obj_xl;
@@ -397,7 +398,7 @@ void control_jumpup_grab_031074(void)
 /* 1375:0CFA: the level door at curr_tile is open */
 static int level_door_open(void) { return (uint8_t)curr_modifier >= 0x2A; }
 /* 2FDF:0D62: step into the open level door (facing left, lined up with it) */
-static void enter_level_door(void) { Char.x = col_x_left[tile_col - 1] + 0x1E; Char.direction = -1; seqtbl_offset_char(0x46); }
+static void enter_level_door(void) { Char.x = col_x_left[tile_col - 1] + (V_11 ? 0x1E : 0x10); Char.direction = -1; seqtbl_offset_char(0x46); }   /* (1.0 and IR: + 0x10) */
 /* 2FDF:0C42 (030a32): up pressed while standing */
 void control_standing_up(void)
 {
@@ -560,7 +561,7 @@ void control_2fdf_1bfa(void)
 	DBG("1bfa: tile %u opp.f23 %u dist %d charid %u\n", t, Opp.f23, opp_distance(), Char.charid);
 	if ((t == 0xB || t == 0xF) || Opp.f23 >= 2) {
 		int d = opp_distance();
-		if (d < -10 || d > 0xCF) {
+		if (d < -10 || (V_11 ? d > 0xCF : d >= 0xCD)) {   /* (1.0 and IR: from 0xCD) */
 			if (d >= 0) goto tail;
 			if (d > -5 || (d > -0x1F && (Opp.charid == 7 || Opp.charid == 8))) { sword_actions(); fall_through = 0; goto tail; }
 			if (Char.charid != 0xB) {

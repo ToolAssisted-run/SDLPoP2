@@ -10,6 +10,7 @@
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include "render.h"
 #include "render_tiles.h"
 #include "render_frame.h"
@@ -122,7 +123,7 @@ static void char_clip(void)
 		uint8_t t = get_tile(Char.curr_row, Char.curr_col, Char.room);
 		int16_t src[4], dst[4]; set_rect(src, ds_word((uint16_t)(0x0806 + 2 * level_kind)));
 		if (!render_rect_at_tile(Char.curr_row, (int8_t)(Char.curr_col + (t == 0x10)), src, dst)) return;   /* 17C1:016E */
-		sv.rect[0] = dst[0]; sv.rect[3] = 0x140; return;
+		sv.rect[0] = dst[0]; sv.rect[3] = V_11 ? 0x140 : dst[3]; return;   /* (1.0 and IR: the tile's right edge) */
 	}
 	if (act == 9) { if (level_kind == 5) draw_hook_33fd_0190(); return; }
 	int keep = 1, heads = Char.charid == 7 || Char.charid == 8;
@@ -176,7 +177,7 @@ static void dead_body(void)
 	uint16_t si = Char.frame; spr_vars save = sv; int16_t sx = obj_x, sy = obj_y, sid = obj_id; uint8_t sch = obj_chtab;   /* 0AFF:1C0A */
 	sv.key = 0xFF; obj_chtab = 2; obj_id = 0xDA;
 	int16_t dx;
-	if (si == 0xB9 || (si >= 0x6A && si < 0x6F)) { obj_y += 4; dx = 0xC; }
+	if (si == 0xB9 || (si >= 0x6A && si < 0x6F)) { obj_y += 4; dx = V_11 ? 0xC : 0; }   /* (1.0 and IR: not moved) */
 	else if (Char.charid == 0xB) { obj_y += 5; obj_dx(-8); obj_chtab = 3; obj_id = 0x77; goto placed; }
 	else if (Char.charid == 0xC) { obj_y -= 0xB; dx = -8; }
 	else if (Char.charid == 0) {

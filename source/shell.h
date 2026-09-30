@@ -62,6 +62,10 @@ void shell_set_seed(uint32_t seed);   /* before shell_init: the random seed the 
  * which sounds play on the PC speaker, the ambient music, "Music Unavailable", level 2's chime and, with no driver at
  * all, the effects waiting for the music. Default: 3, 0x21 (the CD's Sound Blaster Pro setup). A restart-only choice. */
 void shell_set_sound_device(int caps, int midi_type);
+/* before shell_init: the DOS release to play (version.h POP2_VER_*: -1 the game files' own, 0 1.1, 1 1.0, 2 the initial
+ * release; docs/VERSIONS.md). shell_init then fails when the files are the wrong release's: shell_init_error() says why */
+void shell_set_game_version(int v);
+const char *shell_init_error(void);
 void shell_reseed(uint32_t seed);
 /* the cheats' level jump (the overlay menu's CHEATS page; a replay records it): with the cheats on while playing, to
  * level `level` at one of its entry points (shell_level_entries: the start, its checkpoints, level 7's second start) */

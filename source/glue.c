@@ -7,6 +7,7 @@
 #include "globals.h"
 #include "dat.h"
 #include "glue.h"
+#include "version.h"
 char_type Char, Opp, Kid, chars[5]; level_type level; uint8_t tiles0[30]; uint32_t tick; int16_t knock;
 int8_t control_x, control_y, control_shift; uint8_t drawn_room; uint16_t counter_5cec, word_27c0, counter_27d6, word_6140;
 uint8_t flag_5cb9, byte_5cb8, level_kind, level_number, room_A; uint8_t *level_roomlinks = (uint8_t *)&level + 0x17BC;
@@ -65,7 +66,9 @@ static uint8_t kidtab[20736];
 void glue_load_exe_tables(const char *exe)
 {
 	FILE *f = fopen(exe, "rb"); if (!f) { fprintf(stderr, "cannot open %s\n", exe); exit(2); }
-	fseek(f, 0x3A500, SEEK_SET); if (fread(kidtab, 1, sizeof kidtab, f) < 12000) fprintf(stderr, "short data resource\n");
+	{ uint8_t head[0x40]; if (fread(head, 1, 2, f) == 2 && head[0] == 'M') { fseek(f, 0, SEEK_END); long n = ftell(f); uint8_t *e = malloc((size_t)n); fseek(f, 0, SEEK_SET);
+	  if (e && fread(e, 1, (size_t)n, f) == (size_t)n) { uint32_t b; int v = version_of_exe(e, (size_t)n, &b); if (v >= 0) exe_data_base = b; } free(e); } }
+	fseek(f, (long)exe_data_base, SEEK_SET); if (fread(kidtab, 1, sizeof kidtab, f) < 12000) fprintf(stderr, "short data resource\n");   /* the frame table: the data overlay's start */
 	fclose(f); frame_table_kid = kidtab;
 	static dat_file princedat, guarddat; uint16_t n;
 	/* sword frames: PRINCE.DAT FRAM 1000 (1286:0544); guard frames: the guard DAT's FRAM table (GUARD.DAT 750 on level 1, DS:0CB8) */

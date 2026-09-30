@@ -3,6 +3,7 @@
 #include <string.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include "settings.h"
 
 /* DS:612E..6138: the tile lookup's results (curr_tile .. char_bottom_row) */
@@ -36,7 +37,7 @@ static int pick_up(void)
 	ctx_load(ctx);
 	if (item == 0x16) {   /* the sword */
 		if (Char.room == 9 && level_number == 8 && word_2bb2 == 0) {
-			Char.x = char_dx_forward(-0xE); if (Char.direction == -1) Char.x = char_dx_forward(2);
+			Char.x = char_dx_forward(-0xE); if (Char.direction == -1) Char.x = char_dx_forward(V_11 ? 2 : 6);   /* (1.0: 6) */
 			seqtbl_offset_char(0xED); sound_1611_01a8(0xFE);
 		} else {
 			seqtbl_offset_char(0x5B); take_item(-1);

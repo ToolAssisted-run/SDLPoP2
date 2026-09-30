@@ -3,6 +3,7 @@
 #include <string.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include "settings.h"
 
 uint8_t start_hp = 3;          /* DS:6B71: the prince's hp at level start (3; a LEVEL switch gives 3..12; carried between levels) */
@@ -139,6 +140,7 @@ static void init_kid(void)
 	int si = checkpoint_start(), steps = 0;
 	Char.x = col_x_left[Char.curr_col] + 0xE;
 	Char.f12 = Char.f13 = start_hp;
+	if (!V_11 && (int8_t)word_32d8 == 0) Char.f12 = Char.f13 = 4;   /* (1.0 and IR: 4 hp when the level variable is 0) */
 	if (si == -1) {
 		if (level_kind == 5 && level.start_room == 4) { si = 4; steps = 9; }
 		else if (level_kind == 1) si = 0x7C;

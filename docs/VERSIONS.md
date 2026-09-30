@@ -227,7 +227,8 @@ Resource-level table: `~/pop2dec/versions/datafiles_diff.txt`.
 ### 5.1 The setting
 
 `game_version` (`auto`, `1.1`, `1.0`, `ir`; the GAMEPLAY menu's "Game version", after a restart) picks the release.
-`auto` takes PRINCE.EXE's, which `version_of_exe()` (source/version.c) tells by its title string ("PRINCE OF PERSIA 2
+`auto` takes PRINCE.EXE's, which `version_of_exe()` (source/version.c) tells by its title string (the SDL frontend
+checks the game folder with it too) ("PRINCE OF PERSIA 2
 v1.1", "… 1.0", else the initial release; the cracked copies differ only in a few code bytes). 1.0 plays with 1.0's
 or 1.1's files (they share every data file); the initial release needs its own files and they need theirs: the
 other combinations stop with a message. The code tests `game_ver` through `V_IR`, `V_10`, `V_11` and `V_1X`
@@ -270,8 +271,8 @@ The copy protection keeps 1.x's rule in IR mode (§5.6).
 `tests/run_versions.sh` (the oracle suite `versions`) replays IR and 1.0 captures end to end, every field compared.
 The captures are made with the workspace's `oracle/gen_e2e_ver.py` (random runs on the IR and 1.0 disks, their own
 probe addresses) and brought into 1.1's layout by `oracle/convcap.py` (the per-field maps of `versions/fieldmap.py`
-and `dsmap.py`). Today: 21 IR runs (levels 1–13, with and without the sword) and 7 of 1.0 (levels 1, 2, 3, 5, 8,
-12, 14), all clean but one 1.0 frozen tick (tests/oracle_check.sh). The harness follows IR's key reading (§5.3) and
+and `dsmap.py`). Today: 21 IR runs (levels 1–13, with and without the sword) and 23 of 1.0 (levels 1–14, with and
+without the sword), all clean but one 1.0 frozen tick (tests/oracle_check.sh). The harness follows IR's key reading (§5.3) and
 counts an IR game captured from level 3 on as one that answered the copy protection.
 
 Screens: 13 levels' shots of the IR oracle against shelltest on IR's files (state loaded each tick) match but for a

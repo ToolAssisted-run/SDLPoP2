@@ -22,6 +22,7 @@
 #include "../source/loader.h"
 #include "../source/text.h"
 #include "../source/globals.h"
+#include "../source/version.h"
 #include "controller.h"
 #include "overlay_menu.h"
 #ifndef SDLPOP2_DATADIR
@@ -385,12 +386,11 @@ static int opt_value(int argc, char **argv, int *a, const char *name, const char
 	else *v = *a + 1 < argc && strncmp(argv[*a + 1], "--", 2) ? argv[++*a] : NULL;
 	return 1;
 }
-/* the game's files: the folder, every file the engine reads, and PRINCE.EXE's version (1.0, the CD's). 0 with a message */
+/* the game's files: the folder, every file the engine reads, and a PRINCE.EXE of one of the three DOS releases (source/version.c). 0 with a message */
 static const char *const game_files[] = { "PRINCE.EXE", "CONFIG.DAT", "SEQUENCE.DAT", "PRINCE.DAT", "KID.DAT", "GUARD.DAT",
 	"HEAD.DAT", "SKELETON.DAT", "BIRD.DAT", "FLAME.DAT", "JINNEE.DAT", "ROOFTOPS.DAT", "DESERT.DAT", "CAVERNS.DAT", "RUINS.DAT",
 	"TEMPLE.DAT", "FINAL.DAT", "TRANS.DAT", "NIS.DAT", "NIS3VC.DAT", "DIGISND.DAT", "MIDISND.DAT", "IBMSND.DAT", "NISDIGI.DAT",
 	"NISMIDI.DAT", "NISIBM.DAT" };
-#define PRINCE_EXE_SIZE 259583L   /* Prince of Persia 2 1.0 (the Prince of Persia Collection CD) */
 static int check_game_dir(const char *dir, char *m, size_t n)
 {
 	if (!plat_dir_exists(dir)) { snprintf(m, n, "The game's folder \"%s\" does not exist. Give the folder with your copy of Prince of Persia 2 with --path-to-game DIR.", dir); return 0; }
@@ -413,9 +413,12 @@ static int check_game_dir(const char *dir, char *m, size_t n)
 		return 0;
 	}
 	char p[1300]; snprintf(p, sizeof p, "%s/PRINCE.EXE", dir);
-	FILE *f = fopen(p, "rb"); long size = -1; if (f) { fseek(f, 0, SEEK_END); size = ftell(f); fclose(f); }
-	if (size != PRINCE_EXE_SIZE) {
-		snprintf(m, n, "\"%s\" is not the version SDLPoP2 is made for: it needs Prince of Persia 2 1.0 (PRINCE.EXE of %ld bytes, as on the Prince of Persia Collection CD); this one has %ld bytes.", p, PRINCE_EXE_SIZE, size);
+	FILE *f = fopen(p, "rb"); long size = -1; uint8_t *exe = NULL;
+	if (f) { fseek(f, 0, SEEK_END); size = ftell(f); fseek(f, 0, SEEK_SET); if (size > 0 && (exe = malloc((size_t)size)) && fread(exe, 1, (size_t)size, f) != (size_t)size) size = -1; fclose(f); }
+	int v = exe && size > 0 ? version_of_exe(exe, (size_t)size, NULL) : -1;
+	free(exe);
+	if (v < 0) {
+		snprintf(m, n, "\"%s\" is not Prince of Persia 2's DOS program: SDLPoP2 plays the initial release, 1.0 and 1.1 (the Prince of Persia Collection CD's, PRINCE.EXE of 259583 bytes).", p);
 		return 0;
 	}
 	return 1;

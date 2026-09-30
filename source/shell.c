@@ -163,7 +163,7 @@ static const char *ds_str(int a)
 	case 0xA0C: return "Sound On"; case 0xA16: return "Sound Off"; case 0xA20: return "Ambient Music On";
 	case 0xA32: return "Ambient Music Off"; case 0xA44: return "Music Unavailable"; case 0xA56: return "Joystick Unavailable";
 	case 0xA6C: return "Joystick Mode"; case 0xA7A: return "Joystick Not Found"; case 0xA8E: return "Keyboard Mode";
-	case 0x7E: return "PRINCE OF PERSIA 2 v1.1";
+	case 0x7E: return V_IR ? "PRINCE OF PERSIA 2" : V_10 ? "PRINCE OF PERSIA 2 1.0" : "PRINCE OF PERSIA 2 v1.1";   /* (the release's title: IR / 1.0 DS:0042, 1.1 DS:007E) */
 	}
 	return "";
 }

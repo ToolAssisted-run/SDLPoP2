@@ -386,6 +386,7 @@ static int opt_value(int argc, char **argv, int *a, const char *name, const char
 	else *v = *a + 1 < argc && strncmp(argv[*a + 1], "--", 2) ? argv[++*a] : NULL;
 	return 1;
 }
+static int game_dir_release = -1;   /* the release of the game folder's PRINCE.EXE (source/version.h), from check_game_dir */
 /* the game's files: the folder, every file the engine reads, and a PRINCE.EXE of one of the three DOS releases (source/version.c). 0 with a message */
 static const char *const game_files[] = { "PRINCE.EXE", "CONFIG.DAT", "SEQUENCE.DAT", "PRINCE.DAT", "KID.DAT", "GUARD.DAT",
 	"HEAD.DAT", "SKELETON.DAT", "BIRD.DAT", "FLAME.DAT", "JINNEE.DAT", "ROOFTOPS.DAT", "DESERT.DAT", "CAVERNS.DAT", "RUINS.DAT",
@@ -416,6 +417,7 @@ static int check_game_dir(const char *dir, char *m, size_t n)
 	FILE *f = fopen(p, "rb"); long size = -1; uint8_t *exe = NULL;
 	if (f) { fseek(f, 0, SEEK_END); size = ftell(f); fseek(f, 0, SEEK_SET); if (size > 0 && (exe = malloc((size_t)size)) && fread(exe, 1, (size_t)size, f) != (size_t)size) size = -1; fclose(f); }
 	int v = exe && size > 0 ? version_of_exe(exe, (size_t)size, NULL) : -1;
+	game_dir_release = v;
 	free(exe);
 	if (v < 0) {
 		snprintf(m, n, "\"%s\" is not Prince of Persia 2's DOS program: SDLPoP2 plays the initial release, 1.0 and 1.1 (the Prince of Persia Collection CD's, PRINCE.EXE of 259583 bytes).", p);
@@ -449,7 +451,7 @@ int main(int argc, char **argv)
 	/* the DOS game's command line: its cheat word turns the cheats on and lets LEVELn choose the level; --level alone
 	 * uses it for LEVELn and turns the cheats off again before the first frame (as the menu's toggle: recorded) */
 	static char level_word[16]; snprintf(level_word, sizeof level_word, "LEVEL%d", level);
-	const char *dos_words[2] = { "yippeeyahoo", level_word }; const char **words = dos_words;
+	const char *dos_words[2] = { game_dir_release == POP2_VER_IR ? "makinit" : "yippeeyahoo", level_word }; const char **words = dos_words;   /* (the cheat word is the data's TXT4 10: the initial release's is MAKINIT) */
 	int nwords = level > 0 ? 2 : enable_cheats ? 1 : 0;
 	int cheats_off_at_start = level > 0 && !enable_cheats;
 	settings_defaults(&S);

@@ -5,6 +5,7 @@
 #include <string.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 uint8_t next_room;          /* DS:6B6D (94ad): room the prince moved to this tick */
 int16_t exit_dir;           /* DS:68F2 (9232): 0 left, 1 right, 2 up, 3 down, -1 none */
@@ -176,7 +177,7 @@ static int kid_exit_dir(void)
 {
 	int d;
 	const uint8_t *lk = level_links(Char.room);
-	if ((drawn_room == 7 || drawn_room == 8) && level_kind == 6 && (chars[0].f19 == 0xF3 || chars[1].f19 == 0xF3)) d = ovl_342b4();
+	if (V_1X && (drawn_room == 7 || drawn_room == 8) && level_kind == 6 && (chars[0].f19 == 0xF3 || chars[1].f19 == 0xF3)) d = ovl_342b4();
 	else if (word_32d8 == counter_5cec && Char.f19 != 0x46 && (Char.charid != 1 || Char.frame != 0xB9)) {
 		if (Char.action == 5 || Char.action == 4 || Char.action == 3 || Char.y > 9 || Char.y < -16) {
 			if (Char.y < 0xE7 || (lk[3] == 0 && Char.y < image_height + 0xE7) || (level_kind == 5 && Char.index == byte_9276)) {
@@ -322,7 +323,7 @@ void enter_room_chars(void)
 		Char.f38 = rec->f38; Char.opp_index = rec->opp_index;
 		Char.f2a = 0; Char.f26 = 0; Char.f28 = 0; Char.f24 = 0; Char.f23 = 0; Char.f3a = 0;
 		if (Char.charid == 0) Char.pal_slot = 2;
-		else if (Char.charid == 6) { Char.pal_slot = 4; ovl_guard6_sprites(); if (drawn_room == 6 && level_kind == 6) Char.direction = random_2751(1) - 1; }
+		else if (Char.charid == 6) { Char.pal_slot = 4; ovl_guard6_sprites(); if (V_1X && drawn_room == 6 && level_kind == 6) Char.direction = random_2751(1) - 1; }   /* (IR: no random draw) */
 		else if (lt == 0 || lt == 5 || lt == 6) pick_pal_slot(rec->pal);
 		else Char.pal_slot = 4;
 		if (rec->seq_pos == 0) {

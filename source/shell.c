@@ -376,7 +376,7 @@ int sh_scene(int n)
 /* ---- the demo player (15DB) ---- */
 static struct { uint16_t mode, pos, sub, slot[6]; const uint8_t *res; uint16_t size; uint16_t id; } demo;   /* DS:2AC4.. */
 static int16_t rd16(const uint8_t *p) { return (int16_t)(p[0] | p[1] << 8); }
-static int tick_before(int16_t w) { int32_t v = w; return (uint32_t)v < tick; }   /* the word sign-extended, compared unsigned with DS:5D04 */
+static int tick_before(int16_t w) { if (V_IR) return w < (int16_t)tick; int32_t v = w; return (uint32_t)v < tick; }   /* the word sign-extended, compared unsigned with DS:5D04 (IR: both signed words) */
 static void demo_apply(uint16_t w)   /* 15DB:01BC */
 {
 	ctrl1_forward = (int8_t)((w & 3) - 1); ctrl1_backward = (int8_t)(((w >> 2) & 3) - 1);
@@ -396,7 +396,7 @@ void ovl_15db_64(void)   /* 15DB:0064: in the control of the prince and of each 
 			rec = d + demo.pos + 5;
 		}
 		int32_t t = rd16(rec);
-		if ((uint32_t)t == tick && (int8_t)rec[2] > (int16_t)demo.sub && rec[3 + demo.sub * 3] == who) {
+		if ((V_IR ? (int16_t)t == (int16_t)tick : (uint32_t)t == tick) && (int8_t)rec[2] > (int16_t)demo.sub && rec[3 + demo.sub * 3] == who) {
 			uint16_t w = (uint16_t)(rec[4 + demo.sub * 3] | rec[5 + demo.sub * 3] << 8);
 			demo_apply(w); demo.slot[who] = w; demo.sub++;
 		}
@@ -475,7 +475,7 @@ static void cheat_keys(int di)   /* 0823:0528 (the gameplay ones; the debug disp
 	case 0x49: toggle_upside_down_pub(); break;   /* 'I' */
 	case 0x52: snprintf(t, sizeof t, "Room %d", drawn_room); message(t); break;   /* 'R' */
 	case 0x54: sound_1611_01a8(0x65); { int m = (int8_t)Char.f13 + 1; int cap = GAME_SETTING(max_hitp_allowed, 12); Char.f13 = (uint8_t)(m > cap ? cap : m); Char.hp_delta = (int8_t)(Char.f13 - Char.f12); } Kid = Char; break;   /* 'T' (0823:0F16) */
-	case 0x57: word_5d36 = 0xE4; sound_1611_01a8(0x69); sound_stop_all(); word_087e = -1; break;   /* 'W' (0823:13C4) */
+	case 0x57: word_5d36 = 0xE4; sound_1611_01a8(0x69); if (V_1X) { sound_stop_all(); word_087e = -1; } break;   /* 'W' (0823:13C4) */
 	case 0x72: if ((int8_t)Kid.alive > 0) { word_5ce8 = 0x14; Kid.alive = -1; status_clear(1); } break;   /* 'r' */
 	case 0x3D00: message(demo_toggle() ? "PLAYER ON" : "PLAYER OFF"); break;   /* F3 */
 	/* SDLPoP2's own (cheats.c) */
@@ -513,7 +513,7 @@ int hotkeys_02be(void)
 		case 0x1300: byte_6b6c = 0; byte_016a = -1; if (!level_end_sound_playing()) restart = 1; break;   /* Alt-R: to the title */
 		case 0x1E00: if (!level_end_sound_playing()) restart = 1; break;    /* Alt-A: restart the level */
 		case 0x1F00: msg = sound_toggle() ? 0xA0C : 0xA16; break;           /* Alt-S */
-		case 0x1800: if (menu_allowed() && !word_2ba8) { options_menu(); loadkid(); } break;   /* Alt-O */
+		case 0x1800: if (menu_allowed() && (!word_2ba8 || V_IR)) { options_menu(); loadkid(); } break;   /* Alt-O (IR: in a demo too) */
 		case 0x2200: if (menu_allowed() && menu_can_save()) { game_save(); loadkid(); } break;   /* Alt-G */
 		case 0x2300: if (menu_allowed()) hall_of_fame(1); break;             /* Alt-H */
 		case 0x2400: msg = joystick_toggle_msg(); break;                     /* Alt-J */

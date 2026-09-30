@@ -77,7 +77,7 @@ void drink(void)
 	case 1: {   /* 0823:0F16: life */
 		int m = (int8_t)Char.f13 + 1, cap = GAME_SETTING(max_hitp_allowed, 12); if (m > cap) m = cap; Char.f13 = (uint8_t)m; Char.hp_delta = (int8_t)(Char.f13 - Char.f12);   /* (the cap: SDLPoP2.ini max_hitp_allowed) */
 		sound_1611_01a8(0x65); break; }
-	case 2: word_5d36 = 0xE4; sound_1611_01a8(0x69); word_087e = -1; break;   /* 0823:13C4: feather fall */
+	case 2: word_5d36 = 0xE4; sound_1611_01a8(0x69); if (V_1X) word_087e = -1; break;   /* 0823:13C4: feather fall (IR: over the effect queued) */
 	case 3: toggle_upside_down_pub(); break;   /* 0823:139C */
 	case 4:   /* poison, or back upright */
 		if (word_5d38) { toggle_upside_down_pub(); break; }

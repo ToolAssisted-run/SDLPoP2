@@ -99,6 +99,18 @@ static void kind6_chars(void)
 void kind6_tick(void)
 {
 	kind6_kid(); kind6_chars();
+	if (V_IR) {   /* IR: no sound, life or level-end tests, no DS:2BB4; room 6 plays 0x10E while a Jaffar is there, rooms 7 / 8
+	               * 0x107 while one is there (and the piece is queued even while it plays) */
+		if (music_playing()) return;
+		int si = -1;
+		switch (drawn_room) {
+		case 3: si = 0x10D; break;
+		case 6: if (ROOM_REC(6)->nchars != 0) si = 0x10E; break;
+		case 7: case 8: if (ROOM_REC(drawn_room)->nchars != 0) si = 0x107; break;
+		}
+		if (si != -1) sound_1611_01a8(si);
+		return;
+	}
 	if (!sound_on() || music_playing() || Kid.alive >= 0 || (int8_t)word_32d8 != (int16_t)counter_5cec) return;
 	int si = -1;
 	switch (drawn_room) {
@@ -176,6 +188,11 @@ void anim_start_final(uint32_t *attrs, int8_t tp, uint8_t room)
 void final_room_enter(void)
 {
 	byte_2b74[0] = 0;
+	if (V_IR) {   /* IR: rooms 7 and 8 always 0x107 */
+		if (drawn_room == 7) byte_2b74[1] = 0; else if (drawn_room == 8) byte_2b74[1] = 6;
+		sound_1611_01a8(drawn_room == 7 || drawn_room == 8 ? 0x107 : 0x10E);
+		return;
+	}
 	if (drawn_room == 7) { byte_2b74[1] = 0; if (word_2bb4 != 0) sound_1611_01a8(0x107); }
 	else if (drawn_room == 8) { byte_2b74[1] = 6; if (!sound_playing(0x2817) && ROOM_REC(8)->nchars != 0) sound_1611_01a8(0x107); }
 	else sound_1611_01a8(0x10E);
@@ -506,6 +523,7 @@ void ovl_kind6_char(void)
 		dx += m->w7 + m->x + 0x71;
 		if (dx + 0x22 <= char_x_left || dx >= char_x_right) continue;
 		m->wd = 8; m->x = m->w7 > 0 ? char_x_left - 0x7D : char_x_right - 0x87;
+		if (V_IR) { play_sound(0x3E); take_hp(100); seqtbl_offset_char(0xF3); play_seq(); sound_1611_01a8(0x10B); continue; }   /* (IR: the sound first, music 0x10B, the room kept) */
 		take_hp(100); seqtbl_offset_char(0xF3); play_seq(); play_sound(0x3E);
 		next_room = Char.room;
 	}

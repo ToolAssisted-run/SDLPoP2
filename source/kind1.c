@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 int8_t puzzle_answer = 0, puzzle_last = -1;   /* DS:2B6A column of the right tile, DS:2B6B column last stood on (-1 none) */
 uint8_t byte_14a0 = 0xFF;                     /* DS:14A0 */
@@ -32,6 +33,7 @@ static void open_gate(uint8_t room, int8_t tp)
 /* 33FD:032A: frames the prince stands still on */
 static int standing_frame(uint16_t f)
 {
+	if (V_IR) return f == 0xF || f == 0x6D || f == 7 || f == 0xB || f == 0xD || f == 0x26 || f == 0x2C || f == 0x1C || f == 0x9E || f == 0xAA || f == 0xAB;
 	return f == 0xF || f == 0x6D || f == 7 || f == 0x2E || (f >= 0xB && f <= 0xE) || f == 0x26 || f == 0x2C || f == 0x1A || f == 0x9E || f == 0xAA || f == 0xAB;
 }
 
@@ -84,6 +86,7 @@ void ovl_349be(void)
  * description's object 2 is uncovered 2 more pixels to the left and redrawn (hook_desert_gate) */
 void anim_gate_kind1(void)
 {
+	if (V_IR && !anim_visible_pub()) return;   /* (IR: only while on screen) */
 	int di = (uint16_t)anim_mod & 0x1F;
 	if (di == 0x14) { cur_trob.state = 0xFF; sound_194c_83d2(0x2717); }
 	else { di++; if (!sound_playing(0x273D)) play_sound(7); }

@@ -2,6 +2,7 @@
 #include <string.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include "settings.h"
 
 uint16_t minutes_left = 75, clock_ticks = 0x2CF;   /* DS:5CD2 (0x4B at the start), DS:5CEA (719 ticks a minute) */
@@ -108,7 +109,7 @@ static void hp_display_state(void)
 /* 169B:0A30: after each tick: drawing, the upside-down countdown and the message / restart countdown. -2 go on, -1 leave */
 int frame_end(void)
 {
-	tick++;
+	tick = V_IR ? (uint16_t)(tick + 1) : tick + 1;   /* 169B:0A56 (IR: a 16-bit counter) */
 	if (word_2b90) { redraw_all(); word_2b90 = 0; }
 	else if (word_5cee) { drawn_room = next_room; redraw_all(); }
 	else if (word_5cce) { word_5cce = 0; room_load(drawn_room); redraw_all(); hp_display_state(); }   /* 0CD6:02BE, 169B:0430, 0FB3:259C */
@@ -136,7 +137,7 @@ void draw_chars_state(void)
 		load_char(i);
 		if (Char.room != drawn_room) continue;
 		load_fram_det_col(); load_frame_to_obj();
-		if (Char.charid != 0xB && Char.charid != 7 && Char.charid != 8 && get_tile_at_char() == 6 && (frame_flags & 0x40))   /* 0AFF:18C0 */
+		if (Char.charid != 0xB && Char.charid != 7 && Char.charid != 8 && get_tile_at_char() == 6 && (V_IR || (frame_flags & 0x40)))   /* 0AFF:18C0 (IR: any frame) */
 			Char.y = 63 * Char.curr_row + 0x39;
 		set_char_collision();   /* 3212:09BE */
 		Char.f26 = Char.x; Char.f28 = Char.y;
@@ -172,8 +173,8 @@ int frame_after_tick(int r)
 	}
 	int e = frame_end();
 	if (e == -2) {   /* 169B:05A1: DS:2BA4 measures lateness (the frame timer DS:24DE ran out before the frame was done) */
-		if (frame_on_time()) { if (word_2ba4) word_2ba4--; /* 2797:0134: wait for the timer */ }
-		else { if ((int16_t)word_2ba4 < 0x14) word_2ba4++; sound_pass_late = 1; }   /* (the pass took a timer tick more) */
+		if (frame_on_time()) { if (V_IR) word_2ba4 = 0; else if (word_2ba4) word_2ba4--; /* 2797:0134: wait for the timer */ }
+		else { if (V_IR) word_2ba4 = 1; else if ((int16_t)word_2ba4 < 0x14) word_2ba4++; sound_pass_late = 1; }   /* (the pass took a timer tick more; IR: a flag, the last pass only) */
 	}
 	return e;
 }

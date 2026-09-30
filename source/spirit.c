@@ -3,6 +3,7 @@
  * while he goes on as the spirit (charid 1). Transcribed from the disassembly. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 /* 2F86:0456: during the turn (frames 0x2E..0x33), which frames show the flash palette */
 static int turn_flash_frame(uint16_t frame, int16_t n)
@@ -94,7 +95,7 @@ int spirit_leave_body(void)
 /* 2F86:03CC: the drawn room's first charid-0 character (the prince's body), or the count */
 int8_t body_index(void)
 {
-	int8_t n = room_nchars(drawn_room), i = 0;
+	int8_t n = room_nchars(V_IR ? Char.room : drawn_room), i = 0;   /* (IR: the character's room) */
 	while (i < n && chars[i].charid != 0) i++;
 	return i;
 }
@@ -131,6 +132,15 @@ void shadow_2fba4(void)
 {
 	Kid = Char;   /* (0FB3:24EA hp bars) */
 	load_char(body_index());
+	if (V_IR) {   /* IR: the body becomes the prince where it lies (its room from its position; sound 0x106 in level 14's rooms 7
+	               * and 8) and keeps its place among the room's characters: no clear_char, no loadkid */
+		Char.index = 0xA; Char.pal_slot = 0; Char.f12 = Kid.f12; Char.f13 = Kid.f13; Char.hp_delta = Kid.hp_delta;
+		uint8_t r = room_of_char();
+		if (drawn_room != r) { Char.room = r; next_room = r; }
+		if ((r == 7 || r == 8) && level_kind == 6) play_sound(0x106);
+		Kid = Char; cheat_spirit = 0; cheat_form = 0;
+		return;
+	}
 	char_type body = Char;
 	Char.index = 0xA; Char.pal_slot = 0; Char.f12 = Kid.f12; Char.f13 = Kid.f13; Char.hp_delta = Kid.hp_delta;
 	Kid = Char; Char = body;
@@ -142,6 +152,7 @@ void control_dead_0307a2(void)
 	if (is_dead_frame(Char.frame)) {
 		if (level_kind == 1 && Char.frame == 0xB9 && Char.f12 != 0) { if (!GOD_KID) take_hp(Char.f12); return; }
 		if (Char.charid == 1 && Char.f0f == 0) { int16_t d = body_distance(); if (d >= -1 && d <= 1) spirit_rejoin(); }
+		else if (V_IR && Char.charid != 1 && Char.room == 9 && level_number == 8 && Char.f19 == 0xED) sword_scene();   /* (IR: the sword scene starts here) */
 		return;
 	}
 	/* the body lying (0xB4..0xB6): the spirit loses a point of hp (or of the maximum) and the body one */

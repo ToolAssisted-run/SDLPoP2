@@ -1,6 +1,7 @@
 /* Tile addressing (0AFF:000C..0174, 17C1:0008) and tile-class predicates (0FB3:2810..290A). */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 uint8_t curr_tile; uint16_t curr_modifier; uint8_t curr_tilepos, curr_room; int8_t tile_col, tile_row;
 uint8_t *curr_room_tiles; uint32_t *curr_room_attrs;   /* DS:613C / 613A */
@@ -53,7 +54,7 @@ uint8_t get_tile_infrontof(int8_t n)   { return get_tile(Char.curr_row, dir_fron
 
 /* 0FB3:28D4 / 290A / 2810 / 283C / 2878 - tile classes (PoP1 numbering plus PoP2 additions) */
 int tile_is_empty_kind(uint8_t t) { return t == 0 || t == 9 || t == 33 || t == 35 || t == 27 || t == 37; }
-int tile_is_wall_kind(uint8_t t)  { return t == 20 || t == 2 || t == 7 || t == 25 || t == 43; }
+int tile_is_wall_kind(uint8_t t)  { return t == 20 || t == 2 || t == 7 || t == 25 || (t == 43 && V_1X); }   /* (IR: 43 is not a wall) */
 int tile_is_floor(uint8_t t)      { return !tile_is_wall_kind(t) && !tile_is_empty_kind(t); }
 int tile_is_loose_kind(uint8_t t) { return t == 11 || t == 15 || t == 26 || t == 12 || t == 13 || t == 23 || t == 24; }
 int tile_is_solid_floor(uint8_t t){ return tile_is_floor(t) && !tile_is_loose_kind(t) && t != 6 && t != 34; }
@@ -82,7 +83,7 @@ uint8_t level_edge_tile(int8_t row, int8_t col)
 	case 4:
 		if (room_A == 0 && row == -1) return 0;
 		if (drawn_room == 27 && level_number == 6) return 0;
-		if (drawn_room == 16 && level_number == 9) return 0;
+		if (drawn_room == 16 && level_number == 9 && V_1X) return 0;
 		return 20;
 	case 5:
 		return 0;

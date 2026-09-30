@@ -17,6 +17,8 @@ extern uint32_t exe_data_base;   /* its initialised data (the RTLink data overla
 #define V_10 (game_ver == POP2_VER_10)
 #define V_11 (game_ver == POP2_VER_11)
 #define V_1X (game_ver != POP2_VER_IR)   /* 1.0 or 1.1 */
+/* level 5's bridge rooms (10, 7, 12) test the character's row: the initial release row 1, 1.0 / 1.1 any row but the top */
+static inline int bridge_row(int row) { return V_IR ? row == 1 : row != 0; }
 
 const char *version_name(int v);        /* "IR", "1.0", "1.1" */
 /* which release an executable is (by its title string: "PRINCE OF PERSIA 2 v1.1", "... 1.0", else the initial

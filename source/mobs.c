@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 mob_type mobs[30]; uint16_t mob_count;    /* DS:293E (13 bytes each), DS:6186 */
 mob_type cur_mob;                          /* DS:6662 */
@@ -46,6 +47,7 @@ static int gate_trigger(uint8_t button, int8_t tp, uint8_t room)
 		return 2;
 	case 6: {
 		trob_type *t = get_trob(tp, room);
+		if (V_IR) return t == NULL && pos != 0 ? 4 : -1;   /* (IR: ignored while the gate moves; no dead-frame test) */
 		if (is_dead_frame(Char.frame) && Char.alive >= 2) return -1;
 		if ((t == NULL && pos != 0) || (t && t->state != 4)) return 4;
 		return -1;
@@ -103,7 +105,7 @@ void press_button(int link, uint8_t tile)
 		}
 	}
 	trigger_links(link, tile);
-	*attr_lo(room, tp) = mod;
+	if (V_1X || timer != 0x1F) *attr_lo(room, tp) = mod;   /* (IR: held down, the tile keeps its attribute) */
 }
 /* 1375:16A0: held down for good (a character stands on it) */
 void press_button_hold(void) { uint8_t link = (uint8_t)curr_modifier; set_link_timer(link, 0x1F); press_button(link, curr_tile); }
@@ -402,7 +404,7 @@ int ovl_button22(uint8_t room, int8_t tp)
 	}
 	if (pos == 0xFF) return -1;
 	if (pos == 0) {
-		if (!(Char.charid == 4 && Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12))) {
+		if (!(Char.charid == 4 && bridge_row(Char.curr_row) && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12))) {
 			if (weighted) return 3;
 			return (curr_modifier & 0x800) ? -1 : 2;
 		}

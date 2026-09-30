@@ -2,6 +2,7 @@
  * comes close (OVL10 366C:0F60, 0E4A, 10CC, 1166, 1220, 125E, 1294, 1328, 13E8, 140E, 14D8). */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 static int room_draws_sword4(uint8_t room) { return level_number == 4 && room >= 0x16 && room <= 0x1C && room != 0x17; }   /* 366C:11F8 */
 /* 366C:1220: collapse stages before getting up again (record byte +0x16) */
@@ -47,7 +48,7 @@ void skel_ai(void)
 		return;
 	}
 	int go = 1;
-	if (Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12)) go = ovl_2a31_ddf();
+	if (bridge_row(Char.curr_row) && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12)) go = ovl_2a31_ddf();
 	else if (Kid.alive >= 5 && Char.charid == 4 && Char.f19 != 0x78) { skel_collapse(); go = 0; }
 	if (!go) return;
 	if (Char.f19 == 0x58 && Char.frame == 0xB1) { skel_turn(); return; }
@@ -57,7 +58,7 @@ void skel_ai(void)
 static int wake_in_range(int range, int8_t krow, int8_t kcol, int8_t i)
 {
 	level_char_init *r = room_char_record(i, drawn_room);
-	if (!r || Char.alive < 0 || Char.f24 == 5 || Kid.charid != 0) return 0;   /* only lying (alive >= 0) ones get up */
+	if (!r || Char.alive < 0 || Char.f24 == 5 || (V_1X && Kid.charid != 0)) return 0;   /* only lying (alive >= 0) ones get up */
 	if (r->w13 != 0 && !room_draws_sword4(Char.room)) return 0;
 	int8_t end, step;
 	if (Char.curr_col > kcol) { end = Char.curr_col + 1; step = 1; } else { end = Char.curr_col - 1; step = -1; }

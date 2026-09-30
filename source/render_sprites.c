@@ -76,7 +76,7 @@ static void char_to_obj(void)
 static void char_on_floor(void)
 {
 	if (Char.charid == 0xB || Char.charid == 7 || Char.charid == 8) return;
-	if (get_tile_at_char() == 6 && (cur_frame.flags & 0x40)) Char.y = (int16_t)(0x3F * Char.curr_row + 0x39);
+	if (get_tile_at_char() == 6 && (V_IR || (cur_frame.flags & 0x40))) Char.y = (int16_t)(0x3F * Char.curr_row + 0x39);
 }
 /* 0AFF:18F2: the tile the character's objects are drawn with (DS:60FA): the bottom row / left column while in
  * action 1, else its row / column; one column forward (DS:0CFA[direction]) in frames 0x87..0x94 and actions 2, 3, 4, 6 */

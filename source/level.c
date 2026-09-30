@@ -106,9 +106,12 @@ static void reset_record_seqs(void)
 /* 169B:0FB4 */
 static void level_kind_reset(void)
 {
-	if (level_kind == 3) { floor_free_all(); if (level_number == 5) memset(bridge_693e, 0, sizeof bridge_693e); }   /* 33FD:0C1A: DS:693E and 6940..6947 (level 5's bridge) */
-	else if (level_kind == 4) memset(tiles0 + 0x14, 0, 6);   /* DS:2BAE/2BB0/2BB2 = 0 */
-	else if (level_kind == 6) memset(tiles0 + 0x1A, 0, 2);   /* DS:2BB4 = 0 */
+	if (level_kind == 3) {
+		floor_free_all();
+		if (level_number == 5) { if (V_IR) bridge_room_enter(); memset(bridge_693e, 0, sizeof bridge_693e); }   /* 33FD:0C1A: DS:693E and 6940..6947 (level 5's bridge; IR also the sway, 2A31:0DC1) */
+	}
+	else if (level_kind == 4) memset(tiles0 + 0x14, 0, V_IR ? 2 : 6);   /* DS:2BAE/2BB0/2BB2 = 0 (IR: 2BAE, it has no 2BB0 / 2BB2) */
+	else if (level_kind == 6 && V_1X) memset(tiles0 + 0x1A, 0, 2);   /* DS:2BB4 = 0 (IR has none) */
 }
 /* 3212:083C: collision history rows unknown */
 static void reset_collisions(void) { uint8_t *c = (uint8_t *)&coll; memset(c + 0x1A, 0xFF, 10); memset(c + 0x24, 0xFF, 10); memset(c + 0x2E, 0xFF, 10); memset(c + 0x38, 0xFF, 10); c[0xA] = 0xFF; }
@@ -158,7 +161,7 @@ static void init_kid(void)
 /* 169B:034A: the entrance door behind the prince closes */
 static void close_entrance(void)
 {
-	if (level.start_room != Kid.room && level_number != 7 && level_number != 6) return;
+	if (level.start_room != Kid.room && (V_IR || (level_number != 7 && level_number != 6))) return;   /* (IR: the start room only) */
 	get_room_address(Kid.room);
 	for (int tp = 0; tp < 30; tp++)
 		if (curr_room_tiles[tp] == 0x11) {
@@ -184,7 +187,7 @@ static void kind_level_init(void); extern int last_scene; int load_level_ex(int 
 /* the sword type a level starts with: 1286:0D06 by level, or SDLPoP2.ini's [Level N] sword_type */
 static uint8_t level_sword(void)
 {
-	uint8_t t = level_number == 6 ? 0xFF : (level_number == 7 || level_number == 8) ? 2 : 1;
+	uint8_t t = level_number == 6 ? 0xFF : (level_number == 7 || (level_number == 8 && !(V_IR && Kid.room == 9))) ? 2 : 1;   /* (IR: level 8's sword room, 1) */
 	if (pop2_settings_game && level_number >= 1 && level_number <= SETTINGS_LEVELS) t = pop2_settings_game->sword_type[level_number];
 	return t;
 }

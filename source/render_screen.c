@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include "render.h"
 #include "render_tiles.h"
 #include "render_frame.h"
@@ -72,7 +73,7 @@ void render_opp_hp(uint8_t index, int hp, int max)
 	}
 	if (index != 0xFF) load_char(index);
 	int erase_all = index == 0xFF || room_nchars(drawn_room) == 0 || Char.charid == 0xA || Char.charid == 0xB || Char.charid == 0
-	             || (Char.charid == 4 && Char.curr_row != 0 && level_number == 5 && (Char.room == 0xA || Char.room == 7 || Char.room == 0xC));
+	             || (Char.charid == 4 && bridge_row(Char.curr_row) && level_number == 5 && (Char.room == 0xA || Char.room == 7 || Char.room == 0xC));
 	if (erase_all) { int16_t r[4] = {0xC1, 0xDA, ds_w(0x1F2E), ds_w(0x1F30)}; render_erase_screen(r); return; }
 	if (word_5cdc == 0x258) return;
 	int si = 0x134, odd = 0;

@@ -14,7 +14,7 @@ static const int16_t y_land_tbl[6] = {66, 129, 192, 255, 6400, -3584};   /* DS:0
 int take_hp(int n)
 {
 	int died = 0;
-	if (Char.charid != 4 || Char.curr_row == 0 || level_number != 5 || (Char.room != 10 && Char.room != 7 && Char.room != 12)) {
+	if (Char.charid != 4 || !bridge_row(Char.curr_row) || level_number != 5 || (Char.room != 10 && Char.room != 7 && Char.room != 12)) {
 		if (n < Char.f12) { if (-(int)Char.hp_delta < n) Char.hp_delta = (int8_t)-n; else died = (int)Char.f12 + Char.hp_delta == 0; }
 		else { if (-(int)Char.f12 < Char.hp_delta) Char.hp_delta = (int8_t)-Char.f12; died = 1; }
 	}
@@ -24,7 +24,8 @@ int take_hp(int n)
 void die_at_bottom(void)
 {
 	if (GOD_KID) { Char.y = 0x181; Char.fall_y = 0; return; }   /* (god mode: he falls for ever; off, this kills him) */
-	take_hp(100); Char.frame = 0xB9; seq_set_85f8(3); Char.y = 0x180; Char.fall_y = 0; Char.action = 1;
+	take_hp(100); Char.frame = 0xB9; seq_set_85f8(3); Char.y = 0x180; Char.fall_y = 0;
+	if (V_1X || Char.charid == 0) Char.action = 1;   /* (IR: the prince's only) */
 	if (Char.charid == 1) shadow_2fba4();
 }
 /* 0AFF:0D1E: the character is outside the level (room 0) */
@@ -111,7 +112,7 @@ static uint8_t push_out_of_wall(void)
 {
 	if (Char.f24 == 4 || Char.charid == 0xB || (Char.room == 3 && level_kind == 6 && Char.curr_col < 0)) return get_tile_at_char();
 	int16_t d = distance_to_edge_weight(); uint8_t t = get_tile_infrontof(1);
-	if (d < 11 && !tile_is_wall_kind(t)) d += 11; else d -= 32;
+	if (d < 11 && !tile_is_wall_kind(t)) d += 11; else d = V_IR ? 15 - d : d - 32;
 	Char.x = char_dx_forward(d); load_fram_det_col();
 	return get_tile_at_char();
 }
@@ -224,10 +225,13 @@ static void land(void)
 	}
 	t = get_tile_at_char();
 	if ((t == 0x17 || t == 0x18) && !GOD_KID) { ovl_34724(); return; }
-	if (Char.fall_y < 0x16 || Char.charid == 1) {
-		if ((Char.charid < 2 && Char.f10 != 1) || Char.charid == 6 || Char.charid == 1) id = 0x11;
+	if (Char.fall_y < 0x16 || (Char.charid == 1 && V_1X)) {
+		if ((Char.charid < 2 && Char.f10 != 1) || Char.charid == 6 || (Char.charid == 1 && V_1X)) id = 0x11;
 		else { id = Char.f19 == 0xBA ? 0xBB : 0x3F; Char.f10 = 1; }
 		snd = Char.charid == 4 ? 0x4C : 0x11;
+	} else if (V_IR && Char.charid == 1 && Char.index == 10) {   /* (IR: the spirit lands as a medium landing, no hp lost) */
+		if (Char.room != 0xB || level_kind != 5 || Char.curr_row < 3) { snd = 0x10; id = 0x14; }
+		else { died = 1; take_hp(100); }
 	} else if (Char.fall_y < 0x21 && Char.index == 10) {
 		if (!take_hp(1) && (Char.room != 0xB || level_kind != 5 || Char.curr_row < 3)) { snd = 0x10; id = 0x14; }
 		else { died = 1; take_hp(100); }
@@ -246,7 +250,7 @@ static void check_fall_landing(void)
 {
 	if (word_6142 == 0 && Char.fall_y > 0x1E) {
 		if (Char.charid == 0) { fall_scream_room(Char.room); word_6142 = 1; }
-		else if (Char.charid == 2) { play_sound(0x19); if (Char.curr_row > 5) die_at_bottom(); }
+		else if (Char.charid == 2) { play_sound(0x19); if (Char.curr_row > 5 && V_1X) die_at_bottom(); }
 	}
 	if (Char.y < Char.curr_row * 63 + 56) {
 		try_grab_ledge();
@@ -383,7 +387,7 @@ void char_control_step(void)
 /* 169B:07EC: every character of the drawn room */
 void play_all_chars(void)
 {
-	if (drawn_room == 0) return;
+	if (drawn_room == 0 && V_1X) return;
 	int8_t n = room_nchars(drawn_room);
 	for (int8_t i = 0; i < n; i++) {
 		load_char(i);
@@ -396,7 +400,7 @@ void play_all_chars(void)
 			if (drawn_room != Char.room) { drawn_room = Char.room; set_neighbour_rooms(); }
 			play_seq();
 			if (Char.charid == 2) guard_after_seq();
-			if ((Char.x > 0x21 && Char.x < 0x222) || (Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12))
+			if ((Char.x > 0x21 && Char.x < 0x222) || (bridge_row(Char.curr_row) && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12))
 			    || ((Char.room == 7 || Char.room == 8) && level_kind == 6)) {
 				fall_accel(); fall_speed(); load_frame_to_obj(); load_fram_det_col(); set_char_collision();
 				if (Char.action == 9) Char.curr_row = y_to_row(Char.y);
@@ -408,7 +412,7 @@ void play_all_chars(void)
 			if (Char.charid == 12) ovl_37d28();
 			if (Char.room != dr) { drawn_room = dr; set_neighbour_rooms(); }
 		}
-		if (level_kind == 6 && room_nchars(drawn_room) != n) { n--; i--; } else save_char();
+		if (V_1X && level_kind == 6 && room_nchars(drawn_room) != n) { n--; i--; } else save_char();   /* (IR: no such case) */
 	}
 	for (int8_t i = 0; i < n; i++) {
 		if ((uint8_t)chars[i].direction != 0x56) continue;

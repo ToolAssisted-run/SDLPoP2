@@ -3,6 +3,7 @@
  * Reconstructed from the disassembly; jump table at cs:03F4 indexed by opcode + 0x18. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 /* 0AFF:0376 */
 int16_t char_dx_forward(int16_t dx) { return (Char.direction ? -dx : dx) + Char.x; }
@@ -131,7 +132,7 @@ void play_seq(void)
 		do_jmp:
 			target = seq_fetch_word();
 			/* level 5 special: in rooms 10/7/12 with the character above row 0, sequence 0x39 becomes 0x56 */
-			if (Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12)
+			if (bridge_row(Char.curr_row) && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12)
 			    && target == 0x39 && Char.f19 != 0x3C && Char.curr_col == 9) target = 0x56;
 			Char.seq_id = target;
 			Char.seq_pos = 0;

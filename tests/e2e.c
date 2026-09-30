@@ -69,6 +69,13 @@ static int bios_ready(double t) { return keyq_next < nkeyq && keyq[keyq_next] < 
 static int e2e_bios_key(void)
 {
 	double now = cur_tick_frame + (same_frame_keys ? 0.5 : 0.0);
+	if (V_IR) {   /* IR reads the BIOS buffer itself (int 21h 06h, 0823:167C) and its library's pump drops what it takes
+	               * (oracle: the BIOS buffer empties within the frame after a read) */
+		while (bios_ready(pump_until)) keyq_next++;
+		int got = bios_ready(now); if (got) keyq_next++;
+		pump_until = cur_tick_frame + 0.5;
+		return got ? 0x100 : 0;
+	}
 	/* the pump of the previous frames */
 	while (bios_ready(pump_until)) { keyq_next++; if (libq < 8) libq++; }
 	int got = 0;
@@ -208,6 +215,9 @@ int main(int argc, char **argv)
 				printf("\ncold start: %d differing bytes in known fields\n", nd);
 			} else { snap_load(mem); if (level_kind == 1) byte_14a0 = 0xFF; }   /* (DS:14A0 is outside the sample; the load just set it, 1286:02D9) */
 			glue_select_guard_dat(level.type);
+			/* SDLPoP2's initial release asks the copy protection before a game started at level 3 or later, as 1.0 / 1.1 do
+			 * (docs/VERSIONS.md 5.6); the captured game, which only asks after level 2, counts as one that has answered */
+			if (V_IR && level_number > 2) word_0366 = 1;
 			level_begin(); level_first_room(); started = 1; continue;
 		}
 		if (!strcmp(nm, "ds_tick")) {

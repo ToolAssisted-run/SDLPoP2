@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include "settings.h"
 
 /* 0AFF:089A / 0AFF:0840: write Char back and restore Kid from Opp; write Kid and chars[Opp.index] back */
@@ -24,7 +25,7 @@ static void check_strike(void)
 	if (abs(Char.y - Opp.y) >= 7 && Char.charid != 7 && Char.charid != 8 && Opp.charid != 7 && Opp.charid != 8) return;
 	if (!frame_is_strike_02f712(Char.frame, Char.charid)) return;
 	if (Opp.alive >= 0 || Opp.charid == 10 || Opp.charid == 1 || Opp.action == 8 || Opp.f19 == 0x6E) return;
-	if (Char.charid == 1 && Opp.charid == 0) return;
+	if (V_1X && Char.charid == 1 && Opp.charid == 0) return;   /* (IR: the spirit can strike the prince) */
 	int16_t d = opp_distance(), near = 0, far = (Char.charid == 7 || Char.charid == 8) ? 0x1C : 0x2C;
 	if (Char.direction != Opp.direction && d >= 0 && far >= d && Opp.charid != 7 && Opp.charid != 8 && Opp.charid != 0xB && Char.charid != 0xB
 	    && (Opp.frame == 0xA1 || Opp.frame == 0x96)) {
@@ -80,6 +81,7 @@ static void char_dies(void)
 			static const uint8_t music[10] = {0, 2, 2, 2, 0x11, 6, 6, 2, 0xC, 7};
 			int k = Opp.charid - 2; uint8_t m = (k >= 0 && k < 10) ? music[k] : 2;
 			if (k == 0) m = level.type == 0 ? 14 : 10;
+			if (k == 4 && V_IR) m = 2;   /* (IR: a Jaffar's victim gets the common one) */
 			seq_set_85f8(m);
 		}
 	}
@@ -99,7 +101,7 @@ static void char_hurt(void)
 		hp = (Char.charid == 6 || Opp.charid == 6) ? 100 : 1;
 		si = Char.direction == Opp.direction ? 0x5E : 0x4A;
 		if (Opp.charid == 7 || Opp.charid == 8) {
-			if (Char.f10 != 1 && !(frame_table_kid[Char.frame * 7 + 6] & 0x40)) si = 0x2D;
+			if (Char.f10 != 1 && !(frame_table_kid[(V_IR ? Kid.frame : Char.frame) * 7 + 6] & 0x40)) si = 0x2D;   /* (IR reads the prince's frame, a bug) */
 			else if (Char.frame >= 0xF6 && Char.frame <= 0x105) {
 				if (tile_is_wall_kind(get_tile_behind_char())) Char.x = char_dx_forward(16);
 				else if (tile_is_wall_kind(get_tile_infrontof(1))) Char.x = char_dx_forward(-16);

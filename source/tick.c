@@ -1,6 +1,7 @@
 /* The game logic of one tick (169B:05E0), without drawing and sound. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 uint16_t word_5ce8;   /* DS:5CE8 (8628): nonzero during cutscenes, no sword hits */
 /* 1611:0164: the prince's opponent becomes the current character again; a sound when either stands on frame 0xA7
@@ -22,7 +23,7 @@ int tick_main(void)
 	int r = play_kid_frame();
 	if (r == 0) {
 		play_all_chars();
-		if (word_5ce8 == 0 && drawn_room != 0 && !cheat_looking) { check_sword_hits(); process_hurt(); }
+		if (word_5ce8 == 0 && (drawn_room != 0 || V_IR) && !cheat_looking) { check_sword_hits(); process_hurt(); }   /* (IR: also in room 0) */
 		reload_opponent();                         /* 1611:0164 */
 		checkpoints_0db4();                        /* 169B:0DB4 */
 		level_kind_tick();                         /* 169B:11E2 */

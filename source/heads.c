@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 static uint8_t *head_state(void) { level_char_init *r = room_char_record(Char.index, Char.room); return r ? (uint8_t *)r + 0x11 : NULL; }
 static int kid_reachable(void) { return Opp.f12 != 0 && !(Opp.f19 == 0x46 && (Opp.frame == 0 || Opp.frame >= 0xDF)); }   /* not dead, not leaving by the door */
@@ -150,7 +151,7 @@ static void head_lunge(uint8_t *st)
 		Char.fall_x = Char.fall_y = 0; seqtbl_offset_char(random_2751(1) + 0x96); st[0] = 3; st[1] = 1; return;
 	}
 	int lim = Opp.f10 == 1 ? -0x23 : -0xD;
-	if ((Char.curr_row != Opp.curr_row || lim > d) && Char.f19 == 0x93) { Char.fall_x = Char.fall_y = 0; seqtbl_offset_char(0x9C); }
+	if (((Char.curr_row != Opp.curr_row && V_1X) || lim > d) && Char.f19 == 0x93) { Char.fall_x = Char.fall_y = 0; seqtbl_offset_char(0x9C); }
 	if (d - 0x40 <= far && Char.curr_row == Opp.curr_row && Char.f19 != 0x90) play_sound(0x5A);
 }
 /* 366C:04B4: hunting */

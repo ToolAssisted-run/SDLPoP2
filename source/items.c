@@ -36,7 +36,13 @@ static int pick_up(void)
 	else Char.x = char_dx_forward(dist - 0x16);
 	ctx_load(ctx);
 	if (item == 0x16) {   /* the sword */
-		if (Char.room == 9 && level_number == 8 && word_2bb2 == 0) {
+		if (V_IR) {   /* IR: always taken, no steps; in level 8's room 9, the sword scene's sequence and music */
+			take_item(-1);
+			if (Char.room == 9 && level_number == 8) { seqtbl_offset_char(0xED); sound_1611_01a8(0xFE); }
+			else { seqtbl_offset_char(0x5B); sound_1611_01a8(0x97); }
+			/* 1286:0454 loads the sword's images */
+			byte_5cba = kind;
+		} else if (Char.room == 9 && level_number == 8 && word_2bb2 == 0) {
 			Char.x = char_dx_forward(-0xE); if (Char.direction == -1) Char.x = char_dx_forward(V_11 ? 2 : 6);   /* (1.0: 6) */
 			seqtbl_offset_char(0xED); sound_1611_01a8(0xFE);
 		} else {

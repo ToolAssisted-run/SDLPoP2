@@ -444,7 +444,7 @@ static void cheat_kill_room(void)
 		load_char(i);                                   /* 0AFF:1D0E */
 		Char.alive = 0; Char.hp_delta = (int8_t)-(int8_t)Char.f12;
 		if (level.type == 2) skel_collapse();          /* 366C:1166 */
-		else if (Char.charid == 0xA) { set_revive_timer(0x1E0, (uint8_t)i); seqtbl_offset_char(0x6B); Char.f0f = 1; }
+		else if (Char.charid == 0xA) { set_revive_timer(V_IR ? 0xF0 : 0x1E0, (uint8_t)i); seqtbl_offset_char(0x6B); Char.f0f = 1; }
 		else if (level.type == 5 || level.type == 6) { Char.direction = (int8_t)~Kid.direction; Char.f12 = 0; seqtbl_offset_char(0x9A); }
 		else seqtbl_offset_char(0x55);
 		save_char();                                    /* 0AFF:1CC2 */

@@ -4,14 +4,15 @@
 #include "types.h"
 #include <stddef.h>
 #include "globals.h"
+#include "version.h"
 
 /* 0AFF:1078: tile_col in drawn-room coordinates */
 int8_t tile_col_in_drawn_room(void)
 {
 	int8_t c = tile_col; uint8_t r = curr_room;
 	if (r == drawn_room || r == room_B || r == room_A) return c;
-	if (r == room_L || r == room_BL || r == room_AL) return c - 10;
-	if (r == room_R || r == room_BR || r == room_AR) return c + 10;
+	if (r == room_L || (V_1X && (r == room_BL || r == room_AL))) return c - 10;   /* (IR: not the diagonal neighbours) */
+	if (r == room_R || (V_1X && (r == room_BR || r == room_AR))) return c + 10;
 	return c;
 }
 /* 186A:045E: 0 idle/stuck, 1 pulling back, 2 thrusting */

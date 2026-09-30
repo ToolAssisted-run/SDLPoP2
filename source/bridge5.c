@@ -6,6 +6,7 @@
  * from the disassembly. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 int16_t word_693c;   /* DS:693C: ticks the two stood together */
 uint8_t byte_2b78;   /* DS:2B78: the swaying columns (bit c-1 for column c of room 10) */
@@ -132,7 +133,7 @@ int ovl_2a31_ddf(void)
 {
 	int8_t c = col10(Char.room, Char.curr_col);
 	if (Char.action == 5) return 1;
-	if (Char.action == 4 && !(Char.curr_row < 3 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12))) { clear_char(); return 0; }
+	if (Char.action == 4 && (V_IR ? Char.curr_row > 2 : !(Char.curr_row < 3 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12)))) { clear_char(); return 0; }
 	if (Char.direction == 0) {
 		if (Char.f19 == 0x66 || Char.f19 == 0xD8) {
 			if (c < 9 && gate_down()) return 0;

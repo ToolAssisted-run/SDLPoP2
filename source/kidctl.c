@@ -2,6 +2,7 @@
  * and the death count that leads to the restart prompt. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 int8_t kid_ctrl1_saved[5];     /* DS:6128: the prince's ctrl1_* between ticks (the characters' control() reuses DS:6122) */
 uint16_t word_5d38;            /* DS:5D38: nonzero = up and down swapped */
@@ -32,7 +33,7 @@ static void kid_control(void)
 	control();
 	if (dir == 0) flip_x();
 	if (word_5d38) flip_y();
-	if (Char.f19 == 0xED && Char.frame == 0xB9 && Char.room == 9 && level_number == 8) sword_scene();   /* 2A31:0E1B -> 37F0:007C */
+	if (V_1X && Char.f19 == 0xED && Char.frame == 0xB9 && Char.room == 9 && level_number == 8) sword_scene();   /* 2A31:0E1B -> 37F0:007C (IR: from control_dead) */
 }
 /* 0AFF:11F8 */
 static int kid_input_and_control(void)

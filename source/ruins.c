@@ -1,6 +1,7 @@
 /* Level kind 4 (ruins, levels 6..9): OVL06 loaded at 347C. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 /* 347C:0198 (level 6): leaving the first room (27) sends the prince to room 3, at the level's real entrance */
 void level6_entrance(void)
@@ -74,8 +75,8 @@ void sword_scene(void)
 	Char.room = next_room = 9; char_y_to_floor(); Char.hp_delta = Char.f12;
 	last_scene = 6; load_level_ex(8, 1);   /* DS:0998 = 8; 1286:01F2(8) */
 	state_ds_range(0x2BB8, sizeof saved, saved, 1);
-	word_2bb2 = 1;
-	if (r != 2) room_load(9);   /* 0CD6:02BE */
+	if (V_1X) word_2bb2 = 1;   /* (IR has no such flag) */
+	if (r != 2 || V_IR) room_load(9);   /* 0CD6:02BE (IR: also after a scene cut short) */
 	/* 1375:0F5A(0xA, the prince's box) and 1375:0E8C(0x19): redraw marks */
 	play_seq(); Kid = Char; control_rest(); ctrl1_shift = 0;
 	if (!sound_playing(0x280F)) sound_1611_01a8(0xFF); else sound_1611_0826(0xFF);

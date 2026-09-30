@@ -21,6 +21,7 @@
 #include <string.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include "dat.h"
 
 uint16_t word_0882 = 0xFFFF, word_0884 = 0xFFFF;   /* DS:0882 / 0884: the effect / music started last */
@@ -158,7 +159,7 @@ int music_playing(void) { return ask(0, (uint16_t)(word_0884 + 10000), snd_playi
 void play_sound(uint16_t n)
 {
 	if (word_087e != -1 && ds_byte(0x0D5D + 3 * n) > ds_byte(0x0D5D + 3 * (uint16_t)word_087e)) return;
-	if (word_5d36 != 0 || Char.charid == 1) return;
+	if (word_5d36 != 0 || (Char.charid == 1 && V_1X)) return;   /* (IR: the spirit's sounds play) */
 	if (sound_debug & 2) fprintf(stderr, "Q %X\n", n);
 	word_087e = (int16_t)n;
 }

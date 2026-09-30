@@ -4,6 +4,7 @@
  * themselves are left out. Transcribed from the disassembly. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 extern int last_scene; int load_level(int n);
 #define word_2bb4 (*(uint16_t *)(tiles0 + 0x1A))   /* DS:2BB4: room 8 was reached with the sounds on */
@@ -55,7 +56,7 @@ static void guard_appears(int8_t row, int8_t col)
 	rec->tilepos = (int8_t)(row_tilepos(row) + col);
 	rec->x = col_x_left[col];
 	rec->direction = col < 5 ? 0 : -1;
-	rec->f04 = 5;
+	rec->f04 = V_IR ? 7 : 5;
 	if (pal_slots[0] == 0) { pick_pal_slot_pub(1); /* 2D3E:0F50 palette */ }
 	rec->pal = pal_slots[0]; rec->index = (uint8_t)idx; rec->f10 = 0; rec->f38 = 0;
 	((uint8_t *)rec)[0x15] = (uint8_t)row;   /* (low byte of w15) */
@@ -159,7 +160,7 @@ void anim_tile2a(void)
 {
 	int bg = room_background_id(); uint8_t idx = mod16() & 0xF;
 	if ((bg != 0x1D && bg != 0x1E) || !((idx < 6 && drawn_room == 7) || (idx >= 6 && drawn_room == 8))) { cur_trob.state = 0xFF; return; }
-	anim_steps(9, 0x50);
+	anim_steps(9, V_IR ? 0x1E : 0x50);   /* (IR: rearmed sooner) */
 }
 /* 33FD:1962 / 1B94 (0823:0B78 on level 14, a tile with attribute bit 0x1000 in room 6 / rooms 7, 8) */
 void anim_start_final(uint32_t *attrs, int8_t tp, uint8_t room)
@@ -236,7 +237,7 @@ void ovl_352b4(level_char_init *rec)
 void jaffar_leaves_room6(void)
 {
 	Char.curr_col = 0x11; Char.x = 0x2C8; Char.curr_row = -3; Char.y = -0x85; Char.direction = wp(0)->dir;
-	room_char_record((int8_t)Char.index, Char.room)->w15 = 0;
+	if (V_1X) room_char_record((int8_t)Char.index, Char.room)->w15 = 0;   /* (IR keeps it) */
 	seqtbl_offset_char(2); play_seq(); save_to_record_pub();
 }
 /* 33FD:06AE (a hit by a Jaffar): the other Jaffars of his room standing still start (seq 0xF0) */
@@ -255,6 +256,15 @@ static void jaffar_room6(void)
 	if (Char.alive >= 0) return;
 	int8_t n = ROOM_REC(Char.room)->nchars; if (Opp.charid == 1) n--;
 	if (n == 1 && Char.f19 != 0xF0 && Kid.alive < 0) { seqtbl_offset_char(0xF0); return; }
+	if (V_IR) {   /* IR: only facing the way the prince faces; steps in from 0x12..0x30 away, never turns round */
+		if (Opp.direction != Char.direction) return;
+		if (Char.f10 == 0 && Kid.alive < 0) {
+			int16_t si = (int16_t)opp_distance() - 0xF;
+			if (si > 0x12 && si < 0x30) { Char.x = char_dx_forward(0xF); Char.f10 = 1; seqtbl_offset_char(0x4B); }
+		} else if (Char.frame == 0xAB) { Char.f10 = 0; seqtbl_offset_char(0x5C); }
+		else if (Char.frame == 0x34 && Kid.alive > 0) { seqtbl_offset_char(0xC5); play_sound(0x106); }
+		return;
+	}
 	if (Char.frame == 0xF) {
 		if (Kid.alive >= 0 || Kid.f19 == 0x2C || Kid.f19 == 6 || Kid.charid != 0 || !frame_flag40(Kid.frame) || Kid.action == 3 || Kid.action == 4) return;
 		int go = 0; int16_t si = (int16_t)opp_distance();
@@ -279,7 +289,7 @@ static void wp_prev(uint8_t *st) { st[1] = st[1] == 0 ? 3 : st[1] - 1; }   /* 33
 /* 33FD:08C0: the prince's body is on Jaffar's row and within his reach */
 static int can_cast(void)
 {
-	if ((int8_t)Opp.f12 <= 0 || (Opp.room != 7 && Opp.room != 8) || level_kind != 6 || Opp.f19 == 0xF1 || Char.curr_row != Opp.curr_row) return 0;
+	if ((int8_t)Opp.f12 <= 0 || (Opp.room != 7 && Opp.room != 8) || level_kind != 6 || (Opp.f19 == 0xF1 && V_1X) || Char.curr_row != Opp.curr_row) return 0;
 	if (!frame_flag40(Char.frame) || Char.frame == 0x6D) return 0;
 	int8_t c = col20(Char.curr_col, Char.room);
 	if (Char.curr_row == 0) return !(c > 6 && c < 0xD);
@@ -369,7 +379,8 @@ static int to_wp2(uint8_t *st)
 	if (st[2] < st[1]) {
 		int8_t c = col20(Char.curr_col, Char.room);
 		if (c == wp(1)->col && Char.frame == 0xF) { control_standing_forward(); return -1; }
-		if (c >= 0xB && col_x_left[2] + 0x24 > Char.x && Char.f19 != 4 && (Char.frame == 7 || Char.frame == 0xB)) {
+		if (V_IR) { if (c > 0xB && c < 0xE && Char.frame == 0xB) { control_runjump(4); return -1; } }   /* (IR: columns 12..13, frame 11) */
+		else if (c >= 0xB && col_x_left[2] + 0x24 > Char.x && Char.f19 != 4 && (Char.frame == 7 || Char.frame == 0xB)) {
 			Char.x = char_dx_forward(2); control_runjump(4); return -1;
 		}
 		if (c <= 6 && Char.frame == 7) return 0xD;
@@ -450,8 +461,9 @@ static void jaffar_chase(uint8_t *st)
 		else if (Char.frame == 0x11A && can_cast()) cast_kills();
 		go = 0;
 	} else if (st[2] == st[1]) {
-		if (Char.curr_row == Opp.curr_row && can_cast()) face_and_cast();
-		else if (Opp.f19 != 0xF1) { if (in_zone(-1, st[1])) wp_next(st); else wp_prev(st); }
+		int cast = Char.curr_row == Opp.curr_row && can_cast();
+		if (cast) face_and_cast();
+		if (V_IR || (!cast && Opp.f19 != 0xF1)) { if (in_zone(-1, st[1])) wp_next(st); else wp_prev(st); }   /* (IR: the waypoint moves on after a cast too) */
 	}
 	if (go && st[2] != st[1] && (int8_t)Opp.f12 > 0) {
 		if (Char.curr_row == 1 && can_cast()) { face_and_cast(); return; }
@@ -472,7 +484,7 @@ static void jaffar(void)
 			}
 			patrol = moving;
 		} else if (Char.curr_row == Opp.curr_row && (int16_t)word_5cbe >= 4) patrol = (int8_t)Opp.f12 > 2 || Opp.f19 == 0xF2;
-		else { chase = Opp.f10 == 0xFF; patrol = moving; }
+		else { chase = Opp.f10 == 0xFF && (V_1X || ((int8_t)Opp.f12 < 3 && Opp.f19 != 0xF2)); patrol = moving; }   /* (IR: and the prince weak, not being cast at) */
 	} else {
 		patrol = (int8_t)Opp.f12 > 2 || Opp.f19 == 0xF2;
 		chase = !patrol;

@@ -2,6 +2,7 @@
  * Reconstructed from the Ghidra decompilation of the DOS binary; names follow SDLPoP where the logic matches. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include <stdio.h>
 #include <stdlib.h>
 int coll_debug;
@@ -168,7 +169,7 @@ static void feather_wall_check(void)
 void check_collisions(void)
 {
 	coll.bump_col_right_of_wall = coll.bump_col_left_of_wall = -1;
-	if (Char.action != 7 && Char.f19 != 0x4E && Char.f19 != 0x46 && (word_440a == 0 || !ovl_34ce6() || Char.f24 != 4)) {
+	if (Char.action != 7 && Char.f19 != 0x4E && (V_IR || Char.f19 != 0x46) && (word_440a == 0 || !ovl_34ce6() || Char.f24 != 4)) {
 		coll.collision_row = Char.curr_row;
 		move_coll_to_prev();
 		coll.prev_collision_row = coll.collision_row;
@@ -228,8 +229,8 @@ static void bump_fall(void)
 	Char.x = char_dx_forward(-8);
 	if (Char.action == 4) Char.fall_x = 0;
 	else { seqtbl_offset_char(0x2D); play_seq(); }
-	if (Char.charid != 1) word_6140 = 1;   /* 03294E */
-	load_fram_det_col();
+	if (V_IR || Char.charid != 1) word_6140 = 1;   /* 03294E (IR: every character) */
+	if (V_1X) load_fram_det_col();
 }
 /* OVL01 0327DA: landed against the wall */
 static void bump_stand(int8_t dir)
@@ -258,7 +259,7 @@ static void bump_stand(int8_t dir)
 	} else { Char.x = char_dx_forward(-3); id = 0x79; Char.f0f = 0; }
 	if (id != -1) { seqtbl_offset_char(id); play_seq(); load_fram_det_col(); }
 	if (id == 0x40) { if (Char.f19 != 0x38) play_sound(0xC); }
-	else if (Char.charid != 1) word_6140 = 1;
+	else if (V_IR || Char.charid != 1) word_6140 = 1;
 }
 /* OVL01 0326E2: apply a bump of dx against the wall on side dir (-1 = wall on the left) */
 static void bump_apply(int8_t dir, int16_t dx)
@@ -360,13 +361,13 @@ static void gate_push_out(void)
 void check_gate_push(void)
 {
 	uint8_t t = get_tile_at_char();
-	if (Char.alive >= 0 || Char.f19 == 0x76) return;
+	if ((Char.alive >= 0 && V_1X) || Char.f19 == 0x76) return;   /* (IR: the dead too) */
 	if (t != 4 && get_tile_behind_char() != 4 && get_tile_infrontof(1) != 4) return;
 	if (curr_room == 9 && level_number == 8) return;
 	if ((curr_row_coll_flags[tile_col] & prev_coll_flags[tile_col]) != 0xFF || !can_bump_into_gate()) return;
 	if (Char.frame == 0x6D || curr_modifier == 0 || Char.f10 == 1) {
 		if (level_kind == 3 && curr_modifier != 0 && Char.f10 != 1 && !GOD_KID) { ovl_3211a(); return; }   /* (god mode: pushed out, not crushed) */
-		if (Char.charid != 1) word_6140 = 1;
+		if (V_IR || Char.charid != 1) word_6140 = 1;
 		gate_push_out();
 	} else if (Char.f19 != 0x32) seqtbl_offset_char(0x32);
 }
@@ -375,7 +376,7 @@ void check_gate_push(void)
 void check_guard_bumped(void)
 {
 	int is78 = Char.charid == 7 || Char.charid == 8; uint8_t act = is78 ? 0 : 1;
-	if (!((Char.action == act || (is78 && Char.f19 != 0xA4)) && (Char.alive < 0 || is78) && Char.f10 == 1 && Char.f19 != 0x46)) return;
+	if (!((Char.action == act || (is78 && Char.f19 != 0xA4)) && (Char.alive < 0 || is78) && Char.f10 == 1 && (V_IR || Char.f19 != 0x46))) return;
 	uint8_t t = get_tile_at_char();
 	if (!tile_is_wall_kind(t) && (t != 4 || !can_bump_into_gate())) {
 		t = get_tile_infrontof(1);
@@ -400,7 +401,7 @@ void check_guard_bumped(void)
 void check_gate_guard(void)
 {
 	uint8_t t = get_tile_at_char();
-	if (Char.alive >= 0) return;
+	if (Char.alive >= 0 && V_1X) return;   /* (IR: the dead too) */
 	if (t != 4 && get_tile_behind_char() != 4 && get_tile_infrontof(1) != 4) return;
 	if ((curr_room == 9 && level_number == 8) || Char.charid == 0xC || !can_bump_into_gate()) return;
 	coll.tile_left_xpos = col_x_left[tile_col] + 14;

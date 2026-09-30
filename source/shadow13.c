@@ -4,6 +4,7 @@
  * sounds are left out. Transcribed from the disassembly. */
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 /* 37F0:0000: the shadow merges into the prince: full hp, f24 0xD; the shadow's character goes */
 static void shadow_merge(void)
@@ -38,7 +39,7 @@ void ovl_shadow_37f0_78(void)
 	else if (f == 0x5B && !seq_peek_frame_decreases()) {
 		control_hanging_climb();
 		if (Char.f24 == 0xD) Char.y -= 2;
-		if (Char.direction == 0) set_char_collision();   /* 3212:09BE (then a redraw) */
+		if (Char.direction == 0 && V_1X) set_char_collision();   /* 3212:09BE (then a redraw; IR: not) */
 	}
 	else if (f == 0x9A) *(uint16_t *)&ROOM_ATTRS(4)[11] = 0x85;   /* DS:310C */
 	else if (f == 0x99 && Char.f24 == 0xD) { /* palette */ }

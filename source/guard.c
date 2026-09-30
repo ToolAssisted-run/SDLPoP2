@@ -22,7 +22,7 @@ int random_2751(int max) { random_seed = random_seed * 0x343FD + 0x269EC3; retur
 /* 2D3E:2420 (02F800): can a character walk onto this tile? */
 int tile_passable_2f800(uint16_t mod, uint8_t t)
 {
-	int r = !tile_is_wall_kind(t) && !(t == 4 && (uint8_t)mod < 0x70);
+	int r = (V_IR || !tile_is_wall_kind(t)) && !(t == 4 && (uint8_t)mod < 0x70);   /* (IR: walls pass) */
 	if (r && Char.charid != 10) { r = !tile_is_loose_kind(t); if (r && Char.charid != 7 && Char.charid != 8) r = !tile_is_empty_kind(t); }
 	return r;
 }
@@ -38,7 +38,7 @@ static void move_shift(int8_t v) { control_shift = v; ctrl1_shift = v; }
 /* 2D3E:18FE */
 static void clear_controls(void) { ctrl1_forward = ctrl1_backward = ctrl1_up = ctrl1_down = ctrl1_shift = 0; control_x = control_y = control_shift = 0; }
 
-static int lvl5_bridge(void) { return Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12); }
+static int lvl5_bridge(void) { return bridge_row(Char.curr_row) && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12); }
 static int frame_running(uint16_t f) { return (f >= 1 && f <= 0xE) || (f >= 0x31 && f <= 0x38) || (f >= 0x22 && f <= 0x2C); }
 /* the skill byte of the guard's room record (read without a count check, DS:43B0 + index*23 + room*0x74) */
 static uint8_t guard_skill(void) { return ((uint8_t *)&level)[0x17F3 + Char.room * 0x74 + 1 + Char.index * 23 + 4]; }
@@ -334,7 +334,8 @@ void guard_after_seq(void)
 	if (Char.frame != 0xB9) return;
 	int id = dead_guard_seq(level.type);
 	if (id) { seqtbl_offset_char(id); play_seq(); }
-	if (Char.alive < 0x14) Char.alive++;
+	if (V_IR) Char.alive = (int8_t)((uint8_t)Char.alive + 1);   /* (IR: no cap: 0x7F wraps to "alive", a 128-tick cycle) */
+	else if (Char.alive < 0x14) Char.alive++;
 }
 void sword_range_pub(int16_t *far_ax, int16_t *near_bx) { sword_range(far_ax, near_bx); }
 void guard_ai_pub(void) { guard_ai(); }

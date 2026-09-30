@@ -10,7 +10,7 @@ int8_t col_from_x18(int16_t x18)
 {
 	int16_t v = x18 - 4; obj_xl = (int8_t)(v % 32);
 	int16_t col = (v < 0 ? -((-v) >> 5) : v >> 5) - 4;
-	if (x18 < 0) col--;
+	if (x18 < 0 && V_1X) col--;   /* (IR truncates: at x < 14 its column is one higher) */
 	return (int8_t)col;
 }
 int8_t x_to_col(int16_t x) { return col_from_x18(x - 14); }
@@ -52,18 +52,19 @@ void control_standing_down(void)
 int control_runjump(int kind)
 {
 	if (!((kind == 4 && (Char.frame == 7 || Char.frame == 11)) || (kind == 100 && (Char.frame == 0xC0 || Char.frame == 0xC4)))) return 0;
-	int16_t xx = char_dx_forward(9);
+	int dx = V_IR && kind == 4 ? 0xB : 9;   /* (IR: 11 for the running jump) */
+	int16_t xx = char_dx_forward(dx);
 	int8_t col = x_to_col(xx); int n = 0, ok = 1, two = 0;
 	do {
 		col += dir_front[Char.direction + 1];
 		uint8_t t = get_tile(Char.curr_row, col, Char.room);
-		if (!tile_passable_2f800(curr_modifier, t) && t != 11) ok = 0;
+		if (V_IR ? tile_is_empty_kind(t) || !tile_passable_2f800(curr_modifier, t) : !tile_passable_2f800(curr_modifier, t) && t != 11) ok = 0;
 		else if (++n == 2) two = 1;
 	} while (ok && !two);
 	if (!ok) {
 		int16_t d = distance_to_edge(xx) + n * 32 - (kind == 4 ? 0x1F : 0x23);
-		if (d < -20 || d > 9) { if (d < 0 && kind == 4) return 0; d = -9; }
-		Char.x = char_dx_forward(d + 9);
+		if (d < (V_IR ? -19 : -20) || d > 9) { if (d < 0 && kind == 4) return 0; d = -dx; }
+		Char.x = char_dx_forward(d + dx);
 	}
 	seqtbl_offset_char(kind);
 	ctrl1_up = control_rest();
@@ -92,11 +93,11 @@ int sword_seq_0317c4(void)
 			si = (d + 1 == 0 ? -2 : d) - 4;
 		} else {
 			t = get_tile_infrontof(1);
-			if (!tile_is_floor(t) || t == 0xB || (t == 4 && can_bump_into_gate())) si = 0;
+			if (!tile_is_floor(t) || (t == 0xB && V_1X) || (t == 4 && can_bump_into_gate())) si = 0;   /* (IR: a loose floor is fine) */
 		}
 		if (si != -1) {
 			t = get_tile_behind_char();
-			int bad = !tile_is_floor(t) || t == 0xB || (t == 4 && can_bump_into_gate());
+			int bad = !tile_is_floor(t) || (t == 0xB && V_1X) || (t == 4 && can_bump_into_gate());
 			if (!bad && di && !((Char.direction == -1 && Char.x >= di) || (Char.direction == 0 && di >= Char.x))) bad = 1;
 			if (!bad && Char.f24 == 4) bad = 1;
 			if (bad) { Char.f10 = 0; r = -1; }
@@ -156,7 +157,7 @@ void control(void)
 	}
 	if (Char.action == 5 || Char.action == 4 || Char.action == 9 || Char.f19 == 0x1B || Char.f19 == 0x6E) {
 		control_rest();
-		if (level_number == 12 && chars[0].charid == 12 && chars[0].direction != 0x56 && chars[0].x < word_3bf62) seqtbl_offset_char(0xD4);
+		if (V_1X && level_number == 12 && chars[0].charid == 12 && chars[0].direction != 0x56 && chars[0].x < word_3bf62) seqtbl_offset_char(0xD4);
 		return;
 	}
 	if (Char.f10 == 1) { control_2fdf_1bfa(); return; }
@@ -174,7 +175,8 @@ void control(void)
 	if (is_dead_frame(frame) || (frame > 0xB2 && frame < 0xB8)) { control_dead_0307a2(); return; }
 	if (frame == 0x127) { ovl_383fa(); return; }
 	if (frame >= 0x110 && frame <= 0x119) { ovl_35f5a(); return; }
-	if (frame == 44 || frame == 26) control_rest();
+	if (V_IR) { if (frame == 44) ctrl1_forward = 0; }   /* (IR: frame 44 clears the forward edge only) */
+	else if (frame == 44 || frame == 26) control_rest();
 }
 
 /* 2FDF:068E (03047e): with the sword drawn (frames 0xF6..0x105) */
@@ -314,7 +316,7 @@ void control_standing_turn(void)
 		int16_t lim = level_kind == 3 ? 7 : (drawn_room == 9 && level_number == 8) ? -100 : 4;
 		if (d < lim) Char.x = char_dx_forward(d - lim);
 	}
-	if (level_kind == 2 || (level_kind == 6 && ((Char.room != 1 && Char.room != 2) || level_number != 14))) ovl_2f86_08d8();
+	if (level_kind == 2 || (level_kind == 6 && (V_IR || (Char.room != 1 && Char.room != 2) || level_number != 14))) ovl_2f86_08d8();
 	if (Char.f19 != 0x47) seqtbl_offset_char(5);
 }
 
@@ -422,7 +424,7 @@ static void control_standing_branches(void)
 			ctrl1_shift = 2; control_rest(); control_standing_shift();
 			Char.opp_index = find_opponent(Char.direction); if (Char.opp_index == (uint8_t)-1) Char.opp_index = 0; return;
 		}
-		if (Opp.f23 > 1 && Char.charid != 1 && Char.f24 != 0xD && Opp.charid != 6) {
+		if (Opp.f23 > 1 && Char.charid != 1 && Char.f24 != 0xD && (V_IR || Opp.charid != 6)) {
 			int d = opp_distance();
 			if (d > -11 && d < 0xD0 && d < 0 && d > -15) { control_standing_turn(); return; }
 		}
@@ -566,7 +568,7 @@ void control_2fdf_1bfa(void)
 			if (d > -5 || (d > -0x1F && (Opp.charid == 7 || Opp.charid == 8))) { sword_actions(); fall_through = 0; goto tail; }
 			if (Char.charid != 0xB) {
 				if ((Char.index == 10 && word_8604 == 0) || Opp.charid == 6
-				    || (Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12) && rtlink_0dd5())) { sword_actions(); fall_through = 0; goto tail; }
+				    || (V_1X && Char.curr_row != 0 && level_number == 5 && (Char.room == 10 || Char.room == 7 || Char.room == 12) && rtlink_0dd5())) { sword_actions(); fall_through = 0; goto tail; }
 				sword_engage();
 			}
 		} else { sword_actions(); }

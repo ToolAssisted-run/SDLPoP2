@@ -163,6 +163,8 @@ You can change the window, scaling, sound, intro and story scenes, keys, quicksa
 
 Most settings can also be changed in the menu. The menu saves your changes to `SDLPoP2.cfg`.
 
+`game_version` chooses which DOS release to play: the initial release, 1.0 or 1.1. By default it is the release of your game files. The differences are listed in [docs/VERSIONS.md](docs/VERSIONS.md).
+
 ### The Roland MT-32
 
 The game was also made for the Roland MT-32, and SDLPoP2 plays its music on an emulated one (Munt). Set `sound_device = mt32_digital` (MT-32 music, Sound Blaster digitized sounds) or `mt32` in `SDLPoP2.ini`, or choose it in the menu (SETTINGS, GENERAL). The game then uploads its own instruments to the MT-32 first. Like the original, it waits about 9 seconds on a black screen before the title.
@@ -241,6 +243,6 @@ SDLPoP2 does not let you skip the original game's copy protection.
 
 SDLPoP2 needs the original game's files, which are not included.
 
-The game is not sold digitally at the moment. You need an original copy of *Prince of Persia 2: The Shadow and the Flame* for MS-DOS, or the *Prince of Persia Collection Limited Edition* CD (the version SDLPoP2 is built against).
+The game is not sold digitally at the moment. You need an original copy of *Prince of Persia 2: The Shadow and the Flame* for MS-DOS, or the *Prince of Persia Collection Limited Edition* CD (version 1.1, the one SDLPoP2 is built against). The floppy releases work too: 1.0 plays with 1.0's or 1.1's files, and the initial release needs its own.
 
 You can ask for an official re-release by voting on its [GOG Dreamlist page](https://www.gog.com/dreamlist/game/prince-of-persia-2-the-shadow-and-the-flame).

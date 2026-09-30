@@ -4,6 +4,7 @@
 #include <string.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 #include "render.h"
 #include "render_tiles.h"
 #include "render_frame.h"
@@ -210,10 +211,28 @@ const kind_drawers kind_desert = {{
 }, NULL};
 
 /* ---- rooftops (33FD in level 1) ---- */
-/* 33FD:073C: tile 0x25, object ((modifier >> 1) & 7) + 0x19 at the tile, behind and in front */
+/* the initial release's sea waves (its 33FD:0876): the description's own objects for each wave tile, by room and column */
+static int ir_wave_obj(int col, uint8_t room)
+{
+	if (room == 0x13) return col == 5 ? 0x27 : 0x2F;
+	if (room == 0x10) return col == 1 ? 0x30 : col == 4 ? 0x3D : 0x45;
+	return 0;
+}
+/* 33FD:073C: tile 0x25, object ((modifier >> 1) & 7) + 0x19 at the tile, behind and in front. The initial release draws
+ * the room's own wave objects where the description puts them: the frame's behind, the one 4 on in front (behind
+ * while the grab meets it) */
 static void roof_25(tile_args *a)
 {
 	if (a->layer != 0xB && !(a->layer == 0 && redraw_all_flag)) return;
+	if (V_IR) {
+		int k = ir_wave_obj(a->col, drawn_room); if (!k) return;
+		k += (mod_lo(a) >> 1) & 7;
+		if (desc_count() <= k + 4) return;
+		draw_object(k, 0xB);
+		uint8_t *o = desc_obj(k + 4);
+		o[5] = rooftops_obj_behind2_pub(o) ? 0 : 1; draw_object(k + 4, o[5]); o[5] = 0xB;
+		return;
+	}
 	desc_draw_obj_pair(a, ((mod_lo(a) >> 1) & 7) + 0x19);
 }
 /* 33FD:0976: tile 0x26 (modifier 0..0xB0: a scroll), objects 19 and 20 (20 in front) and 0x15 + (m & 3) at x -m */
@@ -240,6 +259,18 @@ static int rect_meets(int16_t *r, const int16_t *a, const int16_t *b) { return r
  * 30 to the left (33FD:0876) requested, unless a grab in progress (33FD:030E) meets it; the object put back */
 void render_roof25_tick(int8_t tp)
 {
+	if (V_IR) {   /* IR: the rects of the wave's two objects (unless the grab meets the first) */
+		int k = ir_wave_obj(tp % 10, cur_trob.room); int16_t g[4], r[4];
+		if (!k || desc_count() <= k + 4) return;
+		desc_grab_rect(g);
+		for (int q = 0; q < 4; q++) r[q] = rd(desc_obj(k) + 0xB + 2 * q);
+		extern uint8_t byte_6937;
+		if (byte_6937 && rect_meets(g, g, r)) return;
+		mark_tiles_under(mark_back, r, 0xFF);
+		for (int q = 0; q < 4; q++) r[q] = rd(desc_obj(k + 4) + 0xB + 2 * q);
+		mark_tiles_under(mark_back, r, 0xFF);
+		return;
+	}
 	if (desc_count() <= 0x19) return;
 	int16_t g[4], r[4]; desc_grab_rect(g);
 	uint8_t *o = desc_obj(0x19), save[0x19]; memcpy(save, o, sizeof save);

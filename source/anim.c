@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "types.h"
 #include "globals.h"
+#include "version.h"
 
 trob_type trobs[20]; uint16_t trob_count;        /* DS:6676, DS:6670 */
 trob_type cur_trob;                              /* DS:6672 */
@@ -56,7 +57,7 @@ static void anim_torch(void)
 	if (level_kind == 3) { v = random_2751(8); if (v == cur) { v++; if (v >= 9) v = 0; } }
 	else v = ovl_torch_347c(cur);
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFF00) + v);
-	if (word_2ba4 == 0 || ((uint8_t)(tick + anim_index) & 1)) hook_trob_request(0x1F4, 0);   /* (late: every other tick, torch by torch) */
+	if (word_2ba4 == 0 || (V_IR ? (int16_t)tick % 2 + anim_index != 0 : ((uint8_t)(tick + anim_index) & 1))) hook_trob_request(0x1F4, 0);   /* (late: every other tick, torch by torch; IR: all but the first on even ticks) */
 }
 /* 1375:088C: tile 0x0A cycles 0..0x1B while visible */
 static void anim_0a(void)

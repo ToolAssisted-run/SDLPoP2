@@ -240,7 +240,7 @@ void check_kid_left_room(void)
 void apply_hp_deltas(void)
 {
 	if (Kid.hp_delta != 0) {
-		if (Kid.charid == 1 && level_kind == 6) ovl_2f9f2();
+		if (Kid.charid == 1 && (V_IR || level_kind == 6)) ovl_2f9f2();   /* (IR: on every level) */
 		int v = (int8_t)Kid.f12 + Kid.hp_delta; if (v < 0) v = 0; if (v > (int8_t)Kid.f13) v = (int8_t)Kid.f13; Kid.f12 = (uint8_t)v;
 	}
 	for (int8_t i = 0; i < (int8_t)room_nchars(drawn_room); i++) {

@@ -7,7 +7,7 @@
 #include "../source/dat.h"
 
 char_type Char, Opp, Kid, chars[5]; level_type level; uint8_t tiles0[30]; uint32_t tick; int16_t knock; uint16_t word_5d36;
-int8_t control_x, control_y, control_shift; uint8_t drawn_room; uint16_t counter_5cec, word_27c0, counter_27d6, word_6140; uint8_t flag_5cb9, byte_5cb8, level_kind, level_number, room_A; uint8_t *level_roomlinks;
+int8_t control_x, control_y, control_shift; uint8_t drawn_room; uint16_t counter_5cec, word_27c0, counter_27d6, word_6140; uint8_t flag_5cb9, byte_5cb8, level_kind, level_number, room_A, sound_caps = 3; uint8_t *level_roomlinks;
 static dat_file seqdat; static char log_[512];
 static void note(const char *s) { strncat(log_, s, sizeof log_ - strlen(log_) - 1); }
 const uint16_t *get_seq_words(uint16_t id) { uint16_t n; const uint8_t *b = dat_find(&seqdat, "SQES", id, &n); return (const uint16_t *)b; }

@@ -101,6 +101,7 @@ static int rooftops_obj_behind2(const uint8_t *o)
 	int16_t g[4], rc[4]; grab_rect(g); get_rect(o, rc);
 	return sect(g, g, rc);
 }
+int rooftops_obj_behind2_pub(const uint8_t *o) { return rooftops_obj_behind2(o); }
 
 /* 0FB3:0712: object i into the tables when it belongs to `layer` */
 void draw_object(int i, uint8_t layer)

@@ -62,7 +62,7 @@ int tile_is_solid_floor(uint8_t t){ return tile_is_floor(t) && !tile_is_loose_ki
 /* OVL01 2FDF:000E - start a sequence (PoP1 seqtbl_offset_char) */
 void seqtbl_offset_char(uint16_t seq_id)
 {
-	if (Char.charid == 1) shadow_hook_2f9a2();
+	if (Char.charid == 1 && V_1X) shadow_hook_2f9a2();   /* (IR: not) */
 	if (!get_seq_resource(seq_id)) return;
 	Char.seq_id = seq_id; Char.f19 = seq_id; Char.seq_pos = 0;
 	if ((Char.charid == 7 || Char.charid == 8) && ((seq_id > 0x81 && seq_id < 0x8C) || seq_id == 0xA6) && Char.direction == 0) {

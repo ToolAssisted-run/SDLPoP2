@@ -10,6 +10,7 @@
 #include "coro.h"
 #include "dat.h"
 #include "nis.h"
+#include "version.h"
 
 #define W 320
 #define H 200
@@ -1395,16 +1396,22 @@ static int scene_tree(int n)
 	if (!r) {
 		if (n == 1) {
 			r = wait_or_time(26002);
-			if (!r) r = say_text(26000, 2, 4, 0x6E);
-			if (!r) r = timer_wait(0, 0x3C);
-			if (!r) { play_or_time(10500, 0x79); show_text(26000, 3); r = wait_or_time(10500); }
+			if (V_IR) {   /* the initial release: three more lines spoken (STRL 26000 2..4) */
+				if (!r) r = say_text(26000, 2, 3, 0xD3);
+				if (!r) r = say_text(26000, 3, 4, 0x6E);
+				if (!r) r = say_text(26000, 4, 5, 0x4B);
+			} else {
+				if (!r) r = say_text(26000, 2, 4, 0x6E);
+				if (!r) r = timer_wait(0, 0x3C);
+				if (!r) { play_or_time(10500, 0x79); show_text(26000, 3); r = wait_or_time(10500); }
+			}
 		} else if (n == 9) {
 			r = wait_cue(0x62);
 			if (!r) { draw_shape(&l, 15, 0x45, 0x38, 10); r = wait_cue(0x63); }
 			if (!r) r = fade_to(26004, 0xFFFF, 2);
 		}
 	}
-	if (!r) r = wait_sound(0);
+	if (!r) { r = wait_sound(0); if (!r && V_IR) timer_wait(0, 0x3C); }   /* (IR: 0x3C ticks more, not cut short) */
 	fade_out_clear();
 	if (r) sound_stop_all();
 	res_close("NIS.DAT");
@@ -1800,8 +1807,9 @@ static int scene_story2(void)
 		story_palt = 27005;
 		show_text(0, 0);
 		pic_img(P, a, 0x28, 0x1F, 0); pic_draw(P, &L, 0x1A, 0x71, 0x33, 10); pic_img(P, b, 0x3A, 0x4E, 10); pic_img(P, c, 0xA7, 0x32, 10);
-		r = wait_cue(0x64);
+		r = wait_cue(V_IR ? 0x63 : 0x64);
 		if (!r) pic_flash(P);
+		if (!r && V_IR) r = wait_cue(0x64);   /* (the initial release: the flash at cue 0x63, then cue 0x64) */
 	}
 	static const int spell[5][4] = { {0x1C, 0x73, 0x32, 6}, {0x1D, 0x71, 0x30, 6}, {0x1E, 0x70, 0x30, 6}, {0x1F, 0x70, 0x2E, 6}, {0x20, 0x59, 0x2F, 0x12} };
 	if (!r) { pic_img(P, a, 0x28, 0x1F, 0); pic_draw(P, &L, 0x1B, 0x71, 0x32, 10); pic_img(P, b, 0x3A, 0x4E, 10); pic_img(P, c, 0xA7, 0x32, 10); pic_show(P); }
@@ -2409,6 +2417,7 @@ static void engine_kid(int k)
 		draw_img(im, x, kid_state.y - 10, 10);
 		img_free(im);
 	}
+	if (V_IR) return;   /* (the initial release: the kid alone) */
 	shplist l2 = shpl_load(1000, 0x8000);
 	draw_shape_flip(&l2, 0xB, 0xAA, 0xB5, 10, 0);
 	if (k) {
@@ -2552,17 +2561,20 @@ static int trans6(void)
 	if (!r) {
 		sound_play(31020);
 		the_port = &screen_port;
-		r = dissolve(0xF0, &R_GAME, P, 1);
+		r = dissolve(V_IR ? 300 : 0xF0, &R_GAME, P, 1);   /* (IR: 300 ticks) */
 	}
 	shplist L3 = {0, 0, 0, 0};
 	if (!r) {
 		pal = palt_raw(4210); if (pal) setpal(0x20, 0x10, pal, 1);
-		L3 = shpl_load(3500, 4);
-		L3.first = 0x1072; L3.count = 4;
-		ovl14_place(0x1072, &r_13b8);                  /* (thunk 2A31:0E39) */
+		if (V_1X) {
+			L3 = shpl_load(3500, 4);
+			L3.first = 0x1072; L3.count = 4;
+			ovl14_place(0x1072, &r_13b8);              /* (thunk 2A31:0E39; the initial release leaves the window where its data has it) */
+		}
 		r = wait_cue(0x61);
 	}
 	if (!r) {
+		if (V_IR) { L3 = shpl_load(3500, 4); L3.first = 0x1072; L3.count = 4; }
 		r = play_anim(&L3, 0x1072, 0, 1, cb_17DF, 0, 0, 1);
 		port_free(P); P = NULL;
 	}
@@ -2576,8 +2588,10 @@ static int trans6(void)
 	if (!r) r = timer_wait(0, 0x3C);
 	if (!r) r = say_text(31000, 6, 6, 0xE0);
 	if (!r) { r = timer_wait(0, 0x3C); show_text(0, 0); }
-	if (!r) r = wait_sound(31020);
-	sound_play(10255);                                 /* (the level's music again) */
+	if (V_1X) {
+		if (!r) r = wait_sound(31020);
+		sound_play(10255);                             /* (the level's music again) */
+	}
 	if (saved_bar_top) { port_free(saved_bar_top); saved_bar_top = NULL; }
 	if (!r) {
 		P = port_new(r_13b8); the_port = P;
@@ -2591,14 +2605,15 @@ static int trans6(void)
 		P = port_new(R_GAME); the_port = P;
 		L = shpl_load(3500, 0xFFF0);
 		t6_172E(&L);
+		if (V_IR) r = wait_sound(0);
 	}
 	if (!r) r = fade_to(4209, 0xFFFF, 1);
-	if (!r) { copy_bits(&screen_port, P, &R_GAME, &R_GAME); r = fade_to(4211, 0xFFFF, 1); }
-	if (!r) r = timer_wait(0, 0x3C);
+	if (!r) { copy_bits(&screen_port, P, &R_GAME, &R_GAME); r = fade_to(4211, 0xFFFF, 1); if (V_IR) sound_play(31021); }
+	if (!r && V_1X) r = timer_wait(0, 0x3C);   /* (IR: sound 31021 instead of the wait) */
 	if (P) port_free(P);
 	the_port = &screen_port;
 	scr_patch_id = 0;                                  /* (the _SCR resource is freed: reloaded unpatched) */
-	if (!sound_playing(10255)) sound_play(10255);
+	if (V_1X && !sound_playing(10255)) sound_play(10255);
 	text_top = 0;
 	return r;
 }

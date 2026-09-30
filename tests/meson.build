@@ -109,6 +109,7 @@ if get_option('oracleTests') == true and not isWindows
     'sound' : [ 'info', files('run_soundmodel.sh') ],
     'audio' : [ 'audio', files('run_audio.sh') ],
     'shell' : [ 'info', files('run_shell.sh') ],
+    'versions' : [ 'ticks', files('run_versions.sh') ],
   }
   foreach name, how : oracleSuites
     test(name, bash,

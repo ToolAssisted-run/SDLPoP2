@@ -17,7 +17,7 @@ void seq_sound(uint16_t n)
 {
 	if (n == 1) {
 		counter_27d6++;
-		if (level_kind != 1) {
+		if (level_kind != 1 && (V_1X || (sound_caps & 3) == 0)) {   /* (IR: only without digital sound or music, DS:2085) */
 			play_sound(counter_27d6 % 2 + 0x17);
 			if (Char.charid == 4 && ovl_366c_11f8(Char.room)) Char.x = char_dx_forward(Char.index - 1);
 		}

@@ -160,7 +160,7 @@ static void start_fall(void)
 {
 	uint16_t frame = Char.frame; int adjust = 0; int16_t id = -1;
 	Char.curr_row++;
-	if (Char.charid == 1) shadow_hook_2f9a2();
+	if (Char.charid == 1 && V_1X) shadow_hook_2f9a2();   /* (IR: not) */
 	if (Char.f10 == 1) Char.f10 = 0;
 	if (Char.charid == 0 && level_number == 5 && Char.room == 10 && ((Char.direction == 0 && ctrl1_forward != 0) || (Char.direction == -1 && ctrl1_backward != 0))) { id = 0xC6; adjust = 1; }
 	if (id == -1) {
@@ -367,7 +367,7 @@ int play_kid_frame(void)
 	else if (word_5cd8 == 0) { play_seq(); if (Char.frame != 0) kid_post_move(); r = 0; }
 	else r = 1;
 	if ((int8_t)byte_5cbb >= 0) {   /* 169B:0798: the level's entrance sound after the first ticks */
-		if (byte_5cbb == 0 && Kid.alive < 0 && Kid.action != 3 && Kid.action != 4) play_sound(0x1A);
+		if (byte_5cbb == 0 && (V_IR || (Kid.alive < 0 && Kid.action != 3 && Kid.action != 4))) play_sound(0x1A);   /* (IR: always) */
 		byte_5cbb--;
 	}
 done:

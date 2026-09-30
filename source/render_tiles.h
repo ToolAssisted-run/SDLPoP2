@@ -65,6 +65,7 @@ void render_lever5_tile12(tile_args *a); void render_lever5_tile1b(tile_args *a)
 extern uint16_t word_2ba6;
 void draw_object(int i, uint8_t layer);   /* 0FB3:0712 */
 uint8_t *desc_obj(int i);
+int rooftops_obj_behind2_pub(const uint8_t *o);   /* 33FD:0826 */
 int desc_count(void);
 void desc_obj_image_rect(uint8_t *o);
 void desc_obj_offset(uint8_t *o, int16_t dx, int16_t dy);

@@ -17,7 +17,7 @@ static int turn_flash_frame(uint16_t frame, int16_t n)
 void turn_flash(void)
 {
 	if (Char.frame == 0xF) { word_5cbe = 0; return; }
-	if (Char.frame >= 0x2D && Char.frame <= 0x34 && !((Char.room == 1 || Char.room == 2) && level_number == 14)) {
+	if (Char.frame >= 0x2D && Char.frame <= 0x34 && !((Char.room == 1 || Char.room == 2) && V_1X && level_number == 14)) {   /* (IR tests level_kind == 14, never true) */
 		if ((int16_t)word_5cbe >= 4) Char.pal_slot = turn_flash_frame(Char.frame, (int16_t)word_5cbe) ? 8 : 0;
 		return;
 	}

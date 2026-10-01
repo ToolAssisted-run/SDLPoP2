@@ -907,3 +907,9 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   popdig.hdd (digital only) and popfm.hdd (FM only) beside popspk.hdd; captures SPKE/DIGE/FME<level>_41 for levels 1, 2,
   3, 5, 8, 12, 14: all identical with the capture's answers, snapshot and cold; model-only too but for the known ambient
   jitter (FME3, FME8); with the CD setup forced 16 of 21 diverge.
+- 2026-10-01: user reports against the original. (1) Ruins tunnels opened leftwards kept their face in the frontend:
+  347C:12FA's redraw requests (the opened tile, and the tile right of a run's end) reach the renderer now
+  (hook_tile_redraw; 5.6); capture T7P. (2) The horse ride (transition 2) played after level 8: the jump table
+  0AAC:0168 (cases 1..13 of DS:0998, the level just played) gives transition 2 to case 9, not 8 (story_scene
+  misread it by one entry; NIS.md had it right) - the same in IR, 1.0 and 1.1; the oracle (L8N, L9N: LEVELn then
+  Alt-N) plays daughter scene 0x14 after level 8 and transition 2 after level 9, and so does SDLPoP2 now.

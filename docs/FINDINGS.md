@@ -913,3 +913,8 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   0AAC:0168 (cases 1..13 of DS:0998, the level just played) gives transition 2 to case 9, not 8 (story_scene
   misread it by one entry; NIS.md had it right) - the same in IR, 1.0 and 1.1; the oracle (L8N, L9N: LEVELn then
   Alt-N) plays daughter scene 0x14 after level 8 and transition 2 after level 9, and so does SDLPoP2 now.
+  (3) Level 14's tower window: 33FD:045C (the prince landing on room 2's ledge) plays scene 5 (the prince at the
+  window meets Jaffar; 0AAC:0274(5)) before reloading the level and putting him in room 4, then sets palette
+  0FB3:2B1C(0, 0x10, 0xF0, 1000) and the music 1286:07CE(6); final.c only recorded the scene, which never played.
+  The oracle (L14W: the prince put on the ledge at tick 21) plays scene 5, and so does SDLPoP2 (the scene's frames
+  exact; the reload's ~150 frames of black before room 4 are shorter here).

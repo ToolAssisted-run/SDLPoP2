@@ -60,11 +60,12 @@ F=$O/frames/FRP2_raft.frames; [ -f $F ] && (cd $W && SHELL_SYNC=1 SHELL_CMP=$F S
 # a ruins tunnel opened crawling left (level 7 room 1, the prince teleported at tick 21; the shell's script also pokes
 # the neighbour rooms the oracle's tick sets): 347C:12FA's redraw of the tile right of the run (FINDINGS 5.6)
 F=$O/frames/T7P.frames; [ -f $F ] && (cd $W && SHELL_SYNC=1 SHELL_CMP=$F SHELL_VRAM=$F SHELL_FILES=$W/files SHELL_SEED=cbe2d $W/shelltest $S $O/T7P_shell.script yippeeyahoo LEVEL7 2>/dev/null | grep -E '^vram:' | sed 's/^/T7P: /')
-# the story scene after levels 8 and 9 (Alt-N with the cheat word; the jump table 0AAC:0168): the oracle's (probe
-# 0AAC:0274's ax) and the shell's, which must agree: after 8 a daughter scene (0x14), after 9 transition 2
-for L in 8 9; do n=L${L}N; [ -f $O/$n-snap.txt ] || continue
+# the scenes the game plays (the oracle's probe 0AAC:0274, its ax; the shell's trace), which must agree: after level 8
+# (Alt-N with the cheat word; the jump table 0AAC:0168) a daughter scene (0x14), after level 9 transition 2; level 14's
+# tower window (L14W: the prince put on room 2's ledge at tick 21, 33FD:045C) scene 5
+for c in L8N:8 L9N:9 L14W:14; do n=${c%%:*}; L=${c##*:}; [ -f $O/$n-snap.txt ] || continue
 	o=$(grep ' scene at 0AAC:0274' $O/$n-snap.txt | sed -n 2p | sed 's/.* ax=\([0-9A-F]*\).*/\1/')
-	m=$(cd $W && grep '^key' $O/$n.script > $n.keys && echo 'end 2650' >> $n.keys && SHELL_TRACE=1 SHELL_FILES=$W/files SHELL_SEED=cbe2d $W/shelltest $S $W/$n.keys yippeeyahoo LEVEL$L 2>&1 | grep 'shell scene' | sed -n 2p | sed 's/.*shell scene \([0-9]*\).*/\1/')
-	echo "$n: the scene after level $L: oracle $((0x$o)), shell $m"
+	m=$(cd $W && SHELL_TRACE=1 SHELL_FILES=$W/files SHELL_SEED=cbe2d $W/shelltest $S $O/${n}_shell.script yippeeyahoo LEVEL$L 2>&1 | grep 'shell scene' | sed -n 2p | sed 's/.*shell scene \([0-9]*\).*/\1/')
+	echo "$n: the scene played (level $L): oracle $((0x$o)), shell $m"
 done
 exit 0

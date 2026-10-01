@@ -255,7 +255,12 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Biting heads (f24 1) sit on the prince's last drawn sprite (366C:0002): the sprite list entry (chtab 2, layer 0)
   plus offsets from the guard file's resource 755 by the prince's image; x = sprite x + offset + 0x82.
 - Tile 7 runs (347C:12C8/1226/12FA): facing a tile 7 (modifier low bits not 3) while standing/crouching opens the
-  whole horizontal run of 7s (attr bit 0x80), across rooms.
+  whole horizontal run of 7s (attr bit 0x80), across rooms. Each tile marked (347C:12FA) asks for its redraw (1375:0EB8 when
+  1375:2620 says it shows) and, when its low bits are 0 (a run's right end) and it is not in column 9, for the tile on its
+  right (0EB8 unchecked): that tile draws the end's face, which the open run replaces by the tunnel's inside. 0EB8 maps a
+  neighbour room's tile to the drawn room's request index (left -9, right +9, above -20, below +20). The frontend takes
+  them through hook_tile_redraw (its tile tracker redraws only the tiles that changed: crawling in leftwards, the face
+  stayed). Verified: T7P (level 7 room 1, crawling left into the run), VGA dumps exact from the opening on (before: 1611 px).
 
 ### 5.7 Caverns (kind 3; OVL04 33FD)
 - Rocks, collapsing floors (heap objects), traps (186A blade trap, tile 2, type-4 objects).

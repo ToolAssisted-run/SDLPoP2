@@ -57,4 +57,7 @@ fi
 for c in CK1:LEVEL1 CK10:LEVEL10; do n=${c%%:*}; [ -f $O/$n-snap.txt ] && SHELL_SYNC=1 SHELL_FOLLOW=1 SHELL_CMP=$O/$n-snap.txt run $n $O/$n.script yippeeyahoo ${c##*:}; done
 # a plan (probepoke) with the tick-time drawing: level 2's waves, puzzle and raft against the VGA dumps of FRP2_raft
 F=$O/frames/FRP2_raft.frames; [ -f $F ] && (cd $W && SHELL_SYNC=1 SHELL_CMP=$F SHELL_VRAM=$F SHELL_FILES=$W/files SHELL_SEED=cbe2d $W/shelltest $S $O/P2_raft.script yippeeyahoo LEVEL2 2>/dev/null | grep -E '^compared|^vram:' | sed 's/^/P2_raft: /')
+# a ruins tunnel opened crawling left (level 7 room 1, the prince teleported at tick 21; the shell's script also pokes
+# the neighbour rooms the oracle's tick sets): 347C:12FA's redraw of the tile right of the run (FINDINGS 5.6)
+F=$O/frames/T7P.frames; [ -f $F ] && (cd $W && SHELL_SYNC=1 SHELL_CMP=$F SHELL_VRAM=$F SHELL_FILES=$W/files SHELL_SEED=cbe2d $W/shelltest $S $O/T7P_shell.script yippeeyahoo LEVEL7 2>/dev/null | grep -E '^vram:' | sed 's/^/T7P: /')
 exit 0

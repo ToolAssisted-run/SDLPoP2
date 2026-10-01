@@ -45,6 +45,7 @@ void mark_back(int8_t t, const int16_t *r);      /* 1375:0DC6 */
 void mark_fore_part(int8_t t, const int16_t *r); /* 1375:0E12 */
 void mark_fore_full(int8_t t);                   /* 1375:0E56 */
 void mark_tile(int8_t t);                        /* 1375:0E8C */
+void render_mark_tile_at(uint8_t room, int8_t tp);   /* 1375:0EB8 */
 void mark_tiles_under(void (*mark)(int8_t, const int16_t *), const int16_t *r, uint8_t id);   /* 1375:0F5A */
 int add_sprite(uint8_t chtab, uint16_t id1, int16_t x, uint8_t mode, int16_t y);   /* 0993:03CC */
 void draw_objs_at(uint8_t key);    /* 0FB3:18DE */

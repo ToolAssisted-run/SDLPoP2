@@ -80,6 +80,18 @@ void mark_fore_part(int8_t t, const int16_t *r) { if (t >= 0x1E) return; if (t >
 void mark_fore_full(int8_t t) { if (t >= 0x1E) return; if (t >= 0) redraw.fore_full[t] = 1; else mark_above(t, NULL); }
 /* 1375:0E8C: the whole tile t (table 6626) */
 void mark_tile(int8_t t) { if (t >= 0x1E) return; if (t >= 0) redraw.full[t] = 1; else mark_above(t, NULL); }
+/* 1375:0EB8: tile tp of room, whole: its index as the game makes it (the left room -9, the right +9, the one above
+ * -20, below +20; any other room as the drawn one's) */
+void render_mark_tile_at(uint8_t room, int8_t tp)
+{
+	int t = tp;
+	if (room == drawn_room) ;
+	else if (room == room_L) t -= 9;
+	else if (room == room_R) t += 9;
+	else if (room == room_A) t -= 20;
+	else if (room == room_B) t += 20;
+	mark_tile((int8_t)t);
+}
 /* 1375:0F5A: every tile under r gets `mark` (rows by (y - 3) / 63, columns by x / 32, both toward 0), then the
  * characters under r other than `id` are redrawn */
 void mark_tiles_under(void (*mark)(int8_t, const int16_t *), const int16_t *r, uint8_t id)

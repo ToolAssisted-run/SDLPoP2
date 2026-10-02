@@ -19,6 +19,8 @@ void pop2_set_game_version(int v);                /* before pop2_init: the relea
                                                      game files' own, 0 1.1, 1 1.0, 2 the initial release) */
 void pop2_set_sound_device(int caps, int midi_type);   /* before pop2_new_game: the setup's device (shell.h's shell_set_sound_device;
                                                           default 3, 0x21: FM + digital, the CD's setup). The game logic depends on it */
+void pop2_set_skip_scenes(int on);                /* the story scenes between levels: 1 skipped by a key (as a TAS does: the
+                                                     sound stops), 0 watched to their end (the default) */
 void pop2_new_game(int level, uint32_t seed);     /* a new game at `level` (1 = the menu's start; 2..14 = LEVELn with the cheat word) */
 int  pop2_frame(const pop2_input *in);            /* one tick: POP2_PLAYING, POP2_QUIT, or the level just entered */
 int  pop2_level(void);                            /* the current level */

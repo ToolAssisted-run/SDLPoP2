@@ -292,7 +292,7 @@ static void temple_slab_mob(void)
 	if (st > 0x10) {
 		cur_mob.speed = -1;
 		*(uint8_t *)&ROOM_ATTRS(cur_mob.room)[tp] = 0; ROOM_TILES(cur_mob.room)[tp] = 0x1A;
-		st = 0x11;   /* (sounds 0x276F stopped and 3 played: left out) */
+		st = 0x11;   /* (sound 0x276F stopped, 3 played: the state part's, temple.c slab_draw_state) */
 	}
 	if (!mob_shows(room, (int8_t)(row_tilepos((int8_t)cur_mob.row) + col))) return;
 	int16_t sy = cur_mob.y, sx = cur_mob.x, dy = (int16_t)ds_word((uint16_t)(0x1908 + 2 * st));

@@ -37,7 +37,7 @@ void slab_mob(void)
 {
 	if (cur_mob.speed == -1) return;
 	if ((cur_mob.wd & 0x1F) <= 0x10) cur_mob.wd++;
-	/* sound 0x5F unless 0x276E / 0x276F play */
+	if (!sound_playing(0x276E) && !sound_playing(0x276F)) play_sound(0x5F);
 }
 /* 347C:0C22 (drawing a type-10 mob, 1375:1FBA every frame): a settled slab goes back up to its place */
 void slab_draw_state(void)
@@ -47,7 +47,8 @@ void slab_draw_state(void)
 	if ((cur_mob.wd & 0x1F) > 0x10) {
 		cur_mob.speed = -1;
 		*(uint8_t *)&ROOM_ATTRS(cur_mob.room)[tp] = 0; ROOM_TILES(cur_mob.room)[tp] = 0x1A;
-		/* sound 0x276F stops, sound 3 */
+		sound_194c_83d2(0x276F); if (word_087e == 0x5F) word_087e = -1;
+		play_sound(3);
 	}
 }
 /* 347C:0FC4: the kind's tick */

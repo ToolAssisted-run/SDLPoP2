@@ -538,7 +538,7 @@ static void fireball_wall(void)
 	int16_t a = bx < 0 ? -bx : bx; int8_t col = (int8_t)(bx < 0 ? -(a >> 5) : a >> 5); if (bx < 0) col--;
 	if (!tile_is_wall_kind(get_tile(cur_mob.row, col, cur_mob.room))) return;
 	cur_mob.x = col * 32 + 0xE; if (cur_mob.w7 < 0) cur_mob.x += 0x20;
-	cur_mob.wd = 8; play_sound(0x103);   /* (stops sound 0x281A) */
+	cur_mob.wd = 8; play_sound(0x103); sound_194c_83d2(0x281A);
 }
 /* 33FD:1ED0 (1375:1B10, falling object type 0xC): a fireball flies, speeding up to 16, animating 0..3; burst 8..13 */
 void fireball_update(void)
@@ -549,7 +549,7 @@ void fireball_update(void)
 	else {
 		if (cur_mob.w7 > 0) { if (cur_mob.w7 < 0x10) cur_mob.w7 += 2; } else if (cur_mob.w7 > -0x10) cur_mob.w7 -= 2;
 		cur_mob.x += cur_mob.w7;
-		if (cur_mob.room == 0) cur_mob.speed = -1;   /* (stops sound 0x2812) */
+		if (cur_mob.room == 0) { cur_mob.speed = -1; sound_194c_83d2(0x2812); }
 		else { fireball_wall(); if (!(cur_mob.wd & 8)) { si = si >= 3 ? 0 : si + 1; play_sound(0x102); } }
 	}
 	if (cur_mob.speed == -1) return;   /* (0FB3:2B1C palette when the prince has <= 2 hp) */

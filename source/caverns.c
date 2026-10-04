@@ -211,7 +211,7 @@ int gate_squeeze(int si)
 	int8_t tp = (Kid.curr_row >= 0 ? Kid.curr_row * 10 : Kid.curr_row * 10 + 9) + Kid.curr_col;   /* 0AFF:07D4 */
 	if (cur_trob.room != Kid.room) { if (cur_trob.room == room_L) tp += 10; else if (cur_trob.room == room_R) tp -= 10; else tp = 0x1E; }
 	if (cur_trob.tilepos != tp && cur_trob.tilepos != tp - 1) return si;
-	if (Kid.f24 == 3) { si = 0xC; play_sound(9); }   /* 1375:2546 */
+	if (Kid.f24 == 3) { si = 0xC; gate_sound(9); }   /* 1375:2546 */
 	else if (Kid.frame == 0x108) si -= door_speed_0776(cur_trob.state) + 2;
 	else if (Kid.frame == 0x109) si = 0x24;
 	else if (Kid.frame == 0x10A) cur_trob.state = 0xFF;   /* 1375:0388 redraws */

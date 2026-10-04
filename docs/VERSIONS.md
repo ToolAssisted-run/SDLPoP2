@@ -106,7 +106,7 @@ Checked with the oracle: a new game starts with hp 3, max 3, in both 1.0 and 1.1
 | G | check_strike 2D3E:1FB0 (fight.c) | the spirit (charid 1) can strike the prince | `charid 1 && Opp.charid 0 → return` |
 | G | 02EE8A (hit and knock-back) | frame-flag test reads another record's frame (DS:5B19), a bug | Char.frame |
 | G | wake_in_range 366C:0E4A (skeleton.c) | – | also requires Kid.charid == 0 |
-| G | charid-10 hit 366C:15CC (called from check_strike's 366C:1580) | revive timer 0xF0 | 0x1E0 (SDLPoP2 still stubs 1580) |
+| G | charid-10 hit 366C:15CC (called from check_strike's 366C:1580) | revive timer 0xF0 | 0x1E0 (skeleton.c flame_parried; no shipped level has charid 10) |
 | G | heads 366C (heads.c:153) | seq 0x9C when `lim > d && f19 == 0x93` | `(row differs \|\| lim > d) && f19 == 0x93` |
 | G | char_dies 2D3E:1D74 (fight.c): the prince's death music by the killer | killer charid 6 → 2 | 0x11 |
 | G | 02FC2C (first free slot among the room's characters) | in Char.room | in drawn_room |
@@ -300,6 +300,6 @@ as 1.x does. This is the one deliberate deviation from IR.
   palette is not loaded and the oracle shows the palette left before. SDLPoP2's copy-protection question comes first
   in that case (§5.6), so it shows the level's palette.
 - Temple OVL07 3579:02FE: `*(G_1070+0x48)` = 0xFFFF in IR (0 in 1.0), a temple tile's image field; drawing.
-- 366C:1580 / 15CC (charid 10's hit): stubbed in all three releases.
+- 366C:1580 / 15CC (charid 10's hit): implemented for all three releases (skeleton.c flame_parried, 2026-10-04).
 - The NEWBUMP command-line switch (IR and 1.0): implemented (the core's `newbump_switch`, from the command line);
   off, the default, behaves like 1.1.

@@ -26,7 +26,10 @@ static void room_enter_hook(int16_t bg)
 		if (word_2bb2 == 0) { if (Kid.curr_col >= 9 && word_2bb0 == 0) { sound_1611_01a8(0x98); word_2bb0 = 1; } else if (Kid.curr_col < 9) sound_1611_01a8(0xFD); }
 		break;
 	case 0x17: break;   /* 33FD:145E (OVL08, level 14 room 1): palette, DS:2450 = DS:5CC2 (sound), a digital sound */
-	case 0x19: case 0x1A: case 0x1B: break;   /* 33FD:1494 (OVL08): palettes; rooms 4/3 sounds 0x10C/0x10D */
+	case 0x19: case 0x1A: case 0x1B:      /* 33FD:1494 (OVL08): palettes; room 4 music 0x10C, room 3 0x10D */
+		if (level_kind == 6 && drawn_room == 4) sound_1611_01a8(0x10C);
+		else if (level_kind == 6 && drawn_room == 3) sound_1611_01a8(0x10D);
+		break;
 	case 0x1C: case 0x1D: case 0x1E: final_room_enter(); break;   /* 33FD:1708 (OVL08, level 14 rooms 6..8) */
 	case 0x14: case 0x15:                 /* 347C:0226 (OVL06, ruins): level 9 music, room 2's once (DS:2BAE) */
 		if (Kid.curr_col >= 9) { if (drawn_room == 0x10 && level_number == 9) sound_1611_01a8(0x5C); }

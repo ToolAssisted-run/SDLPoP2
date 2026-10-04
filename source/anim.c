@@ -77,7 +77,7 @@ static void anim_exit_door(void)
 			cur_trob.state++;
 			si -= exit_door_speed(cur_trob.state);
 			if (si < 0) { si = 0; cur_trob.state = 0xFF; play_sound(9); }
-		} else if (++si >= 0x2A) { cur_trob.state = 0xFF; if (!(drawn_room == 4 && level_number == 13)) play_sound(8); }
+		} else if (++si >= 0x2A) { cur_trob.state = 0xFF; if (!(drawn_room == 4 && level_number == 13)) { sound_194c_83d2(0); play_sound(8); } }   /* (every sound stopped: the opening's loop 7) */
 		else if (!(drawn_room == 4 && level_number == 13)) play_sound(7);
 	}
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFF00) + si);

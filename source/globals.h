@@ -143,12 +143,12 @@ mob_type *find_mob_pub(int n, uint8_t type); void add_mob_pub(void); int8_t mob_
 /* hooks.c */
 void level_kind_hooks_char(void); void note_missing(const char *what); void ovl_347c_e48(void); void ovl_33fd_b2(void); void ovl_33fd_118(void); void ovl_kind6_char(void);
 /* skeleton.c */
-void skel_ai(void); void skel_collapse(void); void set_revive_timer(uint16_t v, uint8_t index); void skeleton_wake(void); level_char_init *skel_room_entry(level_char_init *r);
+void skel_ai(void); void skel_collapse(void); int flame_parried(void); void set_revive_timer(uint16_t v, uint8_t index); void skeleton_wake(void); level_char_init *skel_room_entry(level_char_init *r);
 void skel_blade_hit(void); void skel_row_shake(int8_t row, uint8_t room); void guard_ai_pub(void); void char_dies_pub(void); void init_hp_pub(level_char_init *r); int ovl_2a31_ddf(void);
 void add_mob(void); extern mob_type cur_mob; mob_type *find_mob_pub(int n, uint8_t type); int anim_visible_pub(void);
 /* caverns.c */ void rock_drop(uint8_t room, int8_t tp); void anim_rock(void); void rocks_hit_char(void); void rock_fly(void);
 extern uint16_t floor_ptrs[4]; extern uint8_t floor_objs[4][0x65]; void caverns_set_tables(const uint8_t *ds); void floor_room_entry(uint8_t room, int8_t tp);
-void floor_free_all(void); void anim_floor(void); void floor_touch_check(void); int gate_squeeze(int si); int door_speed_0776(int st); trob_type *get_trob(int8_t tp, uint8_t room);
+void floor_free_all(void); void anim_floor(void); void floor_touch_check(void); int gate_squeeze(int si); void gate_sound(int n); int door_speed_0776(int st); trob_type *get_trob(int8_t tp, uint8_t room);
 /* input.c */ extern uint8_t key_table[0x70], bios_shift_flags; extern int16_t joy_x, joy_y, joy_cx, joy_cy; extern uint8_t joy_button; extern uint16_t input_device;
 int read_input(void); extern int (*read_input_hook)(void); int hotkeys_02be(void); int hotkeys_02be_core(void); int demo_timing_check(void); void shell_status(int op); void sound_res_start(uint16_t res);   /* shell.c (weak defaults in input.c / glue.c) */
 /* kidctl.c */ extern int8_t kid_ctrl1_saved[5]; extern uint16_t word_5d38, word_5cd0, word_5cda, word_5cdc; int play_kid_control(void);

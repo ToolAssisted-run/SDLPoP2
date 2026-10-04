@@ -1,5 +1,5 @@
 /* Skeletons (charid 4, level type 2) and charid-10 risers: collapsing, the revive timer, waking up when the prince
- * comes close (OVL10 366C:0F60, 0E4A, 10CC, 1166, 1220, 125E, 1294, 1328, 13E8, 140E, 14D8). */
+ * comes close, the flames parried (OVL10 366C:0F60, 0E4A, 10CC, 1166, 1220, 125E, 1294, 1328, 13E8, 140E, 14D8, 1580). */
 #include "types.h"
 #include "globals.h"
 #include "version.h"
@@ -80,12 +80,22 @@ static int skel_ready(uint8_t index)
 	if ((uint16_t)r->y == 0xFFFF) return 0;
 	if (room_draws_sword4(Char.room)) {
 		get_tile(2, 4, 0x16);
-		if (curr_modifier > 0x29 && Char.room == Kid.room && Char.x > Kid.x) return 1;
+		if (curr_modifier > 0x29 && Char.room == Kid.room && Char.x > Kid.x) { if (!sound_playing(0x277A)) sound_1611_01a8(0x6A); return 1; }
 		set_timer = r->w13 == 0 && Char.f19 == 0x70;
 	} else if (((uint8_t *)r)[0x16] != 0) { ((uint8_t *)r)[0x16]--; set_timer = 1; }
 	else ready = 1;
 	if (set_timer) set_revive_timer(random_2751(0x1E) + 0xF, index);
 	return ready;
+}
+/* 366C:1580 (check_strike: the prince parried a flame's strike, Char = the flame): it loses a hit point (366C:15A6); put
+ * out by it (366C:15CC): seq 0x6B, back after 0x1E0 ticks (the initial release: 0xF0), music 0xC0. Then sound 0xC.
+ * -> the sequence to start: 0x67, or -1 when put out */
+int flame_parried(void)
+{
+	int out = take_hp(1);
+	if (out) { seqtbl_offset_char(0x6B); set_revive_timer(V_IR ? 0xF0 : 0x1E0, Char.index); sound_1611_01a8(0xC0); Char.alive = 0; Char.f0f = 1; }
+	play_sound(0xC); char_y_to_floor();
+	return out ? -1 : 0x67;
 }
 /* 366C:0F60: every tick on level type 2: bones near the prince get up */
 void skeleton_wake(void)

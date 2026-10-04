@@ -81,7 +81,7 @@ static void wall_hits_kid(void)
 				if (c2 != c) { t = get_tile(Char.curr_row, c2, Char.room); if (tile_is_wall_kind(t) || t == 4) play_sound(1); }
 			}
 		} else {
-			if (Char.alive < 0) play_sound(0x37);   /* (after stopping sound 0x2711) */
+			if (Char.alive < 0) { sound_194c_83d2(0x2711); play_sound(0x37); }
 			seq_set_85f8(0xD);
 		}
 		Char.f24 = 4; si = 0x47;
@@ -107,7 +107,7 @@ void wall_move(void)
 	int16_t si = cur_mob.x;
 	if (cur_mob.w7 == -1) si--;
 	else {
-		if (wall_blocked() && cur_mob.w7 >= 8) { cur_mob.w7 = 0; if (word_087e == 0x36) word_087e = -1; }   /* (stops sound 0x2746) */
+		if (wall_blocked() && cur_mob.w7 >= 8) { cur_mob.w7 = 0; sound_194c_83d2(0x2746); if (word_087e == 0x36) word_087e = -1; }   /* (its sound stops) */
 		else {
 			cur_mob.x -= 8; if (wall_blocked()) play_sound(0x35);
 			cur_mob.x = si; si--; if (cur_mob.w7 <= 8) cur_mob.w7++;
@@ -115,14 +115,14 @@ void wall_move(void)
 	}
 	if (si < 0) { cur_mob.room = level_links(cur_mob.room)[0]; si += 0x140; }
 	int16_t newx = si;
-	if (cur_mob.room == 0) { cur_mob.speed = -1; return; }
+	if (cur_mob.room == 0) { cur_mob.speed = -1; sound_194c_83d2(0x2746); return; }
 	if (cur_mob.w7 == 0 || cur_mob.w7 == 0x64) return;
 	int16_t bx = si - 0x14; int8_t col = div32(bx); if (bx <= 0) col--;
 	uint8_t t = get_tile((int8_t)cur_mob.row, col, cur_mob.room);
 	if (cur_mob.speed == 1) {   /* against a wall last time: shut */
 		cur_mob.speed = 0; cur_mob.w7 = 0x64; cur_mob.y++; cur_mob.x = newx + 2;
 		if (t == 2) { loadkid(); trap_kill_pub(); Kid = Char; }
-		return;   /* (stops sound 0x2746) */
+		sound_194c_83d2(0x2746); return;
 	}
 	int8_t c1 = div32(newx - 4), c0 = div32(cur_mob.x - 4);
 	if (!(c0 == c1 && col == c0)) {
@@ -138,7 +138,7 @@ void wall_move(void)
 		if ((int8_t)cur_mob.row - Char.curr_row + 1 == 0 && Char.curr_col == c8) control_frame81_0313c6();
 	}
 	Kid = Char;
-	if (cur_mob.w7 == 0x64) return;   /* (stops sound 0x2746) */
+	if (cur_mob.w7 == 0x64) { sound_194c_83d2(0x2746); return; }
 	cur_mob.x = newx;
 	if (cur_mob.w7 != 0) play_sound(0x36);
 }

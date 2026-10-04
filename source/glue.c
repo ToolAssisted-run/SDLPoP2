@@ -201,7 +201,7 @@ void ovl_366c_e0a(void) { if (level_kind == 4) heads_ai(); else note(" e0a?"); }
 int ovl_36ed6(int16_t d) { if (level_kind == 4) return head_wall(d); note(" 36ed6?"); return -1; }   /* 366C:0816 */ void dead_char_sound_1611(void) { dead_char_music(); }   /* 1611:0068 (fight.c) */  void ovl_37d28(void) { small_prince_tick(); }   /* 366C:1668 (skeleton.c) */
 
 /* fight/tick stubs */
-int ovl_366c_6ac(void) { if (level_kind == 4) return head_hit(); note(" 6ac?"); return -1; } int ovl_366c_1580(void) { note(" 1580?"); return -1; } 
+int ovl_366c_6ac(void) { if (level_kind == 4) return head_hit(); note(" 6ac?"); return -1; } int ovl_366c_1580(void) { return flame_parried(); }   /* 366C:1580 (skeleton.c) */ 
 void music_1286_07ce(uint8_t k) { (void)k; } void ovl_366c_f24(void) { if (level_kind == 4) head_knock_back(); else note(" f24?"); }
 void anim_tile_other(uint8_t t) { char m[24]; snprintf(m, sizeof m, " ANIM%02X?", t); note(m); }
 void level_kind_tick(void) { if (level_kind == 5) kind5_tick();   /* 33FD:0232 (kind5.c) */

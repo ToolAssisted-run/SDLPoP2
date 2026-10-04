@@ -66,7 +66,7 @@ static int trigger_target(uint8_t button, int8_t tp, uint8_t room, uint8_t t)
 	case 0x11:   /* exit door */
 		if (room == level.start_room || level_number != 8 || byte_5cba == 1) {
 			int r = (*attr_lo(room, tp) & 0xFF) == 0 ? 1 : -1;
-			if (r == 1 && !sound_playing(0x272B) && level_number != 13) play_sound(0x1B);
+			if (r == 1 && !sound_playing(0x272B) && level_number != 13) sound_1611_01a8(0x1B);   /* (a music piece: 1611:01A8) */
 			return r;
 		}
 		return -1;
@@ -119,11 +119,40 @@ void anim_button(void)
 	if ((int8_t)timer < 2) { cur_trob.state = 0xFF; hook_trob_request(0x2F8, 0); anim_mod &= ~0x800u; }
 }
 
+/* 1375:2546: a gate's sound; level 5's room-7 gate shutting (sound 9) also queues music 0x41, unless it is playing or
+ * the prince is in that room left of column 3 */
+void gate_sound(int n)
+{
+	play_sound((uint16_t)n);
+	if (n == 9 && level_number == 5 && cur_trob.room == 7 && !sound_playing(0x2751) && !(Kid.room == 7 && Kid.curr_col < 3)) sound_1611_01a8(0x41);
+}
+/* 1375:0B5A: the gate came down on the prince hanging below it (or below and right of it): sound 0x1F */
+static void gate_hits_hands(void)
+{
+	if (cur_trob.room != Kid.room || (Kid.action != 2 && Kid.action != 6)) return;
+	int d = (int8_t)cur_trob.tilepos - (int8_t)(row_tilepos(Kid.curr_row) + Kid.curr_col);
+	if (d == -10 || d == -11) play_sound(0x1F);
+}
+/* 1375:0B9C: the gate shut on the prince's row (within 5 columns of him, in his room) with every live character of the
+ * room on that row on the other side of it */
+static int gate_shuts_out(void)
+{
+	int n = room_nchars(cur_trob.room), r = 0;
+	int8_t row = (int8_t)cur_trob.tilepos / 10, col = (int8_t)cur_trob.tilepos % 10;
+	if (!n || cur_trob.room != Kid.room || row != Kid.curr_row || abs(col - Kid.curr_col) >= 5) return 0;
+	for (int k = 0; k < n; k++) {
+		if (chars[k].curr_row != row || chars[k].alive >= 0 || chars[k].room != Kid.room) continue;
+		if (col < Kid.curr_col ? chars[k].curr_col > col : chars[k].curr_col <= col) return 0;   /* (on the prince's side) */
+		r = 1;
+	}
+	return r;
+}
 /* 1375:0910: gate animation. Position (modifier low byte) 0 closed .. 200 open, 0xFF stuck open.
- * States 0/1 close slowly, 2/3 open (+4), 4..8 slam shut faster each tick. */
+ * States 0/1 close slowly, 2/3 open (+4), 4..8 slam shut faster each tick. Sounds: 4 (caverns 7) while it moves (opening:
+ * at every 8th position), 5 (8) stopping at the top, 0xF (9) slammed shut, 6 (8) stopped for good (gate_done) */
 static void gate_done(int arg)   /* 1375:0AE8 */
 {
-	cur_trob.state = 0xFF; play_sound(level_kind == 3 ? 8 : 6);
+	cur_trob.state = 0xFF; gate_sound(level_kind == 3 ? 8 : 6);
 	loadkid();
 	if (cur_trob.tilepos == ((Char.curr_row - 1) >= 0 ? (Char.curr_row - 1) * 10 : (Char.curr_row - 1) * 10 + 9) + Char.curr_col && Char.direction == -1 && Char.action == 2 && arg == 0) {
 		seqtbl_offset_char(0x2F); Kid = Char;   /* the gate closes on the prince hanging below it */
@@ -137,26 +166,32 @@ void anim_gate(void)
 		if (st < 8) { st++; cur_trob.state = st; }
 		si -= door_speeds_close[st];
 		if (si > 0) goto write;
-		si = 0;
+		int squeeze = 0;
 		if (level_kind == 3) {
 			int8_t row = cur_trob.tilepos / 10, col = cur_trob.tilepos % 10;
 			if (cur_trob.room != Kid.room) { if (cur_trob.room == room_L) col -= 10; else if (cur_trob.room == room_R) col += 10; }
-			if (Kid.f19 == 0x76 && Kid.curr_row == row && (Kid.curr_col == col || Kid.curr_col - col == 1)) si = 0x24;
+			squeeze = Kid.f19 == 0x76 && Kid.curr_row == row && (Kid.curr_col == col || Kid.curr_col - col == 1);
+		}
+		if (squeeze) { si = 0x24; gate_sound(9); }
+		else {
+			si = 0;
+			gate_hits_hands();
+			if (gate_shuts_out()) byte_5cbb = 4;   /* (kid.c: sound 0x1A in 4 ticks) */
+			gate_sound(level_kind == 3 ? 9 : 0xF);
 		}
 		cur_trob.state = 0xFF; goto write;
 	}
 	if (si == 0xFF) { gate_done(si); goto write; }
 	si += (int8_t)door_speeds_open[st];
 	if (st == 0 || st == 1) {
-		if (si <= 0) { si = 0; gate_done(0); }
-		else if (si < 0xC8) { cur_trob.state = 1; if (level_kind == 3) si = gate_squeeze(si); }
+		if (si <= 0) { si = 0; gate_done(0); gate_hits_hands(); }
+		else if (si < 0xC8) { gate_sound(level_kind == 3 ? 7 : 4); cur_trob.state = 1; if (level_kind == 3) si = gate_squeeze(si); }
 		else if (level_number == 5 && cur_trob.room == 7) si -= (int8_t)door_speeds_open[st];   /* 1375:0ACA: AX still holds the speed: no movement */
 		goto write;
 	}
-	if (si >= 0xC8) {
-		if (st < 3) { hook_trob_request(0x388, 0); si = 0xFA; cur_trob.state = 0; }
-		else { si = 0xFF; gate_done(0xFF); }
-	}
+	if (si < 0xC8) { if (level_kind == 3) gate_sound(7); else if (si % 8 == 0) gate_sound(4); }
+	else if (st < 3) { hook_trob_request(0x388, 0); si = 0xFA; cur_trob.state = 0; gate_sound(level_kind == 3 ? 8 : 5); }
+	else { si = 0xFF; gate_done(0xFF); }
 write:
 	anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)(((uint16_t)anim_mod & 0xFF00) + si);
 	if (si <= 0xC8) hook_trob_request(0x388, 0);

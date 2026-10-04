@@ -221,7 +221,7 @@ static void head_retreat(uint8_t *st)
 			else { head_settle(st); seqtbl_offset_char(0xA3); }
 		}
 	}
-	if (st[5] == 0) { st[5] = 1; play_sound(0x92); }   /* (unless sound 0x2767 still plays) */
+	if (st[5] == 0 && !sound_playing(0x2767)) { st[5] = 1; sound_1611_01a8(0x92); }
 }
 /* 366C:0E0A */
 void heads_ai(void)

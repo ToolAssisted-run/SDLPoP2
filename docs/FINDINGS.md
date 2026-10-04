@@ -430,6 +430,21 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - The level-end music is queued by 1611:001C (the kind's piece, 1611:0284: none on level 2) from two places only: the
   prince's stairs control at frame 0xE0 (2FDF:0D82) and level 1's railing at frame 0x95 (33FD:0413). 0x1C lasts
   8.95 s in the model (about 107 ticks): the level end's wait (DOS: +105 / +94 / +93 ticks after levels 1 / 3 / 4).
+- Every call of the game logic into the sound library (1611:01C6 effect, 01A8 music, 001C, 194C:83D2 stop, 8396
+  release, 8426 playing; 1375:2546 the gates' wrapper) was listed from the code (2026-10-04) and checked against the
+  C. Calls that change no compared state had been left out: the gates' sounds (1375:0910: 4 while moving, opening
+  at every 8th position, caverns 7 each step; 5 / 8 at the top; 0xF / 9 slammed shut; 0x1F on the hands of a prince
+  hanging below, 1375:0B5A; the 0x1A sting countdown DS:5CBB = 4 when the gate shuts every live character of the row
+  out on the other side, 1375:0B9C; 2546: level 5 room 7's slam queues music 0x41), the sliding wall's loop 0x36
+  stopped by 194C:83D2(0x2746) when it stops, shuts or leaves the level, 0x2711 stopped before the crush 0x37
+  (347C:07D4 / 056C), the exit door's stop of every sound before its 8 (1375:0CC8: the loop 7 ended), the temple
+  slabs (347C:0C22: 0x276F stopped, 3; 347C:0E10: 0x5F unless 0x276E / 0x276F play), the fireballs' stops 0x281A /
+  0x2812 (33FD:1DC0 / 1ED0), level 14 rooms 4 / 3 entry music 0x10C / 0x10D (33FD:1494), level 4's riser music
+  0x6A (366C:140E), the heads' 0x92 as music unless 0x2767 plays (366C:0904), the exit door button's sting 0x1B as
+  music (1375:1366). Oracle check (SND_E12_3, SND_E13_21, SND_E3_2: probes 1611:01C6 / 194C:83D2 on E captures):
+  every request and stop in the same tick as the original's; the sound model's strict runs improve (level 14's all
+  identical). Left out still: level 1's sea walk 33FD:0240 (the wait for 0x2730, the hit points taken one per
+  display step, 0x2F started directly by 1611:053C and released, then its wait: blocking waits inside the tick).
 - Timing model: a pass of the main loop lasts DS:24DE's reload (169B:0BA6: 5, or 6 when Kid+0x10 == 1) ticks of the
   60 Hz frame timer, one more when late (lateness meter DS:2BA4, `frame_on_time()`); queries inside the tick happen
   at its start, the starts and the ambient checks at its end (5 ms later in the model).
@@ -748,6 +763,13 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   the bank count). On an MT-32 the original's interrupt sends MPU bytes instead, so its scene timing may differ: not
   yet measured (an oracle scene capture on popmt32.hdd against nis.c; noted by the Chimera core's wiring, 2026-09-29);
 - Rendering: one pass of FRP13_shadow (9 px of stack bytes read by 194C:06E6, 5.16);
+- Level 1's sea walk (33FD:0240): the original waits for sound 0x2730, takes the hit points one per display step
+  (2797:0104 waits, DS:24DC), starts 0x2F directly (1611:053C), releases it (194C:8396) and waits for it (2797:0176):
+  blocking waits inside the tick that the core does not make (5.11);
+- 1286:07CE is the prince's palette (KID.DAT PALS 25001 entry kind - 1 at colours 16..31, 0FB3:2B1C), not music: the
+  core's music_1286_07ce (char_hurt on kinds 2 / 6, the spirit's rejoin, level 14's tower window) is a no-op, so
+  those reloads happen only after a menu (shell.c render_after_menu);
+- The shell's, menus' and story scenes' sound calls (0823, 0D5E, OVL00) were not part of 2026-10-04's audit (5.11);
 - Story scenes;
   sound: packed digital sample lengths (0x20 0x26 0x2F 0x258), draw-time jitter; the prince's drawing-pass hooks; hotkeys besides restart; the stubs still logged by
   note()/note_missing() (see `grep -n 'note(' source/*.c`).
@@ -928,3 +950,14 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   0FB3:2B1C(0, 0x10, 0xF0, 1000) and the music 1286:07CE(6); final.c only recorded the scene, which never played.
   The oracle (L14W: the prince put on the ledge at tick 21) plays scene 5, and so does SDLPoP2 (the scene's frames
   exact; the reload's ~150 frames of black before room 4 are shorter here).
+- 2026-10-04: user reports. (1) The prince going up a level door's stairs was drawn in front of the door's pillar:
+  2FDF:0D82 (frames 0xD9..0xE2) was a stub; it makes the door's redraw request every tick and queues the level-end
+  music at frame 0xE0 (5.17). With level 1's railing (33FD:0413, also left out) these are the only callers of
+  1611:001C: the level ends now wait for the music as in DOS (the +105 / +94 / +93 ticks found by the oracle check of
+  the speedrunning bot's chain, levels 1 / 3 / 4). (2) Gates made only the plate's noise and (3) the sliding wall's
+  sound never stopped: every sound call of the game logic was listed from the code and checked; the gates' sounds,
+  the wall's stops and a dozen more were missing or wrong (5.11), and 366C:1580 (a flame's strike parried: it loses a
+  hit point, put out by it with seq 0x6B, music 0xC0, back after 0x1E0 ticks) is no longer a stub. Oracle sound
+  captures SND_E12_3 / SND_E13_21 / SND_E3_2 match request for request; tests: every e2e capture warm and cold as
+  before, the sound model's strict runs better (level 14's identical).
+

@@ -427,6 +427,9 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - Waits: the death wait (0AFF:1155) holds while DS:0882 plays (except sounds 4, 7, 0x36), and at alive 7 while 0882
   or 0884 plays; the level end (169B:0541) waits for the level-end music and the same effect rule. Level 14 room
   sounds need DS:2B98 on and 0884 not playing (33FD:03CF). Level 1's waves use DS:2085 bit 0.
+- The level-end music is queued by 1611:001C (the kind's piece, 1611:0284: none on level 2) from two places only: the
+  prince's stairs control at frame 0xE0 (2FDF:0D82) and level 1's railing at frame 0x95 (33FD:0413). 0x1C lasts
+  8.95 s in the model (about 107 ticks): the level end's wait (DOS: +105 / +94 / +93 ticks after levels 1 / 3 / 4).
 - Timing model: a pass of the main loop lasts DS:24DE's reload (169B:0BA6: 5, or 6 when Kid+0x10 == 1) ticks of the
   60 Hz frame timer, one more when late (lateness meter DS:2BA4, `frame_on_time()`); queries inside the tick happen
   at its start, the starts and the ambient checks at its end (5 ms later in the model).
@@ -613,6 +616,13 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   (kinds 1 and 5), anim.c hook_roof_tick (kind 5), lever5.c hook_lever5_mouth / trap, bridge5.c hook_bridge_sway. The
   tile tracker (render_track_tiles, 5.16) skips the tile types whose requests are reported (kind 1: 4, 0x1C, 0x1D,
   0x1E; kind 5: 0x25, 0x26, 0x27; level 5: 0x1B, 0x2C).
+- The prince on the level door's stairs (frames 0xD9..0xE2, 2FDF:0D82, control.c control_exit_stairs): every tick
+  the door's tile (his own when it is 0x11, else the one right of it) becomes DS:6672 / 6673 and the door's request
+  1375:0274 is made (render_trob_request 0x274: back layers of the door, the tile right of it, above, above right),
+  so the door's right pillar is drawn over him as he goes in (frames 0xDE..0xE0); at frame 0xE0 the level-end music.
+  It was a stub: the frontend drew him in front of the pillar (frametest never saw it, the dirty table being the
+  capture's). Oracle: FRV14L3 (framecap of the V14s chain to level 3's exit) and shots of it against shelltest
+  (SHELL_LOAD, LEVEL3, SHELL_CMP_SKIP=640): the stairs frames identical, before 55..65 px apart.
 - Level 2 (OVL03): 33FD:0538 (tile 4, the raft's gate) each step: description object 2's rect left - 2 (the raft
   uncovered), back layers under it at the tile, the one right and the two above (1375:0DC6 with the tile index, +1,
   -10, -9: the index is DS:6672's own tile position, whatever room it is in), 0CD6:0684 (its saved screen put back);

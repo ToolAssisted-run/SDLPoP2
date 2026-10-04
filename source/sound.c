@@ -173,6 +173,8 @@ void fall_scream_room(uint8_t room) { if (Char.charid == 0 || level_kind == 5) {
 static int kind_music(void) { return level_kind == 1 ? -1 : level_kind == 2 ? 0x1E : level_kind == 4 ? 0x1D : 0x1C; }
 /* 1611:02CE */
 int level_end_sound_playing(void) { int m = kind_music(); return ask(3, (uint16_t)(m + 10000), m == -1 ? 0 : snd_playing(m)); }
+/* 1611:001C: the level-end music (the prince climbing the stairs, level 1's railing) */
+void level_end_music(void) { int m = kind_music(); if (m != -1) sound_1611_01a8((uint16_t)m); }
 /* 0AFF:1155 / 169B:0541: the effect playing holds the death wait and the level end, except sounds 4, 7 and 0x36 */
 static int effect_holds(void) { return snd_playing((int16_t)word_0882) && word_0882 != 4 && word_0882 != 7 && word_0882 != 0x36; }
 int death_sound_playing(int both) { if (sound_debug & 1) fprintf(stderr, "snd death wait(%d) at %u: 0882 %X playing %d, 0884 %X playing %d, ch0 %d until %u\n", both, now(), word_0882, snd_playing((int16_t)word_0882), word_0884, snd_playing((int16_t)word_0884), snd_ch[0].id, snd_ch[0].end); return ask(1 + both, 0, both ? snd_playing((int16_t)word_0882) || snd_playing((int16_t)word_0884) : effect_holds()); }

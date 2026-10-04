@@ -50,7 +50,7 @@ extern const uint8_t *frame_table_kid, *frame_table_guard; void load_frame(void)
 extern int16_t word_3bf62;
 extern int8_t obj_xl;
 void control(void); void control_running(void); void control_turning(void); void control_start_run(void); void control_jumpup(void);
-void control_standing(void); void control_hanging(void); void control_crouched(void); void control_with_sword(void); void control_0d9_0e2(void);
+void control_standing(void); void control_hanging(void); void control_crouched(void); void control_with_sword(void); void control_exit_stairs(void);
 void control_dead_0307a2(void); void control_frame81_0313c6(void); void control_standing_down(void); void control_standing_shift(void);
 int control_runjump(int kind); int control_rest(void); void control_jump_031062(void); void control_2fdf_1bfa(void); void control_by_charid_cc1e(void);
 int is_dead_frame(uint16_t frame); int8_t x_to_col(int16_t x); int16_t dx_weight(void); int16_t distance_to_edge(int16_t x); int16_t distance_to_edge_weight(void);
@@ -159,7 +159,7 @@ void init_kid_record_pub(void); void small_prince_appears(void); void small_prin
 void chars_fell_below(void);
 int tick_main(void); int tick_tail(void);
 extern uint16_t word_2b90, word_2b92, word_5cee, word_5cce; extern uint8_t byte_6b6c; int frame_end(void);
-int level_first_room(void); int play_frame(void); int level_end_sound_playing(void);   /* platform: 1611:02CE / 194C:8426 on DS:0882 */
+int level_first_room(void); int play_frame(void); int level_end_sound_playing(void); void level_end_music(void);   /* platform: 1611:02CE / 194C:8426 on DS:0882 */
 void ambient_sound(void);   /* platform (sound timing): may call random_2751 */
 int load_level(int n); int play_level(int n); const uint8_t *level_resource(uint16_t id, uint16_t *size); void platform_wait_frame(void);   /* platform: DAT resource, frame pacing */
 int bios_key(void); extern int (*bios_key_hook)(void);   /* platform: pending keystroke (BIOS code), 0 = none */

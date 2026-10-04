@@ -22,6 +22,20 @@ int16_t distance_to_edge_weight(void) { return distance_to_edge(dx_weight()); }
 /* 0AFF:1376 */
 int control_rest(void) { ctrl1_down = ctrl1_up = ctrl1_forward = ctrl1_backward = 0; return 1; }
 
+int8_t tilepos_or_30_pub(int8_t row, int8_t col);   /* room.c 0AFF:0220 */
+/* 2FDF:0D82 (frames 0xD9..0xE2, the prince climbing the level door's stairs): the door's tile (his own when it is the
+ * door 0x11, else the one right of it) becomes the animated tile, at frame 0xE0 the level-end music starts (1611:001C),
+ * and the door's redraw request (1375:0274: the back layers of the door and of the tiles right of and above it, drawn
+ * over him: the door's pillar hides him as he goes in) */
+void control_exit_stairs(void)
+{
+	int8_t t = tilepos_or_30_pub(Char.curr_row, Char.curr_col);
+	const uint8_t *tiles = Char.room ? ROOM_TILES(Char.room) : tiles0;
+	cur_trob.room = Char.room;
+	cur_trob.tilepos = (uint8_t)(t >= 0 && t < 30 && tiles[t] == 0x11 ? t : t + 1);
+	if (Char.frame == 0xE0) level_end_music();
+	hook_trob_request(0x274, 0);
+}
 /* 2FDF:0E2E (030c1e): crouch */
 void kid_crouch_pub(void);
 static void kid_crouch(void)
@@ -171,7 +185,7 @@ void control(void)
 	if (frame == 81 && Char.f19 == 0x44) { control_frame81_0313c6(); return; }
 	if (frame == 109) { control_crouched(); return; }
 	if ((frame >= 0xF6 && frame <= 0x105) || (frame >= 0x100 && frame <= 0x107)) { control_with_sword(); return; }
-	if (frame >= 0xD9 && frame <= 0xE2) { control_0d9_0e2(); return; }
+	if (frame >= 0xD9 && frame <= 0xE2) { control_exit_stairs(); return; }
 	if (is_dead_frame(frame) || (frame > 0xB2 && frame < 0xB8)) { control_dead_0307a2(); return; }
 	if (frame == 0x127) { ovl_383fa(); return; }
 	if (frame >= 0x110 && frame <= 0x119) { ovl_35f5a(); return; }

@@ -61,7 +61,6 @@ int gate_blocks_0329b6(void) { return can_bump_into_gate(); } void ovl_2f86_08d8
 uint16_t word_922e, word_8604, word_927e;
 int ovl_377c6(void) { return level_kind == 4 ? head_biting(Char.index, Char.room) : 0; }   /* 366C:1106 */ void ovl_3741a(void) {}   /* 366C:0D5A: a bare retf in OVL09 (the heads levels) */ 
 
-void control_0d9_0e2(void) { note(" 0d9_0e2?"); }
 
 static uint8_t kidtab[20736];
 void glue_load_exe_tables(const char *exe)

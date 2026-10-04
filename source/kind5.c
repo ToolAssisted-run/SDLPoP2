@@ -42,7 +42,7 @@ static void kind5_kid(void)
 	loadkid(); grab_check();
 	if (Kid.room == 0x13 && (ovl_34ab2() || on_railing())) {
 		Char.x--;
-		if (on_railing() && Char.frame == 0x95) { /* 1611:001C music */ }
+		if (on_railing() && Char.frame == 0x95) level_end_music();   /* 1611:001C */
 	}
 	Kid = Char;
 }

@@ -28,7 +28,7 @@ int audio_dc_block = 1;
 
 /* ------------------------------------------------------------------------------------------------ resources */
 typedef struct { uint16_t id; uint8_t *d; uint32_t n; } snd_res;   /* a prepared resource (194C:8118 applied) */
-static snd_res *cache; static int ncache, capcache;
+static snd_res **cache; static int ncache, capcache;   /* (each entry its own block: the players keep pointers to them) */
 static dat_file files[8]; static int nfiles;
 static uint8_t bank[1 + 128 * 16]; static int bank_ok;             /* PRESETS.DEF: count byte + 16-byte instruments */
 static int caps = 3;                                               /* DS:2085 */
@@ -104,13 +104,13 @@ static void prepare(snd_res *r)
 static snd_res *res_add(uint16_t id, const uint8_t *p, uint32_t n)
 {
 	if (ncache == capcache) { capcache = capcache ? capcache * 2 : 64; cache = realloc(cache, capcache * sizeof *cache); }
-	snd_res *r = &cache[ncache++]; r->id = id; r->d = malloc(n ? n : 1); memcpy(r->d, p, n); r->n = n;
+	snd_res *r = cache[ncache++] = malloc(sizeof *r); r->id = id; r->d = malloc(n ? n : 1); memcpy(r->d, p, n); r->n = n;
 	prepare(r); return r;
 }
 /* 194C:805C: the resource ("SND", id), loaded and prepared on first use */
 static snd_res *res_get(uint16_t id)
 {
-	for (int i = 0; i < ncache; i++) if (cache[i].id == id) return &cache[i];
+	for (int i = 0; i < ncache; i++) if (cache[i]->id == id) return cache[i];
 	for (int f = nfiles - 1; f >= 0; f--) { uint16_t n; const uint8_t *p = dat_find(&files[f], "DNS", id, &n); if (p) return res_add(id, p, n); }   /* newest file first */
 	return NULL;
 }
@@ -664,7 +664,7 @@ static int play_res(snd_res *r) { if (!r) return 0; if (playing_res(r)) stop_res
 int audio_request(uint16_t id) { return play_res(res_get(id)); }
 int audio_request_res(uint16_t id, const uint8_t *res, uint32_t len)
 {
-	for (int i = 0; i < ncache; i++) if (cache[i].id == id) return play_res(&cache[i]);
+	for (int i = 0; i < ncache; i++) if (cache[i]->id == id) return play_res(cache[i]);
 	return play_res(res_add(id, res, len));
 }
 void audio_stop(uint16_t id) { if (!id) { stop_res(NULL); return; } snd_res *r = res_get(id); if (r) stop_res(r); }
@@ -755,7 +755,7 @@ int audio_add_scene_files(const char *dir)
 }
 void audio_shutdown(void)
 {
-	for (int i = 0; i < ncache; i++) free(cache[i].d);
+	for (int i = 0; i < ncache; i++) { free(cache[i]->d); free(cache[i]); }
 	free(cache); cache = NULL; ncache = capcache = 0;
 	for (int f = 0; f < nfiles; f++) free(files[f].data);
 	nfiles = 0; bank_ok = 0;

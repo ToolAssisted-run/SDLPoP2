@@ -961,3 +961,10 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   captures SND_E12_3 / SND_E13_21 / SND_E3_2 match request for request; tests: every e2e capture warm and cold as
   before, the sound model's strict runs better (level 14's identical).
 
+- 2026-10-05: in 1.0 mode the prince's turban showed over the temple's exit door frame on his last stairs frames:
+  tools/versionmap.py's byte alignment had taken coincidences in pointer tables as anchors (1.0: DS:0596, 0675, 0801,
+  12A5, 15F7), so 1.0's rect tables at 07FC / 0806 were read one table off (the stairs' clip got the door's rect, top
+  121 instead of 132) and the caverns' piece lists (15F0) partly off. The tool now drops short deltas that return to
+  the surrounding one (docs/VERSIONS.md 5.2); IR's anchors are unchanged. Oracle: level 11's exit in DOS 1.0 against
+  SDLPoP2 1.0, the prince's frames identical; the versions suite as before. (DOS 1.1 itself draws the prince over the
+  wall right of that door: 1.1 has no right-edge clip, 0AFF:15AE.)

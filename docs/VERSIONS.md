@@ -244,6 +244,14 @@ the three executables: offsets only, no game data), then the near-pointer tables
 start (`exe_data_base`). IR's own table values (the sea hand's DS:13E8, the kid frames 0x143 and 0x15A–0x15F) come
 with it.
 
+The alignment drops short coincidences (2026-10-05): in a pointer table the values move with the data, so a few bytes
+of one build's table can equal the neighbouring table's of the other, and the byte alignment took them as anchors.
+1.0 had five, each a short delta that returned to the one around it: DS:0596, 0675, 0801, 12A5 and 15F7. DS:0801 read
+1.0's rect tables one table off (07FC's kinds 3 and 4 were 07F2's, 0806 was 07FC), so in 1.0 the stairs' clip
+used the door's rect (top 121 instead of 132 at the temple's exit door: the prince's turban stayed over the door
+frame). DS:15F7 shifted the caverns' piece lists (15F0). Oracle: level 11's exit door (the prince walked in from
+room 19, the door opened by a poke) in DOS 1.0 and SDLPoP2 1.0: the prince's frames identical after the fix.
+
 ### 5.3 The code
 
 Every row of §2 and §3.1–§3.6 is a version test at its site, and so are the rows of §3.3, §3.7 and §3.8 that change

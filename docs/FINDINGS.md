@@ -968,3 +968,15 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   the surrounding one (docs/VERSIONS.md 5.2); IR's anchors are unchanged. Oracle: level 11's exit in DOS 1.0 against
   SDLPoP2 1.0, the prince's frames identical; the versions suite as before. (DOS 1.1 itself draws the prince over the
   wall right of that door: 1.1 has no right-edge clip, 0AFF:15AE.)
+
+- 2026-10-08: Alt-M (1611:07D4, ambient music on / off) only flipped DS:2B98. In the game, switched off it also stops
+  the piece the MIDI channel took last (DS:2B9A, unless it is the one queued in DS:0880), and that piece is the
+  level-end music while it plays (1611:0826 records every music piece started with the ambient music on). The level's
+  end waits only for that music, so Alt-M during it loads the next level at once. Oracle (1.1, the MT-32 and the
+  Sound Blaster setups; BIOS-buffer Alt-M in the TAS's level 1..3 chain): level 1 normally ends after tick 538;
+  Alt-M at tick 431 (the piece queued at 430, the next level decided at 433): after 433; at 434: after 434; at 445:
+  after 445; at 400 (before the piece: it plays all the same and cannot be stopped): after 538, also with a second
+  Alt-M at 445; level 3 with Alt-M on the stairs: after tick 387 of the level instead of 481. Alt-S (the sound) does
+  not shorten the wait. sound.c music_toggle() is the routine now; the shell's Alt-M and options menu call it, and
+  the core takes it as an input (pop2_input.music_toggle). Unrelated, same check: a prince whose hit points are written
+  to 0 on the stairs (before frame 0xE0) never starts the music, in the game as here (control() is not reached).

@@ -451,6 +451,19 @@ waits, the level end, several room effects and the ambient pieces' random draws 
 - Limits (measured over the captures): the pass's end moves with the drawing time (tens of ms), level 1's timer runs
   ~3.5% slow (passes average 6.05 frames with the meter at 0: lost timer interrupts, it seems), and a late pass's
   length is unknown; a piece ending within ~40 ms of a check can go either way.
+- The timers, measured (2026-10-08; the oracle's memory watches and a probe on 1611:04D0): the driver's handler
+  194C:2F10 runs at 240 Hz: it advances the sequencers (DS:1FBE += DS:1FC0 while a piece plays) and, through a
+  fractional divider (DS:1FDE += DS:1FDA, 0x3FFE: a call on each carry, so one tick in ~8192 takes five
+  interrupts), calls the 60 Hz handler 194C:7EE7: a free 32-bit count (DS:24E4/24E6), then the four countdown
+  timers DS:24DC..24E2 (DS:24DE the frame timer), then the chain to the BIOS tick. The main loop reloads DS:24DE
+  (169B:0BC0) right after the wait (2797:0148) sees it at 0, so a pass starts on a 60 Hz tick and lasts 20 periods
+  of the 240 Hz interrupt (24 in a fight) as long as its work is done by then. On the oracle's 486 (22000 cycles a
+  ms) the sound phase (1611:04D0) comes 0.5 to 3 periods into the pass; in some rooms (level 1's 15, 16, 19) every
+  third pass draws 5 to 10 periods; a pass that draws a new room takes 20 to 61 periods (it runs late, and the
+  next pass starts off the grid: its five ticks end sooner). At 220000 cycles a ms the same room changes take 7 to
+  14 periods. A music piece is over on the interrupt that reaches its end, so which pass's sound phase first sees
+  it over hangs on those times: the ambient draws of a long run cannot be the model's on a given machine (the
+  run's chain to level 6: 11 of 47 a tick apart on the MT-32 disk, with other pieces chosen after the first).
 - Result: tests/run_soundmodel.sh (E2E_SOUNDMODEL: no answers from the capture): 74 of 154 captures identical in
   every field for the whole run; the first difference elsewhere is an ambient draw one pass early or late, or a death
   wait (levels 1, 9, 13). The ordinary e2e keeps taking the capture's answers (sound_query_hook) and stays clean.

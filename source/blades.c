@@ -9,8 +9,9 @@ void blades_set_tables(const uint8_t *ds) { bl_ds = ds; }
 static int16_t dsw(uint16_t a) { return (int16_t)(bl_ds[a] | bl_ds[a + 1] << 8); }
 static uint16_t *attr_word(uint8_t room, int8_t tp) { return (uint16_t *)((uint8_t *)&level + 0x348 + (room * 30 + tp) * 4); }   /* DS:2F00 */
 
-/* 33FD:0322: redraw (off screen: the animation keeps running, state 1) */
-static void blade_redraw(void) { if (!anim_visible_pub()) cur_trob.state = 1; }
+/* 33FD:0322: the back layers under the blade's box (DS:176C at the tile; `wider`: a row higher and 6 further
+ * right) are asked again (1375:0F5A); off screen the animation keeps running (state 1) */
+static void blade_redraw(int wider) { if (anim_visible_pub()) { hook_trob_request(0x322, (uint16_t)wider); return; } cur_trob.state = 1; }
 /* 33FD:0000: animation of tile 0xD; the left half (0xC) gets the same state */
 void anim_blade(void)
 {
@@ -18,10 +19,10 @@ void anim_blade(void)
 	if (si >= 0x13) { anim_mod = (anim_mod & ~0xFFu) | ((uint8_t)anim_mod & 0xE0); cur_trob.state = 0xFF; }
 	else {
 		anim_mod = (anim_mod & 0xFFFF0000u) | (uint16_t)((uint16_t)anim_mod + 1);
-		if (dsw(0x1784 + 2 * si) != dsw(0x1786 + 2 * si)) blade_redraw();
+		if (dsw(0x1784 + 2 * si) != dsw(0x1786 + 2 * si)) blade_redraw(0);
 		if (si == 0) play_sound(0x54);
 		else if (si == 0xF) play_sound(0x53);
-		else if (si >= 0x10 && (anim_mod & 0x40) && !(anim_mod & 0x80)) { anim_mod |= 0x80; blade_redraw(); }
+		else if (si >= 0x10 && (anim_mod & 0x40) && !(anim_mod & 0x80)) { anim_mod |= 0x80; blade_redraw(1); }
 	}
 	get_tile(cur_trob.tilepos / 10, cur_trob.tilepos % 10 - 1, cur_trob.room);
 	curr_modifier = (curr_modifier & 0xFF00) | (uint8_t)anim_mod;

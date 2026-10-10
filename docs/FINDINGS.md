@@ -748,6 +748,32 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   194C:0886 -> 77CE for these LZG images, it seems): 0x09 there, 0 for nibble 15 in the passes after. Modelling it
   would need those routines' stack frames byte for byte; the renderer uses 0.
 
+### 5.19 A whole game's pictures against DOS (2026-10-10)
+A run from the boot to the game's end (the JaffarPlus TAS: 14 levels, 10819 ticks), its pictures compared with
+DOS's tick by tick (the oracle dumping every VGA frame of the same run; a tick's picture looked for among the
+frames around the next tick's start). The game's state was equal on every tick already; the pictures found what no
+capture of one room could:
+- Two lists that a whole game fills (tests/desctest.c): a description's images were kept from room to room (128
+  entries, full by the eighth level: level 8's sword room, the last ruins, level 13's flame room and the final
+  level's rooms 5 and 6 drew the set's own images under their ids), and the search for PALS 750 had places for three
+  of the five guard files (level 13's flame took PRINCE.DAT's colors and vanished with its frames).
+- Redraw requests the game makes itself, which the frontend replaced by "a changed tile is drawn again whole". That
+  is more than the game draws, and not the same pixels where the game's request covers another rect, another layer
+  or other ticks: the final level's tiles 0x1F, 0x28, 0x29 and 0x2A (33FD:15C4 / 1678 / 17E3 / 1A16: the spider's
+  eye is drawn again only while it shows, under object 6's rect, in the tile next to its own; so the frame it had
+  as the showing ended stays through the delay) and the slicer blades (33FD:0322: the back layers under DS:176C when
+  the frame changes; the fore pieces stay as last drawn). Those are hooks now (hook_final_tick, hook_trob_request
+  0x322) and out of the tracking.
+- 0AFF:1BCE (clear_char) calls the hit point display for the character with none left: a head that went left its
+  flasks on the screen.
+- A biting head sits on the prince's sprite of the frame being drawn (0FB3:1BF2 looks in the frame's own list); the
+  drawing ran before the tick's own kid_sprite, so the head was a frame behind.
+Result: 10635 of 10817 ticks equal to the pixel (9466 before). What is left: the first tick of a room (79 of 185
+rooms: the room change is on DOS's screen for less than a frame before the next tick draws; not looked into), a
+loose floor fallen in a ruins room with a description (18 ticks, a triangle of 169 px in the tile on its right, not
+drawn again from the description), the fore pieces over the prince landing or climbing on the final level (14
+ticks, 1 to 66 px), level 8's sword room after its scene (2 px left of the scene's picture in DOS).
+
 ## 6. The C core (`source/core.h`)
 - `pop2_init(dir)`, `pop2_new_game(level, seed)`, `pop2_frame(&input)` (one tick), `pop2_save/load/hash`,
   `pop2_missing()` (routines not reconstructed that the tick reached).

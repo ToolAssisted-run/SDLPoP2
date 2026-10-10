@@ -426,7 +426,15 @@ static int tick_requests_modelled(uint8_t t)
 	    || (level_kind == 5 && (t == 0x25 || t == 0x26 || t == 0x27))                /* 33FD:0680 / 08C0 / 05AC */
 	    || t == 0x13 || t == 0x20 || t == 0xA || t == 0x11 || t == 4 || t == 5 || t == 6 || t == 0x22   /* 1375:01F4 / 02D0 / 0274 / 0388 / 02F8 */
 	    || t == 0xB                                                                   /* 1375:0334 */
-	    || (level_kind == 3 && t == 0x24);                                            /* 1375:0416 (33FD:04B6) */
+	    || (level_kind == 3 && t == 0x24)                                             /* 1375:0416 (33FD:04B6) */
+	    || (level_kind == 6 && (t == 0x1F || t == 0x28))                              /* 33FD:15A2 / 162A */
+	    || ((level_kind == 2 || level_kind == 4) && (t == 0xC || t == 0xD));          /* 33FD:0322 (the slicer blades) */
+}
+/* the final level's moving objects (33FD:17AC / 19B4): tiles 0, 1 and 0x14 of rooms 6 to 8 with attribute bit 12,
+ * their steps in the modifier */
+static int final_moving_tile(uint8_t t, uint32_t m)
+{
+	return level_kind == 6 && (m & 0x1000) && (t == 0 || t == 1 || t == 0x14) && drawn_room >= 6 && drawn_room <= 8;
 }
 static void mark_changed_tiles(void)
 {
@@ -434,7 +442,7 @@ static void mark_changed_tiles(void)
 	if (seen_ok && seen_room == drawn_room && seen_above == room_A)
 		for (int i = 0; i < 40; i++) {
 			if (t[i] == seen_tiles[i] && m[i] == seen_mods[i]) continue;
-			if (t[i] == seen_tiles[i] && tick_requests_modelled(t[i])) continue;
+			if (t[i] == seen_tiles[i] && (tick_requests_modelled(t[i]) || final_moving_tile(t[i], m[i]))) continue;
 			int8_t row = i < 30 ? (int8_t)(i / 10) : -1, col = (int8_t)(i < 30 ? i % 10 : i - 30);
 			int16_t r[4]; tile_rect(row, col, r);
 			mark_tile(tile_index_of(row, col)); mark_chars(r, 0xFF);

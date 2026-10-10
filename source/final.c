@@ -126,7 +126,8 @@ void kind6_tick(void)
 
 /* Tile animations (1375:0096 calls 33FD directly: the loaded overlay's routine) and their starts on room entry
  * (0823:0B78). Each runs only while the room description (DS:01AC, byte 1 = background id) is the expected one;
- * the rest redraws parts of the description (1375:0F5A), left out. DS:610E (a full redraw in progress) is 0 here. */
+ * the rest asks for parts of the description to be redrawn (1375:0F5A: hook_final_tick, the frontend's). DS:610E
+ * (a full redraw in progress) is 0 here. */
 uint8_t byte_2b74[2];   /* DS:2B74 / 2B75: the next start index of tiles 0x29 (room 6) and 0x2A (rooms 7, 8) */
 static uint16_t mod16(void) { return (uint16_t)anim_mod; }
 static void set_mod16(uint16_t v) { anim_mod = (anim_mod & 0xFFFF0000u) | v; }
@@ -137,6 +138,7 @@ void anim_tile1f(void)
 	uint16_t dl = mod16() & 0xF;
 	if (dl < 5 || room_background_id() != 0x1A) return;
 	if (dl - 5 >= 6) { cur_trob.state = 0xFF; set_mod16(0); }
+	else hook_final_tick(0x1F, 0);   /* 33FD:15C4 */
 }
 /* 33FD:162A: tile 0x28 (background 0x19): bits 3..10 a delay, bit 11 showing, bits 0..2 the frame */
 void anim_tile28(void)
@@ -147,6 +149,7 @@ void anim_tile28(void)
 		di = (uint16_t)random_2751(5);
 		if (--si > 0) di |= 0x800;
 		else si = random_2751(0x3C) + 0x1E;
+		hook_final_tick(0x28, 0);   /* 33FD:1678: only here, so the frame drawn as the showing ends stays through the delay */
 	} else if (--si <= 0) {
 		if (word_2ba4 == 0) { si = random_2751(2) + 1; di |= 0x800; }
 		else si = random_2751(0x3C) + 0x1E;
@@ -154,12 +157,12 @@ void anim_tile28(void)
 	set_mod16((uint16_t)((di & 0xF807) | (si << 3)));
 }
 /* 33FD:17AC / 19B4: tiles 0x29 and 0x2A: bits 4..10 a delay or step, bit 11 running, bit 12 kept set */
-static void anim_steps(int last, int base)
+static void anim_steps(int last, int base, uint8_t tile)
 {
 	uint16_t si = mod16();
 	if (si & 0x800) {
 		uint16_t di = ((si & 0x7F0) >> 4) + 1;
-		if (di < last) si = (si & 0xF80F) | (di << 4);
+		if (di < last) { si = (si & 0xF80F) | (di << 4); hook_final_tick(tile, si & 0xF); }   /* 33FD:17E3 / 1A16 */
 		else { si &= 0xF80F; si |= (uint16_t)((random_2751(0x28) + base) << 4); si &= 0xF7FF; }
 	} else {
 		int16_t dx = ((si & 0x7F0) >> 4) - 1; si &= 0xF80F;
@@ -169,12 +172,12 @@ static void anim_steps(int last, int base)
 	}
 	set_mod16(si | 0x1000);
 }
-void anim_tile29(void) { if (room_background_id() != 0x1C) { cur_trob.state = 0xFF; return; } anim_steps(7, 0x28); }
+void anim_tile29(void) { if (room_background_id() != 0x1C) { cur_trob.state = 0xFF; return; } anim_steps(7, 0x28, 0x29); }
 void anim_tile2a(void)
 {
 	int bg = room_background_id(); uint8_t idx = mod16() & 0xF;
 	if ((bg != 0x1D && bg != 0x1E) || !((idx < 6 && drawn_room == 7) || (idx >= 6 && drawn_room == 8))) { cur_trob.state = 0xFF; return; }
-	anim_steps(9, V_IR ? 0x1E : 0x50);   /* (IR: rearmed sooner) */
+	anim_steps(9, V_IR ? 0x1E : 0x50, 0x2A);   /* (IR: rearmed sooner) */
 }
 /* 33FD:1962 / 1B94 (0823:0B78 on level 14, a tile with attribute bit 0x1000 in room 6 / rooms 7, 8) */
 void anim_start_final(uint32_t *attrs, int8_t tp, uint8_t room)

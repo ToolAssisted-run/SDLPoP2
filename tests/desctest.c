@@ -17,6 +17,7 @@
 #include "../source/render.h"
 
 const char *level_kind_dat(void);
+void render_desc_load(uint8_t room);
 uint8_t guard_type_loaded(void);
 int render_pal_load(int sub, int count, int start, int res);
 extern uint8_t byte_0670;   /* DS:0670: the guard type loaded */

@@ -454,7 +454,7 @@ void render_frame_objects(void)
 {
 	memset(table_counts, 0, sizeof table_counts); obj_count = 0;   /* (169B:0A8A: DS:60F0..60F9) */
 	draw_mobs();
-	draw_kid(); draw_chars(); screen_clip(); render_status_hp();   /* 0993:029A: 07F8, 08D0, 0AFF:08BE, 0823:0F38 */
+	kid_sprite_for_drawing(); draw_kid(); draw_chars(); screen_clip(); render_status_hp();   /* 0993:029A: 07F8, 08D0, 0AFF:08BE, 0823:0F38 */
 	mark_restored();
 }
 void render_frame_tables(void) { render_frame_objects(); redraw_requested(); }

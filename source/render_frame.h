@@ -80,7 +80,7 @@ void render_desert_press(int col);        /* 33FD:0904 (a puzzle tile pressed) *
 int render_trob_rect(uint16_t tmpl, int16_t *r);   /* 1375:0454: the rect DS:tmpl at the animated tile (DS:6672) */
 void render_trob_request(int which, uint16_t arg);   /* 1375:01F4..0416 (which: the routine's offset): a tile animation's redraw request */
 void render_lever5_images(void); void render_lever5_entry(void); void render_lever5_mouth_tick(void); void render_lever5_trap_tick(void);   /* render_ovl37f0.c */
-void render_bridge_tick(int8_t tp, uint8_t v); void render_roof25_tick(int8_t tp); void render_roof26_tick(uint16_t m); void render_roof27_tick(uint16_t m); void render_lever5_set_saved(int v);
+void render_bridge_tick(int8_t tp, uint8_t v); void render_roof25_tick(int8_t tp); void render_roof26_tick(uint16_t m); void render_roof27_tick(uint16_t m); void render_final_tick(uint8_t tile, int k); void render_lever5_set_saved(int v);
 void render_pal_guards(void);     /* 2D3E:0F50 */
 void render_pal_level_start(void);
 void render_room_enter_palette(int bg);   /* the palette parts of the description rooms' hooks (entry 0, room loaded) */

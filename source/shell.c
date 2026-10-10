@@ -278,6 +278,7 @@ void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m)   /* 33FD:0680 / 08C0 /
 	if (!hooks_on) return;
 	if (tile == 0x25) render_roof25_tick(tp); else if (tile == 0x26) render_roof26_tick(m); else render_roof27_tick(m);
 }
+void hook_final_tick(uint8_t tile, int k) { if (hooks_on) render_final_tick(tile, k); }   /* 33FD:15C4 / 1678 / 17E3 / 1A16 (level 14) */
 void hook_pal_rotate(int start, int count) { if (hooks_on) render_pal_rotate(start, count); }   /* 2699:0048 */
 void hook_pal_load(int sub, int count, int start, int res) { if (hooks_on) render_pal_load(sub, count, start, res); }   /* 0FB3:2B1C */
 void hook_pal_restore(void) { if (hooks_on) render_pal_restore(); }   /* 0FB3:294C */

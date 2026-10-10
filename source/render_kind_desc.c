@@ -155,6 +155,14 @@ void render_trob_request(int which, uint16_t arg)
 		if (!render_trob_rect(0x07A2, r)) return;
 		mark_back(trob_self(), r);
 		break;
+	case 0x322:     /* 33FD:0322 (the ruins' and temple's overlay): a slicer blade's frame changes: the back layers of every
+	                 * tile under its box, DS:176C (arg: a row higher and 6 further right). Nothing else redraws a blade:
+	                 * its fore pieces stay on the screen as last drawn until the room is drawn whole */
+		tmpl_words(0x176C, t);
+		if (arg) { t[3] += 6; t[0]--; }
+		if (!trob_rect_of(t, r)) return;
+		mark_tiles_under(mark_back, r, 0xFF);
+		break;
 	case 0x2F8:     /* 15D4 / 16BC: a button goes down or up: the back layers of every tile under the rect */
 		if (!render_trob_rect(level_kind == 3 ? 0x07D2 : 0x07BA, r)) return;
 		mark_tiles_under(mark_back, r, 0xFF);
@@ -360,6 +368,23 @@ static void final_28(tile_args *a)
 	int16_t l = draw_clip[1]; draw_clip[1] -= 6;
 	draw_object((a->mod & 7) + 6, 0xB);
 	draw_clip[1] = l;
+}
+/* The final level's tile animations asking for redraws (1375:0F5A, the tiles under a rect and the characters over
+ * them): tile 0x1F (33FD:15C4) the back layers under object 2's rect; 0x28 (1678, a tick it was showing) under
+ * object 6's; 0x29 (17E3, a step) under object 4's moved to DS:1A72[k]; 0x2A (1A16, a step) the fore layer under
+ * object 2's moved to DS:1AAA[k]. Nothing else redraws them: the frame tile 0x28 has as its showing ends is the one
+ * on the screen through the delay, whatever the modifier says, and only what lies under that rect is drawn again. */
+void render_final_tick(uint8_t tile, int k)
+{
+	int i = tile == 0x28 ? 6 : tile == 0x29 ? 4 : 2;
+	if (i >= desc_count()) return;
+	int16_t r[4]; for (int j = 0; j < 4; j++) r[j] = rd(desc_obj(i) + 0xB + 2 * j);
+	if (tile == 0x29 || tile == 0x2A) {
+		uint16_t pos = (uint16_t)((tile == 0x29 ? 0x1A72 : 0x1AAA) + 4 * k);
+		int16_t dy = (int16_t)ds_word(pos), dx = (int16_t)ds_word((uint16_t)(pos + 2));   /* 194C:50EC */
+		r[0] += dy; r[2] += dy; r[1] += dx; r[3] += dx;
+	}
+	mark_tiles_under(tile == 0x2A ? mark_fore : mark_back, r, 0xFF);
 }
 const kind_drawers kind_final = {{
 	[0x00] = final_00, [0x01] = final_00, [0x0A] = draw_tile_0a, [0x14] = final_00, [0x1F] = final_1f,

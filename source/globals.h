@@ -178,7 +178,7 @@ const uint8_t *guard_frame_table(uint8_t charid);   /* platform: FRAM 750 of the
 
 /* kind1.c (level 2, OVL03) */ extern int8_t puzzle_answer, puzzle_last; extern uint8_t byte_14a0; int sound_playing(uint16_t id);
 void anim_tile1e(void); int tile1e_start(uint8_t room, int8_t tp, uint8_t mode); void anim_gate_kind1(void); void kind1_tick(void);
-void anim_wave_kind1(void); void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m);
+void anim_wave_kind1(void); void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m); void hook_final_tick(uint8_t tile, int k);
 void hook_desert_gate(int8_t tilepos); void hook_desert_wave(int8_t tilepos); void hook_desert_tile1e(void); void hook_desert_press(int col); void hook_pal_rotate(int start, int count); void hook_pal_load(int sub, int count, int start, int res); void hook_pal_restore(void); void hook_trob_request(int which, uint16_t arg); void hook_guard_loaded(uint8_t t); uint8_t guard_type_loaded(void); void hook_mob_mark(int how, int left_shift); void hook_mob_landed(uint8_t room, int8_t tp); void hook_tile_redraw(uint8_t room, int8_t tp); int tile_shows(int8_t tilepos, uint8_t room);   /* the drawing's parts of tick code (weak no-ops; shell.c: the renderer) */
 extern int level_switch; extern uint16_t word_2b96; void game_start(void);   /* level.c 169B:0006 */
 extern int last_scene; extern uint8_t byte_2b68, byte_6937; void kind1_level_init(void); int room_background_id(void);
@@ -199,7 +199,7 @@ void slab_draw_state(void);   /* temple.c */
 mob_type *wall_find(uint8_t room, int8_t row); void wall_trigger(uint8_t room, int8_t tp, int k); void wall_move(void); void wall_push_kid(void);
 int16_t wall_edge(int8_t dir, uint8_t room, int8_t row); void wall_collision(int8_t row, uint8_t *rooms, uint8_t *flags); int wall_near(int16_t dist);
 int wall_near_blade(void); int16_t wall_limit(uint8_t room, int8_t row); void trap_kill_pub(void); uint16_t ds_word(uint16_t a);
-extern kid_sprite_t kid_sprite; void head_attach(void); const uint8_t *head_attach_table(void); int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);   /* game.c, heads.c, glue.c */
+extern kid_sprite_t kid_sprite; void kid_sprite_for_drawing(void); void head_attach(void); const uint8_t *head_attach_table(void); int res_image_size(uint8_t chtab, int16_t image, int16_t *height, int16_t *width_m1);   /* game.c, heads.c, glue.c */
 void dead_char_music(void); uint8_t *find_spawn_pub(int8_t row, uint8_t room); int char_scan_31bc4(void);   /* fight.c, room.c, kid.c */
 void ruins_open_tile7(void);   /* ruins.c */
 extern uint8_t byte_5ce7; extern int16_t room_bg; int room_has_description(uint8_t room); void room_load(uint8_t room); int16_t room_description_bg(uint8_t room); const uint8_t *room_description_res(uint8_t room, uint16_t *size); const char *level_kind_dat(void);   /* roomhooks.c, glue.c */

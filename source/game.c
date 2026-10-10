@@ -74,6 +74,10 @@ static void kid_sprite_state(void)
 	kid_sword_sprites();
 	Char = save;
 }
+/* (the frontend's drawing: the prince's sprite of the frame being drawn, which a biting head sits on - 0FB3:1BF2
+ * finds it in the frame's own list, the prince's pass having come first. The drawing runs before this tick's state
+ * parts, so without this a head was drawn where the prince's sprite was a frame ago) */
+void kid_sprite_for_drawing(void) { kid_sprite_state(); }
 /* 1375:1FBA (0FB3:12F4 draws the mobs before the characters): the state their drawing changes */
 static void draw_mobs_state(void)
 {

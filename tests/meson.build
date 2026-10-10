@@ -15,12 +15,13 @@ testPrograms = {
   'inputtest' : 'keyboard to controls',
   'settingstest' : 'SDLPoP2.ini (defaults = the game) and replays (record and play back headlessly)',
   'cheatstest' : 'SDLPoP2\'s own cheats: god mode against random play, every cheat through savestate round trips',
+  'desctest'  : 'every room\'s description and every guard palette through a whole game in one run',
 }
 # Windows builds (cross/mingw-w64.ini) run only the core and cheats tests (under Wine with cross/wine.ini): the others compare
 # against the oracle's Linux-side captures or use fork()
 isWindows = host_machine.system() == 'windows'
 if isWindows
-  testPrograms = { 'coretest' : testPrograms['coretest'], 'cheatstest' : testPrograms['cheatstest'] }
+  testPrograms = { 'coretest' : testPrograms['coretest'], 'cheatstest' : testPrograms['cheatstest'], 'desctest' : testPrograms['desctest'] }
 endif
 testExecutables = {}
 foreach name, description : testPrograms
@@ -57,6 +58,11 @@ if get_option('gameDir') != ''
        args : [ get_option('gameDir'), '3000' ],
        timeout : 600,
        suite : [ 'cheats' ])
+  # the drawing's lists that a whole game fills: every level's descriptions and guard palettes in one run
+  test('desctest', testExecutables['desctest'],
+       args : [ get_option('gameDir') ],
+       timeout : 600,
+       suite : [ 'render' ])
   # SDLPoP2.ini and replays: the ini's defaults are the game's, a scripted session records and replays identically
   if not isWindows
   test('settingstest', testExecutables['settingstest'],

@@ -37,3 +37,11 @@ RAM image w/ramL3.bin): loose floors, falling floors, buttons and gates match on
 and L3btn3; L3btn10 has 5 ticks left that need the falling rock (tile 2, segment 186A). The random explorations
 L3r1/L3r2 reach skeleton rooms (charid 4 AI and SKELETON.DAT not reconstructed yet).
 Snapshots of new captures cover DS:2900..6C00 (the falling-floor list starts at DS:293E); pair files record the size.
+
+## The drawing's lists over a whole game (tests/desctest.c)
+`desctest GAME_DIR` (in `meson test` with `-DgameDir`): the 14 levels in one run, every room's description loaded as
+a whole redraw loads it, each object's image checked to be its own resource; then PALS 750 for every guard type.
+Both failed only after enough of a game: the list of a description's images was never emptied (128 entries, full by
+the eighth level), and the palette search had places for three of the five guard files. Found on a run played from
+the boot to the end, its pictures compared with DOS's tick by tick (level 8's sword room, level 13's flame, level
+14's rooms 5 and 6): no test of one room or one level could see it.

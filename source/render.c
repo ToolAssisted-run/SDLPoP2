@@ -31,12 +31,13 @@ static uint8_t *port_bits = offscreen;   /* the current port's pixels (DS:[2450]
 #define PUT(p, v) do { port_bits[p] = (v); if (render_owner && port_bits == offscreen) render_owner[p] = render_owner_id; } while (0)
 
 /* ---- the game's files and a cache of decoded images by (file, resource) ---- */
-static dat_file dats[16]; static char dat_names[16][32];
+#define DATS_MAX 32   /* (the game has 14 files of images: the six kinds of level, the six guard files, PRINCE.DAT, KID.DAT) */
+static dat_file dats[DATS_MAX]; static char dat_names[DATS_MAX][32];
 static dat_file *dat_of(const char *name)
 {
 	if (!name) return NULL;
-	for (int i = 0; i < 16; i++) if (dat_names[i][0] && !strcmp(dat_names[i], name)) return dats[i].data ? &dats[i] : NULL;
-	for (int i = 0; i < 16; i++) if (!dat_names[i][0]) {
+	for (int i = 0; i < DATS_MAX; i++) if (dat_names[i][0] && !strcmp(dat_names[i], name)) return dats[i].data ? &dats[i] : NULL;
+	for (int i = 0; i < DATS_MAX; i++) if (!dat_names[i][0]) {
 		snprintf(dat_names[i], sizeof dat_names[i], "%s", name);
 		if (!dat_open(&dats[i], game_path(name))) { dats[i].data = NULL; return NULL; }
 		return &dats[i];
@@ -55,8 +56,8 @@ void render_load_pieces(void)
 	piece_table = p ? piece_copy : NULL; piece_kind = level_kind;
 }
 void render_check_pieces(void) { extern uint8_t *piece_table; if (!piece_table || (piece_table == piece_copy && piece_kind != level_kind)) render_load_pieces(); }   /* (a table set from elsewhere, the tests', is kept) */
-#define CACHE_N 4096
-static struct { char dat[16]; int res; image_t *im; } cache[CACHE_N]; static int n_cache;
+/* (the cache grows as it needs: a fixed table, once full, would decode an image again at every draw and keep each copy) */
+static struct cache_entry { char dat[16]; int res; image_t *im; } *cache; static int n_cache, cap_cache;
 static const image_t *decode_res(const char *datname, int res)
 {
 	if (!datname) return NULL;
@@ -67,12 +68,21 @@ static const image_t *decode_res(const char *datname, int res)
 	if (r && r + sz < d->data + d->size) sz++;   /* (the game loads a resource with one byte more, the next one's checksum byte: a
 	                                              * last LZG reference can read it, CAVERNS.DAT 3525) */
 	if (!r || !image_decode(r, sz, im)) { free(im); im = NULL; }
-	if (n_cache < CACHE_N) { snprintf(cache[n_cache].dat, sizeof cache[n_cache].dat, "%s", datname); cache[n_cache].res = res; cache[n_cache].im = im; n_cache++; }
+	if (n_cache == cap_cache) {
+		int cap = cap_cache ? cap_cache * 2 : 1024; struct cache_entry *c = realloc(cache, (size_t)cap * sizeof *c);
+		if (!c) return im;
+		cache = c; cap_cache = cap;
+	}
+	snprintf(cache[n_cache].dat, sizeof cache[n_cache].dat, "%s", datname); cache[n_cache].res = res; cache[n_cache].im = im; n_cache++;
 	return im;
 }
 
-/* images registered into an image set outside its own ids (a room description's images: 26BC:073C) */
-#define EXTRA_MAX 128
+/* images registered into an image set outside its own ids (a room description's images: 26BC:073C). The list is the
+ * drawn room's: a description's load starts it again (render_desc_load), as the game frees a description's images
+ * when the room is left. (It was never emptied, and its 128 entries were full by the eighth level of a game played
+ * from the start: an id not met before was no longer taken, and those rooms - level 8's sword room, the last ruins,
+ * the final level's - drew the set's own images, or none, under their descriptions' ids.) */
+#define EXTRA_MAX 256
 static struct { int chtab, id, res; char dat[32]; uint16_t mask; } extra[EXTRA_MAX]; static int n_extra;   /* mask: the conversion mask of the image's load (0: the file's) */
 void render_register_image(int n, int id, const char *dat, int res)
 {
@@ -82,6 +92,7 @@ void render_register_image(int n, int id, const char *dat, int res)
 	extra[n_extra].chtab = n; extra[n_extra].id = id; extra[n_extra].res = res; extra[n_extra].mask = 0;
 	snprintf(extra[n_extra].dat, sizeof extra[n_extra].dat, "%s", dat); n_extra++;
 }
+void render_register_reset(void) { n_extra = 0; }
 /* a registered image loaded with another mask than its file's (26BC:040A with a shape list's copy: 37F0:0510) */
 void render_image_set_mask(int n, int id, uint16_t mask) { for (int i = 0; i < n_extra; i++) if (extra[i].chtab == n && extra[i].id == id) extra[i].mask = mask; }
 static uint16_t image_mask(int n, int id) { for (int i = 0; i < n_extra; i++) if (extra[i].chtab == n && extra[i].id == id) return extra[i].mask; return 0; }

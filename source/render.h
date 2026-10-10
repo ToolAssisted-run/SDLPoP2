@@ -51,6 +51,7 @@ void render_set_chtab(int n, const char *dat, uint16_t first, uint8_t pal_base);
 const image_t *render_image(int chtab, int id);   /* image id (1-based) of a set; cached decode; NULL if missing */
 int render_image_res(int chtab, int id, const char **dat, int *res);
 void render_register_image(int chtab, int id, const char *dat, int res);   /* image `id` of set `chtab` is resource `res` of `dat` */
+void render_register_reset(void);   /* the list starts again (a room's description is loaded: its images replace the last room's) */
 void render_image_set_mask(int chtab, int id, uint16_t mask);   /* (a registered image) converted with `mask` */
 extern uint8_t render_guard_type;   /* 0xFF: the guard set is the level type's */
 

@@ -26,8 +26,12 @@ static void dac_set(const uint8_t *rgb, int count, int start)
  * TEMPLE.DAT 4075; 750 also in the guard files BIRD / FLAME / HEAD / JINNEE / SKELETON, searched first) */
 static const uint8_t *pal_res(const char *tag, int id, uint16_t *n)
 {
-	static dat_file files[12]; static int8_t ok[12];
-	static const char *names[12] = {NULL, "PRINCE.DAT", "KID.DAT", "DESERT.DAT", "TEMPLE.DAT", "CAVERNS.DAT", "RUINS.DAT", "ROOFTOPS.DAT", "FINAL.DAT", NULL, NULL, NULL};
+	/* (places for the files met as the game goes: the five guard files. With three, the fourth guard file of a game
+	 * played from the start - FLAME.DAT on level 13, then JINNEE.DAT - was not looked in, and its characters took
+	 * PRINCE.DAT's 750) */
+	enum { FILES = 16 };
+	static dat_file files[FILES]; static int8_t ok[FILES];
+	static const char *names[FILES] = {NULL, "PRINCE.DAT", "KID.DAT", "DESERT.DAT", "TEMPLE.DAT", "CAVERNS.DAT", "RUINS.DAT", "ROOFTOPS.DAT", "FINAL.DAT"};
 	static const char *guards[10] = {NULL, "FLAME.DAT", "SKELETON.DAT", NULL, NULL, "HEAD.DAT", "HEAD.DAT", "BIRD.DAT", "HEAD.DAT", "JINNEE.DAT"};
 	const char *order[4] = {NULL, NULL, NULL, NULL}; int k = 0;
 	uint8_t gt = guard_type_loaded();
@@ -35,8 +39,8 @@ static const uint8_t *pal_res(const char *tag, int id, uint16_t *n)
 	if (level_kind_dat()) order[k++] = level_kind_dat();   /* (the ids are unique to their files: the scenery file's first) */
 	order[k++] = id == 25001 ? "KID.DAT" : "PRINCE.DAT";
 	for (int j = 0; j < k; j++) {
-		int f = -1; for (int i = 1; i < 12; i++) if (names[i] && order[j] && !strcmp(names[i], order[j])) f = i;
-		if (f < 0) { for (int i = 9; i < 12; i++) if (!names[i]) { names[i] = order[j]; f = i; break; } if (f < 0) continue; }
+		int f = -1; for (int i = 1; i < FILES; i++) if (names[i] && order[j] && !strcmp(names[i], order[j])) f = i;
+		if (f < 0) { for (int i = 9; i < FILES; i++) if (!names[i]) { names[i] = order[j]; f = i; break; } if (f < 0) continue; }
 		if (!ok[f]) ok[f] = dat_open(&files[f], game_path(names[f])) ? 1 : -1;
 		if (ok[f] < 0) continue;
 		const uint8_t *r = dat_find(&files[f], tag, (uint16_t)id, n);

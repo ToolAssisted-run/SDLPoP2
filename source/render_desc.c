@@ -32,6 +32,7 @@ static void put_rect(uint8_t *o, const int16_t *r) { for (int k = 0; k < 4; k++)
 void render_desc_load(uint8_t room)
 {
 	desc_ok = 0;
+	render_register_reset();   /* (the images of the room before are no longer the set's) */
 	if (room_bg == 0) return;
 	uint16_t n; const uint8_t *r = room_description_res(room, &n);
 	if (!r || n < 0x1C) return;

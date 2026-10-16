@@ -9,6 +9,7 @@ typedef struct pop2_input {
 	uint8_t shift;       /* 1 shift held, 2 Ctrl held (draw the sword; the spirit casts) */
 	uint8_t keystroke;   /* a key was pressed this tick (a dead prince restarts on any key) */
 	uint8_t restart_level;   /* Alt+A typed: the level starts again (from its checkpoint), as the program's key does */
+	uint8_t music_toggle;    /* Alt+M typed: ambient music on / off (off stops the piece playing: the level-end music too) */
 } pop2_input;
 
 enum { POP2_PLAYING = -2, POP2_QUIT = -1 };

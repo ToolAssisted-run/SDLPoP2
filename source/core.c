@@ -9,7 +9,7 @@
 #include "core.h"
 #include "version.h"
 
-extern char glue_dir[400]; extern int pop2_keystrokes, pop2_restart_level; extern uint8_t key_table[0x70], bios_shift_flags;
+extern char glue_dir[400]; extern int pop2_keystrokes, pop2_restart_level, pop2_music_toggle; extern uint8_t key_table[0x70], bios_shift_flags;
 static int scene; static uint8_t ram[655360];   /* DS at 0x3B250, as the program starts */
 
 static int want_ver = POP2_VER_AUTO; static const char *init_error;
@@ -54,11 +54,11 @@ int pop2_frame(const pop2_input *in)
 	if (in->x < 0) key_table[0x58] = 1; else if (in->x > 0) key_table[0x5A] = 1;
 	if (in->y < 0) key_table[0x55] = 1; else if (in->y > 0) key_table[0x5D] = 1;
 	bios_shift_flags = in->shift == 2 ? 4 : in->shift ? 2 : 0;   /* 2 = Ctrl (the sword / the spirit's cast) */
-	if (in->keystroke || in->restart_level) pop2_keystrokes = 1;
-	pop2_restart_level = in->restart_level;
+	if (in->keystroke || in->restart_level || in->music_toggle) pop2_keystrokes = 1;
+	pop2_restart_level = in->restart_level; pop2_music_toggle = in->music_toggle;
 	missing_reset();
 	int r = play_frame();
-	pop2_keystrokes = 0; pop2_restart_level = 0;
+	pop2_keystrokes = 0; pop2_restart_level = 0; pop2_music_toggle = 0;
 	if (r == -2 || r == -1) return r;
 	if (r <= 0 || r > 14) return POP2_QUIT;   /* 0: back to the title */
 	scene = word_5cb6 ? 0 : story_scene((int8_t)word_32d8, r);   /* 0AAC:000E */

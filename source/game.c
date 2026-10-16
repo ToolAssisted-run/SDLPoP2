@@ -9,9 +9,13 @@ uint16_t minutes_left = 75, clock_ticks = 0x2CF;   /* DS:5CD2 (0x4B at the start
 uint16_t word_5cb6, word_5cc0; int8_t byte_016a;   /* DS:5CB6 / 5CC0; DS:016A (negative: clock stopped) */
 uint16_t frame_delay;                               /* DS:24DE */
 
+/* a frontend may count the ticks the clock would have run had it started with the game - it stays stopped until the
+ * first story scene after level 4 (DS:016A) - in play and not in a demo (none: nothing counts them) */
+__attribute__((weak)) void clock_stopped_tick(void) {}
 /* 0823:0D5A: the clock runs while the prince lives; messages at every 5th minute, the last five and the last seconds */
 void game_clock(void)
 {
+	if (byte_016a < 0 && Kid.alive < 0 && minutes_left != 0 && !word_2ba8) clock_stopped_tick();
 	if (byte_016a >= 0 && Kid.alive < 0 && minutes_left != 0) {
 		if (--clock_ticks == 0) {
 			clock_ticks = (uint16_t)GAME_SETTING(ticks_per_minute, 0x2CF);   /* 0823:0D5A (SDLPoP2.ini ticks_per_minute) */

@@ -143,12 +143,11 @@ void sound_res_start(uint16_t res) { if (running || sound_start_hook) shell_soun
 void (*platform_sound_volume_hook)(int v);   /* the frontend: audio_volume */
 int (*shell_sound_setup_hook)(void);         /* the frontend: 1 while the MIDI device's setup piece plays (audio_setup_playing) */
 void sound_set_volume(int v) { sound_volume = (uint8_t)(v > 15 ? 15 : v); if (platform_sound_volume_hook) platform_sound_volume_hook(sound_volume); }   /* 194C:3380 */
-int music_toggle_msg(void)   /* 1611:07D4 -> the message */
+int music_toggle_msg(void)   /* 1611:07D4 -> the message (sound.c music_toggle), then 0D5E:20F4 saves the options */
 {
-	if (!(sound_caps & 2)) return 0xA44;   /* "Music Unavailable" */
-	amb_state[0] = !amb_state[0];
-	options_save();
-	return amb_state[0] ? 0xA20 : 0xA32;   /* "Ambient Music On" / "Off" (off also stops the piece, 194C:83D2) */
+	int m = music_toggle();
+	if (m != 0xA44) options_save();   /* ("Music Unavailable": nothing changed) */
+	return m;   /* "Ambient Music On" / "Off" (off also stops the piece playing: the level-end music too) */
 }
 int joystick_toggle_msg(void)   /* 0823:0B1A: no joystick here */
 {

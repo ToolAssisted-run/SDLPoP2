@@ -194,6 +194,19 @@ static int should_start(uint16_t cur, uint16_t nw)
 /* 1611:0826: music on the MIDI channel takes the ambient sound's place (variant 0xFF) */
 static void music_ambient(uint16_t n) { if (amb_state[0] && n < NSND && snd_kind[n] == 2) { amb_cur = n; amb_state[1] = 0xFF; } }
 void sound_1611_0826(uint16_t n) { music_ambient(n); }
+/* 1611:07D4: ambient music on / off (Alt-M, the options menu's line): DS:2B98 flips; switched off, the piece the
+ * MIDI channel took last (DS:2B9A: an ambient sound, or the music that took its place, the level-end music among
+ * them) is stopped (194C:83D2) unless it is the one queued (DS:0880). So Alt-M during the level-end music ends the
+ * level's wait for it: the oracle's level 1 loads level 2 after tick 433 instead of 538 with Alt-M at tick 431, and
+ * after 538 with the music switched off before the piece started (it plays all the same, and DS:2B9A is not it).
+ * -> the message: DS:0A20 on, 0A32 off, 0A44 "Music Unavailable" (no MIDI driver) */
+int music_toggle(void)
+{
+	if (!(sound_caps & 2)) return 0xA44;
+	amb_state[0] = amb_state[0] == 0;
+	if (!amb_state[0] && amb_cur != 0 && amb_cur != word_0880) sound_194c_83d2((uint16_t)(amb_cur + 10000));
+	return amb_state[0] ? 0xA20 : 0xA32;
+}
 
 /* 1611:0696: no ambient sound: the prince dead, the level-end music, a type-2 level's guard drawing its sword,
  * level 9 room 16, level 8 room 9 from column 8 */

@@ -16,7 +16,7 @@ uint8_t anim_tile;                               /* DS:6B72 */
 /* 17C1:0000: tile and attribute pointers of any room (room 0 = the dummy room) */
 static void room_pointers(uint8_t room) { get_room_address(room); }
 /* 1375:2620: is the tile on screen (drawn room, or the edge column/row shared with the left, lower and lower-left rooms)? */
-static int tile_visible(int8_t tilepos, uint8_t room)
+int tile_shows(int8_t tilepos, uint8_t room)
 {
 	if (room == drawn_room) return 1;
 	if (room == room_L && tilepos % 10 == 9) return 1;
@@ -28,7 +28,7 @@ static int tile_visible(int8_t tilepos, uint8_t room)
 
 static void anim_torch_25(void)   /* 33FD:0652: cycles 0..7 while visible */
 {
-	if (!tile_visible(cur_trob.tilepos, cur_trob.room)) { cur_trob.state = 0xFF; return; }
+	if (!tile_shows(cur_trob.tilepos, cur_trob.room)) { cur_trob.state = 0xFF; return; }
 	uint16_t v = (uint16_t)anim_mod & 0xF; v = v == 7 ? 0 : v + 1;
 	anim_mod = (anim_mod & ~0xFu) | v;
 	hook_roof_tick(0x25, (int8_t)cur_trob.tilepos, v);   /* 33FD:0680 */
@@ -47,7 +47,7 @@ static void anim_27(void)         /* 33FD:058A */
 	hook_roof_tick(0x27, (int8_t)cur_trob.tilepos, (uint16_t)anim_mod);   /* 33FD:05AC */
 }
 /* 1375:04CE: animations off screen stop */
-static int anim_visible(void) { int v = tile_visible(cur_trob.tilepos, cur_trob.room); if (!v) cur_trob.state = 0xFF; return v; }
+static int anim_visible(void) { int v = tile_shows(cur_trob.tilepos, cur_trob.room); if (!v) cur_trob.state = 0xFF; return v; }
 /* 1375:08D0 / 0D0A: torches pick a new random frame (kind 3: 33FD:0BC2) */
 static int anim_index;   /* the entry animate_tiles is at (1375:0006 passes it on: 1375:08D0's argument) */
 static void anim_torch(void)

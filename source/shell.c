@@ -269,6 +269,7 @@ void hook_mob_mark(int how, int left_shift)
 }
 /* 1375:1C7E's end: the landed floor's box asked again (2296(0)), the tile it changed not redrawn whole */
 void hook_mob_landed(uint8_t room, int8_t tp) { if (hooks_on) { render_mob_mark(0); render_tile_modelled(room, tp); } }
+void hook_tile_redraw(uint8_t room, int8_t tp) { if (hooks_on) render_mark_tile_at(room, tp); }   /* 1375:0EB8 */
 void hook_desert_press(int col) { if (hooks_on) render_desert_press(col); }       /* 33FD:0904 */
 void hook_lever5_mouth(void) { if (hooks_on) render_lever5_mouth_tick(); }           /* 37F0:0756 */
 void hook_lever5_trap(void) { if (hooks_on) render_lever5_trap_tick(); }             /* 37F0:053B */

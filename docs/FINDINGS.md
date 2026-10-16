@@ -255,7 +255,12 @@ Kept up to date as work goes on (newest findings are also in the dated log at th
 - Biting heads (f24 1) sit on the prince's last drawn sprite (366C:0002): the sprite list entry (chtab 2, layer 0)
   plus offsets from the guard file's resource 755 by the prince's image; x = sprite x + offset + 0x82.
 - Tile 7 runs (347C:12C8/1226/12FA): facing a tile 7 (modifier low bits not 3) while standing/crouching opens the
-  whole horizontal run of 7s (attr bit 0x80), across rooms.
+  whole horizontal run of 7s (attr bit 0x80), across rooms. Each tile marked (347C:12FA) asks for its redraw (1375:0EB8 when
+  1375:2620 says it shows) and, when its low bits are 0 (a run's right end) and it is not in column 9, for the tile on its
+  right (0EB8 unchecked): that tile draws the end's face, which the open run replaces by the tunnel's inside. 0EB8 maps a
+  neighbour room's tile to the drawn room's request index (left -9, right +9, above -20, below +20). The frontend takes
+  them through hook_tile_redraw (its tile tracker redraws only the tiles that changed: crawling in leftwards, the face
+  stayed). Verified: T7P (level 7 room 1, crawling left into the run), VGA dumps exact from the opening on (before: 1611 px).
 
 ### 5.7 Caverns (kind 3; OVL04 33FD)
 - Rocks, collapsing floors (heap objects), traps (186A blade trap, tile 2, type-4 objects).
@@ -902,3 +907,14 @@ waits, the level end, several room effects and the ambient pieces' random draws 
   popdig.hdd (digital only) and popfm.hdd (FM only) beside popspk.hdd; captures SPKE/DIGE/FME<level>_41 for levels 1, 2,
   3, 5, 8, 12, 14: all identical with the capture's answers, snapshot and cold; model-only too but for the known ambient
   jitter (FME3, FME8); with the CD setup forced 16 of 21 diverge.
+- 2026-10-01: user reports against the original. (1) Ruins tunnels opened leftwards kept their face in the frontend:
+  347C:12FA's redraw requests (the opened tile, and the tile right of a run's end) reach the renderer now
+  (hook_tile_redraw; 5.6); capture T7P. (2) The horse ride (transition 2) played after level 8: the jump table
+  0AAC:0168 (cases 1..13 of DS:0998, the level just played) gives transition 2 to case 9, not 8 (story_scene
+  misread it by one entry; NIS.md had it right) - the same in IR, 1.0 and 1.1; the oracle (L8N, L9N: LEVELn then
+  Alt-N) plays daughter scene 0x14 after level 8 and transition 2 after level 9, and so does SDLPoP2 now.
+  (3) Level 14's tower window: 33FD:045C (the prince landing on room 2's ledge) plays scene 5 (the prince at the
+  window meets Jaffar; 0AAC:0274(5)) before reloading the level and putting him in room 4, then sets palette
+  0FB3:2B1C(0, 0x10, 0xF0, 1000) and the music 1286:07CE(6); final.c only recorded the scene, which never played.
+  The oracle (L14W: the prince put on the ledge at tick 21) plays scene 5, and so does SDLPoP2 (the scene's frames
+  exact; the reload's ~150 frames of black before room 4 are shorter here).

@@ -14,6 +14,8 @@ static int scene; static uint8_t ram[655360];   /* DS at 0x3B250, as the program
 
 static int want_ver = POP2_VER_AUTO; static const char *init_error;
 void pop2_set_game_version(int v) { want_ver = v; }
+static int skip_scenes;   /* the story scenes skipped by a key (pop2_set_skip_scenes); 0: watched to their end */
+void pop2_set_skip_scenes(int on) { skip_scenes = on; }
 const char *pop2_init_error(void) { return init_error; }
 int pop2_init(const char *dir)
 {
@@ -42,7 +44,7 @@ void pop2_new_game_loaded(int lv, uint32_t seed)   /* up to the level load (169B
 	pop2_reset_state();
 	random_seed = seed; cheat_mode = lv != 1; level_switch = lv != 1; byte_6b6c = (uint8_t)lv; pop2_keystrokes = 0;
 	sound_init_ambient(); game_start();
-	scene = story_scene((int8_t)word_32d8, lv); scene_played(scene);
+	scene = story_scene((int8_t)word_32d8, lv); scene_played(scene);   /* (a cold start: the captures show no draw for the copy protection here) */
 	load_level(lv);
 }
 void pop2_new_game(int lv, uint32_t seed) { pop2_new_game_loaded(lv, seed); level_begin(); level_first_room(); }
@@ -59,7 +61,15 @@ int pop2_frame(const pop2_input *in)
 	pop2_keystrokes = 0; pop2_restart_level = 0;
 	if (r == -2 || r == -1) return r;
 	if (r <= 0 || r > 14) return POP2_QUIT;   /* 0: back to the title */
-	scene = word_5cb6 ? 0 : story_scene((int8_t)word_32d8, r); scene_played(scene);   /* 0AAC:000E */
+	scene = word_5cb6 ? 0 : story_scene((int8_t)word_32d8, r);   /* 0AAC:000E */
+	/* the copy protection after level 2, taken as answered at the first try: the game asking it (0D5E:1288) draws the
+	 * symbol asked, random_2751(count - 1) (Chimera's core, which asks it, shows the draw) */
+	if (scene == 0x64 && word_0366 == 0 && word_2ba8 == 0 && cp_question_count > 1) random_2751(cp_question_count - 1);
+	/* a scene skipped by a key stops the sound (nis.c, the scene's abort), which plays on into the scene after levels 5
+	 * and 9 (game.c): with nothing playing, the next level's first tick starts an ambient sound, a random draw (seen in
+	 * Chimera's core skipping the scene after level 5); a scene watched to its end leaves the level's music playing */
+	if (scene && skip_scenes) sound_stop_all();
+	scene_played(scene);
 	if (!load_level(r)) return POP2_QUIT;
 	level_begin(); level_first_room();
 	return r;

@@ -29,10 +29,11 @@ static void tile7_mark(int open)
 	if (open) { changed = !(si & 0x80); if (changed) si |= 0x80; }
 	else { changed = si & 0x80; if (changed) si &= 0xFF7F; }
 	if (!changed) return;
-	/* 1375:2620 / 0EB8 redraw it when visible */
+	if (tile_shows(curr_tilepos, curr_room)) hook_tile_redraw(curr_room, curr_tilepos);   /* 1375:2620, 0EB8 */
+	/* the tile on the right draws the face of a run's right end: redrawn too (1375:0EB8, unchecked) */
 	if (!(si & 3) && tile_col != 9) {
 		uint8_t room = curr_room; int8_t row = tile_row;
-		get_tile(row, tile_col + 1, room);   /* (redrawn) */
+		get_tile(row, tile_col + 1, room); hook_tile_redraw(curr_room, curr_tilepos);
 		get_tile(tile_row, tile_col - 1, curr_room);
 	}
 	*(uint16_t *)&ROOM_ATTRS(curr_room)[curr_tilepos] = si;

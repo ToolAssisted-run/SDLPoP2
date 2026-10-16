@@ -251,7 +251,7 @@ int story_scene(int prev, int n)
 	if (byte_6b6c == 0) return last_scene = 0;
 	if (n > 2 && word_0366 == 0) return last_scene = 0x64;   /* (SDLPoP2: any way into level 3 or later, the level cheat's jumps too: the game's own way always passes level 2's end, below) */
 	if (!(prev != 0 && (n == prev || n == -1)))
-		switch (prev) { case 1: si = 9; break; case 2: si = 0x64; break; case 3: si = 0xA; break; case 5: si = 1; break; case 8: si = 2; break; case 13: si = 3; break; }
+		switch (prev) { case 1: si = 9; break; case 2: si = 0x64; break; case 3: si = 0xA; break; case 5: si = 1; break; case 9: si = 2; break; case 13: si = 3; break; }   /* (the jump table 0AAC:0168, cases 1..13) */
 	if (si == 0 && prev >= 4) {
 		if (byte_016a == -1) { si = 0x14; byte_016a = 0; }
 		else { int8_t st = (int8_t)((1 - (int16_t)minutes_left) / 9 + 7); if (st > byte_016a) { si = st + 0x14; byte_016a = st; } }

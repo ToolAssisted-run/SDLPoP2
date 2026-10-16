@@ -1,12 +1,12 @@
 /* Level kind 6 (level 14), OVL08 at 33FD: the kind tick (DS:0668 -> 33FD:03C6). Entering room 2 as the prince (not
  * the spirit) sends him back to room 4 after scene 5 and a reload of the level; the spirit standing at the left of
- * room 5 while his body lies in room 7 or 8 dies; guards appear in room 3; room sounds. Palettes, scenes and sounds
- * themselves are left out. Transcribed from the disassembly. */
+ * room 5 while his body lies in room 7 or 8 dies; guards appear in room 3; room sounds. The scene, palettes and
+ * sounds themselves are the shell's. Transcribed from the disassembly. */
 #include "types.h"
 #include "globals.h"
 #include "version.h"
 
-extern int last_scene; int load_level(int n);
+int load_level(int n);
 #define word_2bb4 (*(uint16_t *)(tiles0 + 0x1A))   /* DS:2BB4: room 8 was reached with the sounds on */
 
 /* DS:2B98 sound on; DS:0884 the music playing (33FD:03CF): sound.c */
@@ -22,13 +22,15 @@ static void place_at_room4(void)
 	play_seq(); Kid = Char;
 	control_rest(); ctrl1_shift = 0;
 }
-/* 33FD:045C: scene 5, the level again (1286:01F2), and the prince back in room 4 */
+/* 33FD:045C: scene 5 (the prince at the tower's window meets Jaffar), the level again (1286:01F2), and the prince
+ * back in room 4 */
 static void back_to_room4(void)
 {
-	/* 0AAC:0274 scene 5; 169B:018E: the four OVL01 initialisers clear DS:2B96 */
-	word_2b96 = 0;
-	last_scene = 5; load_level((int8_t)word_32d8);   /* (the full load, 1286:01F2) */
-	/* 0FB3:2B1C palette; 1286:07CE music */
+	core_play_scene(5);   /* 0AAC:0274(5) (the shell plays it; its result unused) */
+	word_2b96 = 0;   /* 169B:018E: the four OVL01 initialisers clear DS:2B96 */
+	load_level((int8_t)word_32d8);   /* (the full load, 1286:01F2) */
+	hook_pal_load(0, 0x10, 0xF0, 1000);   /* 0FB3:2B1C */
+	music_1286_07ce(6);   /* 1286:07CE */
 	place_at_room4();
 }
 /* 33FD:0570: the prince in room 2; the spirit near its body */

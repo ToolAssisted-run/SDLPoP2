@@ -166,6 +166,7 @@ int bios_key(void); extern int (*bios_key_hook)(void);   /* platform: pending ke
 int frame_after_tick(int r);
 extern uint16_t cheat_mode; void frame_wait(void);
 extern uint16_t word_0366; int story_scene(int prev, int n);
+extern int cp_question_count;   /* glue.c: the copy protection's question count (PRINCE.DAT 8000) */
 void keyboard_controls(const uint8_t *keys, uint8_t flags, int8_t *x, int8_t *y, int8_t *shift);
 /* blades.c */ void blades_set_tables(const uint8_t *ds); void anim_blade(void); void blade_touch(void); void blade_hits(void); int blade_running_here(void); int boxes_overlap_pub(const int16_t *a, const int16_t *b);
 /* temple.c */ int temple_torch(int cur); void slab_step(void); void slab_shake(void); void slab_mob(void); void temple_tick(void);
@@ -178,7 +179,7 @@ const uint8_t *guard_frame_table(uint8_t charid);   /* platform: FRAM 750 of the
 /* kind1.c (level 2, OVL03) */ extern int8_t puzzle_answer, puzzle_last; extern uint8_t byte_14a0; int sound_playing(uint16_t id);
 void anim_tile1e(void); int tile1e_start(uint8_t room, int8_t tp, uint8_t mode); void anim_gate_kind1(void); void kind1_tick(void);
 void anim_wave_kind1(void); void hook_roof_tick(uint8_t tile, int8_t tp, uint16_t m);
-void hook_desert_gate(int8_t tilepos); void hook_desert_wave(int8_t tilepos); void hook_desert_tile1e(void); void hook_desert_press(int col); void hook_pal_rotate(int start, int count); void hook_pal_load(int sub, int count, int start, int res); void hook_pal_restore(void); void hook_trob_request(int which, uint16_t arg); void hook_guard_loaded(uint8_t t); uint8_t guard_type_loaded(void); void hook_mob_mark(int how, int left_shift); void hook_mob_landed(uint8_t room, int8_t tp);   /* the drawing's parts of tick code (weak no-ops; shell.c: the renderer) */
+void hook_desert_gate(int8_t tilepos); void hook_desert_wave(int8_t tilepos); void hook_desert_tile1e(void); void hook_desert_press(int col); void hook_pal_rotate(int start, int count); void hook_pal_load(int sub, int count, int start, int res); void hook_pal_restore(void); void hook_trob_request(int which, uint16_t arg); void hook_guard_loaded(uint8_t t); uint8_t guard_type_loaded(void); void hook_mob_mark(int how, int left_shift); void hook_mob_landed(uint8_t room, int8_t tp); void hook_tile_redraw(uint8_t room, int8_t tp); int tile_shows(int8_t tilepos, uint8_t room);   /* the drawing's parts of tick code (weak no-ops; shell.c: the renderer) */
 extern int level_switch; extern uint16_t word_2b96; void game_start(void);   /* level.c 169B:0006 */
 extern int last_scene; extern uint8_t byte_2b68, byte_6937; void kind1_level_init(void); int room_background_id(void);
 void scene_played(int si);   /* level.c */

@@ -13,6 +13,7 @@ int8_t control_x, control_y, control_shift; uint8_t drawn_room; uint16_t counter
 uint8_t flag_5cb9, byte_5cb8, level_kind, level_number, room_A; uint8_t *level_roomlinks = (uint8_t *)&level + 0x17BC;
 int8_t ctrl1_forward, ctrl1_backward, ctrl1_up, ctrl1_down, ctrl1_shift;
 static dat_file seqdat; static char log_[512];
+int cp_question_count;   /* the copy protection's question count (PRINCE.DAT 8000), for its draw of the random numbers (core.c) */
 char glue_dir[400];   /* the game's directory (pop2_init); the tests use PRINCE2_DIR / PRINCE_DAT / KID_DAT */
 /* the path of one of the game's files */
 const char *game_path(const char *name)
@@ -73,6 +74,8 @@ void glue_load_exe_tables(const char *exe)
 	static dat_file princedat, guarddat; uint16_t n;
 	/* sword frames: PRINCE.DAT FRAM 1000 (1286:0544); guard frames: the guard DAT's FRAM table (GUARD.DAT 750 on level 1, DS:0CB8) */
 	if (dat_open(&princedat, game_path("PRINCE.DAT"))) { sword_tables[0] = dat_find(&princedat, "MARF", 1000, &n); sword_tables[1] = dat_find(&princedat, "MARF", 1200, &n); }
+	/* the copy protection's questions: PRINCE.DAT 8000 (untyped), a count, then {page, symbol} words */
+	{ const uint8_t *cp = princedat.data ? dat_find(&princedat, NULL, 8000, &n) : NULL; cp_question_count = cp ? cp[0] | cp[1] << 8 : 0; }
 	(void)guarddat; frame_table_guard = kidtab;   /* set per level type by glue_select_guard_dat() */
 }
 

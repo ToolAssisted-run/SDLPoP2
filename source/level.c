@@ -262,6 +262,8 @@ int story_scene(int prev, int n)
 }
 int level_switch;          /* platform: with the cheat word, a LEVELn switch on the command line (DS:0978 via 194C:2CEA) */
 uint16_t word_2b96;        /* DS:2B96 */
+/* a frontend may be told a new game set the clock, as its time starts over (none: nothing to tell) */
+__attribute__((weak)) void clock_set_for_game(void) {}
 /* 169B:0006 (before play_level): a new game. 1286:0050 (a drawing buffer) left out; 169B:018E runs four OVL01
  * initialisers that each clear DS:2B96 */
 void game_start(void)
@@ -270,6 +272,7 @@ void game_start(void)
 	word_5cdc = word_5cda = word_5ce8 = word_5cd0 = 0;
 	if (word_5cb6) return;
 	minutes_left = (uint16_t)GAME_SETTING(start_minutes_left, 75); clock_ticks = (uint16_t)GAME_SETTING(ticks_per_minute, 0x2CF); start_hp = (uint8_t)GAME_SETTING(start_hitp, 3);   /* 169B:0006 (SDLPoP2.ini start_minutes_left, ticks_per_minute, start_hitp) */
+	clock_set_for_game();
 	/* 169B:0006 tests DS:10C2 and DS:0978; DS:0978 (level_switch) is only set with the cheat word, which alone decides
 	 * here (SDLPoP2's menu can turn DS:10C2 off or on since the start) */
 	if (level_switch) { int8_t v = (int8_t)level_number; start_hp = v < 3 ? 3 : v > 12 ? 12 : v; }

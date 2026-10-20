@@ -177,6 +177,7 @@ Checked with the oracle: a new game starts with hp 3, max 3, in both 1.0 and 1.1
     1.0 uses 0x1D..0x21 and 0x15+;
   - the hand itself is drawn through per-room object choices (room 0x13: 0x27/0x2F, room 0x10: 0x30/0x3D/0x45)
     instead of being moved by (+0xC, −0x1E).
+- **The sword's images** (0AFF:1A64's caller, game.c kid_sword_sprites): IR also draws images 0x108 and 0x109.
 - **Other drawing and palette changes:** the torch redraw parity (1375:08D0); the level-14 room-hook palette loads;
   0FB3:0984 / 14D4 / 1C32 and 0AFF:15AE / 18F2; a temple value `*(G_1070+0x48)` = 0xFFFF in IR (0 in 1.0), still
   to identify.
@@ -289,7 +290,10 @@ IR's level 14 (2026-10-20): a direct `LEVEL14` start crashes the DOS build in th
 at level 13 and skip to 14 with Alt+N, and the capture file is cut at the level-14 load: `oracle/gen_ir14.py SEED`
 (random keys, as gen_e2e_ver.py; IRE14n_23, IRE14n_29, IRE14n_31c with Ctrl) and `oracle/plan2script_ir.py PLAN NAME`
 (a plan of the core's explorer, `tools/explore.c` on IR's files with EXPLORE_HP=12: IRP14_1 reaches rooms 3..8 in
-383 ticks, IRP14_1r its first 300 ticks then random keys). The scripts carry `# pre_ticks 15` (level 13's ticks
+383 ticks, IRP14_1r its first 300 ticks then random keys; IRP14_flame the climb into room 2 and eight turns; IRP14_k3
+the spirit in room 6 with three Jaffars gone, 632 ticks). Level 8's sword scene: IRP8_scene2 (never ends by itself),
+IRP8_skip1/2 (cut by Space / Esc at frame 2900: `LEVEL=8` direct start, the explorer run with the oracle's own seed,
+read from the first ls_a sample, so the guards act alike). The scripts carry `# pre_ticks 15` (level 13's ticks
 before the skip) and poke IR's own key table and Kid record, which tests/e2e.c translates. All five clean; they found
 the sword in rooms 1/2 and the room-entry starter (§2, §3.4).
 
@@ -324,9 +328,10 @@ GMP's route thread, popuw.com's tips page), and where SDLPoP2 stands:
 | the father's sword is picked up at once; 1.0/1.1 need a second pick-up after the scene | pick_up 2FDF:10BE: take_item(−1) always | implemented |
 | the flame's colours on every temple level ("potion adjustment") | 0823:1008 → ovl_2f9f2 whenever Kid.charid == 1 | implemented |
 | two running jumps in a row and the continuous run-jump are stricter in IR (levels 9, 11) | control_runjump's dx 0xB and window −0x13, control()'s edges | implemented (§3.1) |
-| level 8: the game crashes after the sword scene when the cutscene is skipped (the TAS saves and loads at the level start to avoid it; "press Esc or Space to resume") | transition 6's IR path (§5.3) waits for sound 0 | not reproduced: SDLPoP2 does not crash, and the cause is not known |
+| level 8: after the sword scene "press Esc or Space to resume"; the game crashes after the scene when it is skipped (the TAS saves and loads at the level start to avoid it) | transition 6's IR path (§5.3): 2797:0176(0) waits while anything plays, and the level's music loops: the scene ends only by a key (oracle: IRP8_scene2, no end in 6000 frames). SDLPoP2's scene waits the same way (nis.c, the shell's game-sound query), and the harness takes the scene as cut short | the key wait reproduced; the crash not: skipped by Space or Esc in the oracle, the game goes on (IRP8_skip1/2, 234 ticks after the scene matching but one record byte in the scene's tick, tests/oracle_check.sh) |
 | level 10's graphics do not load after the skipped scene | 0AAC:00AE | §6 |
-| level 14: the opening scene interrupts the shadow transformation and the prince appears as the flame with nine potions; the ending does not come after Jaffar dies by the blue flame | kind6 room hook 33FD:1708, ovl_kind6_char (IR sets no next_room) | the level-14 paths are oracle-checked from the start to room 8 (IRE14n, IRP14 captures); these two scenarios not yet |
+| level 14: the opening scene interrupts the shadow transformation and the prince appears as the flame with nine potions | kind6_kid 33FD:0570: scene 5 when the prince is in room 2 with char_x_right ≤ 0x131 and not falling; the eighth standing turn leaves the body | the mechanism is oracle-checked (IRP14_flame: the prince climbs down into room 2 right of the line, turns eight times, the spirit walks over the line: no scene in DOS IR nor in SDLPoP2, char_x_right being the body's last). The TAS's exact positioning, where only the eighth turn crosses the line, was not found |
+| level 14: the ending does not come after Jaffar dies by the blue flame | ovl_kind6_char 33FD:1CEA (IR sets no next_room) | the kill not yet captured: the explorer's searches (1.2 M iterations) got the spirit to room 6 with three Jaffars gone (IRP14_k3, 671 ticks clean) but never a fireball hit in rooms 7/8 |
 | level 5 crashes: the carpet without the air gate open, Alt+A in the carpet room, the rug after the bridge leaving the prince flying | – | not reproduced; not investigated |
 
 ## 6. Still open
@@ -339,9 +344,10 @@ GMP's route thread, popuw.com's tips page), and where SDLPoP2 stands:
   music installs the entry. Not a game-logic fault, so SDLPoP2 does not model it. The IR level-14 captures start at
   level 13 and skip to 14 with Alt+N (`oracle/gen_ir14.py`, `oracle/plan2script_ir.py`; the capture is cut at the
   level-14 load before convcap.py).
-- IRE6_37, strict: after the prince walked into level 6's open door (tick 722, frame 0), the DOS IR build's tile
-  scratch (curr_tile, tile_col, curr_modifier: DS:612E..6133) holds the door's tile (row 2, col 4: 0x11, modifier 0x2A)
-  until the level ends, SDLPoP2 the prince's last lookup (col 5, floor). The drawing's scratch, 11 ticks; not traced.
+- IRE6_37's strict difference (the door's tile in the tile scratch once the prince has gone into level 6's door) is
+  traced and closed (2026-10-20): 1375:0274, the door's redraw, draws at once in DOS and its last tile lookup is the
+  door's; with the prince at frame 0 nothing overwrites it. control_exit_stairs looks the door's tile up after its
+  redraw request (every release).
 - IR, LEVEL10 with the cheat word: its start room shows the preceding story scene's picture (0AAC:00AE), so the level
   palette is not loaded and the oracle shows the palette left before. SDLPoP2's copy-protection question comes first
   in that case (§5.6), so it shows the level's palette.

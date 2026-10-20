@@ -59,7 +59,7 @@ static void kid_sword_sprites(void)
 	uint16_t sw = cur_frame.sword, f = Char.frame;
 	int dead = Char.f24 == 4 || Char.f24 == 5 || Char.f24 == 6 || Char.f24 == 7 || Char.f24 == 0xA || Char.f24 == 0xC
 	        || (level_kind == 5 && Char.room != 0x13 && Char.room != 0x10 && Char.room != 0xF && is_dead_frame(f));   /* 0AFF:1A64 */
-	if (!dead && sw != 0 && (sw <= 0x90 || (sw >= 0xC8 && sw < 0xFB) || (sw >= 0x124 && sw <= 0x130))
+	if (!dead && sw != 0 && (sw <= 0x90 || (sw >= 0xC8 && sw < 0xFB) || (V_IR && sw >= 0x108 && sw <= 0x109) || (sw >= 0x124 && sw <= 0x130))   /* (IR: images 0x108 and 0x109 too) */
 	    && !(Char.charid == 0 && Char.f10 == 0 && !(f == 0x85 || (f >= 0xE5 && f <= 0xF0) || f == 0x143 || f == 0x144)))
 		sword_sprite(sw, 0);
 	if (sw >= 0x91 && sw <= 0xA8) sword_sprite(sw, 1);

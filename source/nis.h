@@ -46,6 +46,7 @@ int nis_open(const char *dir, int scene);
 int nis_step(uint8_t *screen320x200, uint8_t *pal768);
 void nis_close(void);
 void nis_set_sound_callback(nis_sound_fn fn, void *user);
+void nis_set_game_sound_query(int (*fn)(void));   /* the game's own sounds and music (194C:33CE sees them too): level 8's sword scene in the initial release waits while they play */
 void nis_set_tick_source(nis_tick_fn fn, void *user);
 void nis_set_event_callback(nis_event_fn fn, void *user);
 void nis_abort(void);                     /* a key press: the scene fades out and ends (the game's 2797:009C) */

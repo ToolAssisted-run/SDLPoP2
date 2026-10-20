@@ -118,7 +118,7 @@ static int isr_music;                  /* the PIT runs at the sequencer's rate (
 static uint32_t isr_acc;               /* DS:1FDE: the chained tick's accumulator */
 static uint32_t isr_lost;              /* interrupt requests lost while a handler ran */
 static nis_tick_fn tick_fn; static void *tick_user;
-static nis_sound_fn sound_fn; static void *sound_user;
+static nis_sound_fn sound_fn; static void *sound_user; static int (*game_sound_fn)(void);
 static uint16_t countdown[4];          /* DS:24DC.. the four countdown timers of the timer interrupt (194C:7EE7) */
 static int cur_scene;
 static double cpu_scale = 1.0;
@@ -2605,7 +2605,10 @@ static int trans6(void)
 		P = port_new(R_GAME); the_port = P;
 		L = shpl_load(3500, 0xFFF0);
 		t6_172E(&L);
-		if (V_IR) r = wait_sound(0);
+		if (V_IR) {   /* IR: 2797:0176(0) waits while anything plays, the level's music (room 9's, looping) among it: in
+		               * practice until a key (oracle: IRP8_scene2, no end in 6000 frames; the fans' "press Esc or Space to resume") */
+			while (!r && (any_sound_playing() || (game_sound_fn && game_sound_fn()))) { r = key_pressed(); if (!r) yield(); }
+		}
 	}
 	if (!r) r = fade_to(4209, 0xFFFF, 1);
 	if (!r) { copy_bits(&screen_port, P, &R_GAME, &R_GAME); r = fade_to(4211, 0xFFFF, 1); if (V_IR) sound_play(31021); }
@@ -2896,6 +2899,7 @@ int nis_step(uint8_t *screen, uint8_t *pal)
 }
 void nis_close(void) { coro_destroy(scene_coro); scene_coro = NULL; }
 void nis_set_sound_callback(nis_sound_fn fn, void *user) { sound_fn = fn; sound_user = user; }
+void nis_set_game_sound_query(int (*fn)(void)) { game_sound_fn = fn; }
 void nis_set_tick_source(nis_tick_fn fn, void *user) { tick_fn = fn; tick_user = user; }
 void nis_abort(void) { g_abort = 1; }
 void nis_set_room_hook(nis_room_fn fn, void *user) { room_fn = fn; room_user = user; }

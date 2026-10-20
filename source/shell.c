@@ -312,6 +312,7 @@ void hook_first_room(int stage)
 /* ---- scenes (0AAC:0274) ---- */
 static int cur_scene;
 int shell_scene(void) { return mode == SH_SCENE ? cur_scene : 0; }
+static int nis_game_sound(void) { return sound_playing(0); }   /* the game's sounds and music still playing (194C:33CE) */
 static void nis_sound(int kind, int id, void *u)   /* the scenes' sounds to the driver (sound.c's hooks) */
 {
 	(void)u;
@@ -350,20 +351,21 @@ int sh_scene(int n)
 	else {
 		int prev = mode; mode = SH_SCENE;
 		/* (nis.c derives its 60 Hz ticks from its frames, at the same nominal rate as the shell's clock) */
-		nis_set_sound_callback(nis_sound, NULL); nis_set_room_hook(nis_room, NULL);
+		nis_set_sound_callback(nis_sound, NULL); nis_set_room_hook(nis_room, NULL); nis_set_game_sound_query(nis_game_sound);
 		if (n == 6) { nis_kid k = { (int8_t)Kid.direction, Kid.x, Kid.y, char_x_left }; nis_set_kid(&k); }   /* 0AAC:0442 (DS:5B37 / 5B38 / 5B3A, DS:6116) */
 		nis_set_palette(render_palette);   /* (the DAC as the scene finds it: transition 6 keeps colours 0xE0..0xFF, its item bank 15) */
 		cur_scene = n;
 		if ((n == NIS_INTRO || GAME_SETTING(enable_story_scenes, 1)) && nis_open(game_dir, n)) {   /* (SDLPoP2.ini enable_story_scenes = false: as a scene played to its end) */
 			int aborted = 0, save_poll = poll_menu; poll_menu = 2;   /* 2D7D:4A6A: DS:1F32 = 2D7D:49F6 while it plays */
 			for (;;) {
+				if (!aborted && pop2_skip_scenes_on()) { nis_abort(); aborted = 1; }   /* (a core run skipping the scenes: as a key at once) */
 				if (!nis_step(screen_buf, render_palette)) break;
 				sh_frame();
 				if (!aborted && sh_poll()) { nis_abort(); aborted = 1; }
 			}
 			nis_close(); poll_menu = save_poll;
 			if (aborted && n < 0x14) result = 2;   /* (NIS_INTRO = -1: the intro's three) */
-		}
+		} else if (n < 0x14 && (pop2_skip_scenes_on() || (V_IR && n == 6))) result = 2;   /* not played: a core run skipping the scenes ends them as a key does; IR's sword scene only ends by a key */
 		mode = prev;
 		if (n >= 1 && n <= 6) kind = n == 1 ? 4 : n == 2 ? 2 : n == 3 ? 6 : kind;
 	}

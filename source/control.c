@@ -35,6 +35,7 @@ void control_exit_stairs(void)
 	cur_trob.tilepos = (uint8_t)(t >= 0 && t < 30 && tiles[t] == 0x11 ? t : t + 1);
 	if (Char.frame == 0xE0) level_end_music();
 	hook_trob_request(0x274, 0);
+	get_tile(cur_trob.tilepos / 10, cur_trob.tilepos % 10, cur_trob.room);   /* (1375:0274 draws at once: the last tile it looks up, the door's, stays in the tile scratch; once the prince is gone (frame 0) nothing overwrites it. Oracle: IRE6_37) */
 }
 /* 2FDF:0E2E (030c1e): crouch */
 void kid_crouch_pub(void);

@@ -148,6 +148,7 @@ int main(int argc, char **argv)
 		  /* the other releases' scripts (plan2script_ir.py): their own key table and Kid record, and "# pre_ticks N" when
 		   * the capture was cut after N ticks of another level (the level-13 start that installs IR's MIDI driver) */
 		  static unsigned pre_ticks; if (sscanf(line, "# pre_ticks %u", &pre_ticks) == 1) continue;
+		  if (!strncmp(line, "# skip_scenes", 13)) { pop2_set_skip_scenes(1); continue; }   /* the capture's scenes were cut short by a key */
 		  unsigned keytab = game_ver == 2 ? 0x3AFCE : game_ver == 1 ? 0x3B254 : 0x3CF50;   /* DS:1E6E / 1CF4 / 1D00 */
 		  unsigned dsbase = game_ver == 2 ? 0x39160 : game_ver == 1 ? 0x39560 : 0x3B250, kid = game_ver == 2 ? 0x5C80 : game_ver == 1 ? 0x5B12 : 0x5B36;
 		  if (sscanf(line, "probepoke ds_tick %u %x %599s", &hit, &phys, hex) == 3 && hit < 8192 + pre_ticks) {

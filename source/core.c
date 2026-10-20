@@ -16,6 +16,7 @@ static int want_ver = POP2_VER_AUTO; static const char *init_error;
 void pop2_set_game_version(int v) { want_ver = v; }
 static int skip_scenes;   /* the story scenes skipped by a key (pop2_set_skip_scenes); 0: watched to their end */
 void pop2_set_skip_scenes(int on) { skip_scenes = on; }
+int pop2_skip_scenes_on(void) { return skip_scenes; }   /* (shell.c: a scene played mid-level ends at once, as a key ends it) */
 const char *pop2_init_error(void) { return init_error; }
 int pop2_init(const char *dir)
 {

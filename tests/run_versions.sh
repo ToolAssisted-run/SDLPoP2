@@ -1,6 +1,6 @@
 #!/bin/sh
 # The other DOS releases (docs/VERSIONS.md): end-to-end runs of the initial release (IR*) and 1.0 (V10*) captured in the
-# oracle with their own game files ($POP2_WORKSPACE/sources/ir, sources/v10) and brought into 1.1's data layout (the
+# oracle with their own game files ($POP2_WORKSPACE/sources/ir, sources/v10; IRP*: level-14 plans, oracle/plan2script_ir.py) and brought into 1.1's data layout (the
 # workspace's oracle/convcap.py: NAME-11-snap.txt, w/ramNAME-11.bin), every field compared (E2E_STRICT). The release
 # follows PRINCE.EXE. usage: tests/run_versions.sh
 set -e
@@ -11,7 +11,7 @@ cd "$here/.."
 if [ -n "$BUILD" ]; then cp "$BUILD/e2e" "$W/e2e"; else gcc -O2 -g -Wall -o $W/e2e tests/e2e.c tests/testutil.c tests/snap.c source/*.c; fi
 # the static data the runs take from the capture (the cheat and copy-protection flags, the sound device, CONFIG.DAT)
 export E2E_EXE_DS="10C2:2,366:2,14A0:1,16A:1,670:1,2085:1,1FB8:2,80FC:20"
-for f in $(ls $O/IRE*_*-11-snap.txt $O/V10E*_*-11-snap.txt 2>/dev/null | sort -V); do
+for f in $(ls $O/IRE*_*-11-snap.txt $O/IRP*_*-11-snap.txt $O/V10E*_*-11-snap.txt 2>/dev/null | sort -V); do
 	s=$(basename $f -11-snap.txt)
 	case $s in *_S) continue;; esac   # (the screenshot runs: the drawing's, not the logic's)
 	case $s in IR*) S=$WS/sources/ir;; *) S=$WS/sources/v10;; esac

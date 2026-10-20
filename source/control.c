@@ -87,11 +87,12 @@ int control_runjump(int kind)
 
 /* 2FDF:19D4 (0317c4, Ctrl while standing, the prince or the spirit): draw the sword (seq 0x37, sound 0x13), first
  * stepping back from an edge or a wall in front (a temple wall, DS 1375:14FC) so the stance fits; -1 when there is no
- * room behind either. Level 14: not in rooms 1/2; the spirit in rooms 7/8 casts instead (33FD:1E4A). */
+ * room behind either. Level 14: not in rooms 1/2 (1.0 and 1.1; IR compares the level kind with 14, so it draws it there); the
+ * spirit in rooms 7/8 casts instead (33FD:1E4A). */
 int sword_seq_0317c4(void)
 {
 	int r = 0x37;
-	if ((Char.frame >= 0xF6 && Char.frame <= 0x105) || ((Char.room == 1 || Char.room == 2) && level_number == 14)) r = -1;
+	if ((Char.frame >= 0xF6 && Char.frame <= 0x105) || ((Char.room == 1 || Char.room == 2) && level_number == 14 && V_1X)) r = -1;   /* (IR tests level_kind == 14, never true: the sword is drawn there too) */
 	else if (Char.charid == 1 && (Char.room == 7 || Char.room == 8) && level_kind == 6) {
 		r = spirit_cast();
 		int8_t i = 0;

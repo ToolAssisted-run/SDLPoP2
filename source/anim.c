@@ -155,8 +155,8 @@ void start_room_anims(void)
 	uint8_t room = drawn_room; int8_t tp = 0;
 	for (int si = 0; si < 0x2B; si++, tp++) {
 		uint8_t t;
-		if (si == 0x1E) { if (room_L) { room = room_L; room_pointers(room); } else si += 3; }
-		if (si == 0x21) { if (!room_B) break; room = room_B; room_pointers(room); }
+		if (si == 0x1E) { if (room_L) { room = room_L; room_pointers(room); } else if (!V_11) break; else si += 3; }   /* (IR and 1.0: no left room, nothing more: the lower room's top row is not started) */
+		if (si == 0x21) { if (room_B) { room = room_B; room_pointers(room); } else if (!V_11) si = 0x24; else break; }   /* (IR and 1.0: no lower room: the left room's tiles 3..9 instead) */
 		if (si < 0x1E) { room_pointers(room); tp = si; anim_mod = anim_attrs[si]; t = anim_tiles[si]; }
 		else if (si < 0x21) { tp = (si - 0x1E) * 10 + 9; t = anim_tiles[tp]; }
 		else { tp = si - 0x21; anim_mod = anim_attrs[tp]; t = anim_tiles[tp]; }

@@ -53,6 +53,7 @@ menus, cheats or system.
 | G | sword mode 2FDF:1BFA (control.c, control_2fdf_1bfa) | out of range when d ≥ 0xCD | d > 0xCF |
 | G | guard_armed 366C:0774 (guard.c) | `if (f23 == 1 \|\| f23 == 2) { 366C:08F0; return; }` first (steps relative to Opp) | the test is `f23 == 1 && f23 == 2`, which is never true, so 366C:08F0 is never called. SDLPoP2 lacks 08F0; transcribe it from 1.1's unused copy (OVL10 036FB0) |
 | G | guard 036AFC (guard.c) | char_dx_forward(10) at the end | (8) |
+| G | start_room_anims 0823:0B78 (anim.c), the tile animations started on entering a room | no left room: the loop ends, so the lower room's top row is never started; a left room but no lower room: the left room's tiles 3..9 are started as if they were the lower room's | no left room: on to the lower room; no lower room: the loop ends. Found on IR (oracle: IRP14_1, level 14's room 7 entered from room 6: room 6's timers kept running in DOS, restarted by SDLPoP2); 1.0's code is IR's |
 | V | dead_body 0993:0A8E (render_sprites.c): frames 0xB9 and 0x6A..0x6E | does not move the body's image 0xC forward (0AFF:0390) | moves it |
 | S | anim 1375:0C66 (anim.c, sound 7) | also needs DS:005C == 0 | – |
 | U | NEWBUMP command-line switch (0AFF:0AAA, kid.c bump) | with NEWBUMP the position correction comes after play_seq; without it, before (as in 1.1) | the switch is gone |
@@ -137,6 +138,7 @@ Checked with the oracle: a new game starts with hp 3, max 3, in both 1.0 and 1.1
 | G | 13 | shadow13.c (the shadow climbing, frame 0x5B) | – | then set_char_collision() when facing right |
 | G | 13 | tile 0x2B | not a wall | a wall |
 | G | 14 (Jaffars) | kid_exit_dir 2D3E:14DE (room.c) | no ovl_342b4 case | `(drawn_room 7\|8) && kind 6 && a Jaffar in seq 0xF3` → the living one's side |
+| G | 14 | sword_seq 2FDF:19D4 (control.c), the sword in rooms 1/2 | tests level_kind == 14 (never true): the sword is drawn there too. Oracle: IRE14n_31c | not in rooms 1/2 (level_number 14) |
 | R | 14 | enter_room_chars (room.c:325) | – | a Jaffar entering room 6: direction = random(1) − 1 (an RNG draw) |
 | R | 14 | anim_tile2a 33FD:19B4 (final.c) | rearm delay random(0x28) + 0x1E | + 0x50 |
 | G | 14 | guard_appears 33FD:01BA | rec->f04 = 7 | 5 |
@@ -283,6 +285,14 @@ and `dsmap.py`). Today: 21 IR runs (levels 1–13, with and without the sword) a
 without the sword), all clean but one 1.0 frozen tick (tests/oracle_check.sh). The harness follows IR's key reading (§5.3) and
 counts an IR game captured from level 3 on as one that answered the copy protection.
 
+IR's level 14 (2026-10-20): a direct `LEVEL14` start crashes the DOS build in the oracle (§6), so its captures start
+at level 13 and skip to 14 with Alt+N, and the capture file is cut at the level-14 load: `oracle/gen_ir14.py SEED`
+(random keys, as gen_e2e_ver.py; IRE14n_23, IRE14n_29, IRE14n_31c with Ctrl) and `oracle/plan2script_ir.py PLAN NAME`
+(a plan of the core's explorer, `tools/explore.c` on IR's files with EXPLORE_HP=12: IRP14_1 reaches rooms 3..8 in
+383 ticks, IRP14_1r its first 300 ticks then random keys). The scripts carry `# pre_ticks 15` (level 13's ticks
+before the skip) and poke IR's own key table and Kid record, which tests/e2e.c translates. All five clean; they found
+the sword in rooms 1/2 and the room-entry starter (§2, §3.4).
+
 Screens: 13 levels' shots of the IR oracle against shelltest on IR's files (state loaded each tick) match but for a
 frame's timing here and there and the story scenes' line timing (their sounds are IR's own and platform-timed).
 
@@ -299,11 +309,39 @@ IR asks its question only after level 2: a LEVELn start at level 3 or later neve
 first level of such a game. SDLPoP2 never skips the protection, so IR mode also asks up front on a level-3+ start,
 as 1.x does. This is the one deliberate deviation from IR.
 
+### 5.7 The initial release as the speedrunners know it
+
+The IR behaviours described by the community (the speedrun.com Any% guide, TASVideos submissions #7180 and #7190 and
+GMP's route thread, popuw.com's tips page), and where SDLPoP2 stands:
+
+| what they describe | the code (§3) | SDLPoP2 |
+|---|---|---|
+| level 6: the door the prince starts at is open, so the level can be left at once ("the primary reason the IR version is used") | close_entrance 169B:034A closes the entrance door only in the start room | reproduced: the random capture IRE6_37 walks through it and level 7 starts (tick 733) |
+| holding a direction and jump does not repeat the jump; every input is buffered | control() clears only the forward edge on frame 44 and nothing on frame 26 | implemented (§3.1) |
+| wall clipping: standing close to a wall facing away from it, the prince runs into it for a distance before he is pushed out; turning inside lodges him or takes him through a thin wall | push_out_of_wall 0AFF:0F10 (d = 15 − d), x_to_col's truncation, tile_passable_2f800 without the wall test | implemented from the code (§3.1); no capture made for it yet |
+| the sword-drawing wall clip and the great hall's metal gate (level 8) work in 1.0/1.1, not in IR | sword_seq 2FDF:19D4: the loose-floor rule is 1.x's | implemented |
+| fighting the skeleton through a wall (level 5) | tile_passable_2f800 lets walls pass | implemented |
+| the father's sword is picked up at once; 1.0/1.1 need a second pick-up after the scene | pick_up 2FDF:10BE: take_item(−1) always | implemented |
+| the flame's colours on every temple level ("potion adjustment") | 0823:1008 → ovl_2f9f2 whenever Kid.charid == 1 | implemented |
+| two running jumps in a row and the continuous run-jump are stricter in IR (levels 9, 11) | control_runjump's dx 0xB and window −0x13, control()'s edges | implemented (§3.1) |
+| level 8: the game crashes after the sword scene when the cutscene is skipped (the TAS saves and loads at the level start to avoid it; "press Esc or Space to resume") | transition 6's IR path (§5.3) waits for sound 0 | not reproduced: SDLPoP2 does not crash, and the cause is not known |
+| level 10's graphics do not load after the skipped scene | 0AAC:00AE | §6 |
+| level 14: the opening scene interrupts the shadow transformation and the prince appears as the flame with nine potions; the ending does not come after Jaffar dies by the blue flame | kind6 room hook 33FD:1708, ovl_kind6_char (IR sets no next_room) | the level-14 paths are oracle-checked from the start to room 8 (IRE14n, IRP14 captures); these two scenarios not yet |
+| level 5 crashes: the carpet without the air gate open, Alt+A in the carpet room, the rug after the bridge leaving the prince flying | – | not reproduced; not investigated |
+
 ## 6. Still open
 
-- IR, in the oracle: falling from level 14's room 1 into room 2 runs into an invalid opcode (twice, two seeds, ~20
-  ticks after the first key; idle, no crash). Most likely a genuine IR fault that 1.0's level-14 room 1/2 changes
-  fixed; SDLPoP2 does not reproduce crashes. It keeps IR's level-14 paths from being captured.
+- IR, in the oracle: a direct `LEVEL14` start (`LEVEL2` too) leaves the MIDI driver's note-on entry (IR DS:213C) a null
+  pointer: the library installs it (1924:2E14) the first time a level's music set is loaded, which level kinds 1 and 6
+  skip at their start, and the first piece played, the death music when the prince falls from room 1 into room 2,
+  calls it from the MIDI event parser (1924:3077): the run falls into the interrupt vector table (the invalid opcode of
+  2026-09-30, traced 2026-10-20 with the oracle's `watch` and `trace`). A game from the title never sees it: the title
+  music installs the entry. Not a game-logic fault, so SDLPoP2 does not model it. The IR level-14 captures start at
+  level 13 and skip to 14 with Alt+N (`oracle/gen_ir14.py`, `oracle/plan2script_ir.py`; the capture is cut at the
+  level-14 load before convcap.py).
+- IRE6_37, strict: after the prince walked into level 6's open door (tick 722, frame 0), the DOS IR build's tile
+  scratch (curr_tile, tile_col, curr_modifier: DS:612E..6133) holds the door's tile (row 2, col 4: 0x11, modifier 0x2A)
+  until the level ends, SDLPoP2 the prince's last lookup (col 5, floor). The drawing's scratch, 11 ticks; not traced.
 - IR, LEVEL10 with the cheat word: its start room shows the preceding story scene's picture (0AAC:00AE), so the level
   palette is not loaded and the oracle shows the palette left before. SDLPoP2's copy-protection question comes first
   in that case (§5.6), so it shows the level's palette.

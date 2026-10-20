@@ -19,7 +19,7 @@ static struct { const char *name; int pos; } keymap[] = {   /* oracle key names 
 	{"leftshift", 0x37}, {"rightshift", 0x43}, {"leftctrl", 0x2A}, {"rightctrl", 0x2A}, {"leftalt", 0x45}, {NULL, 0}};
 static struct { int frame, pos, down; } keyev[4096]; static int nkeyev;
 static struct { unsigned hit, off, n; uint8_t b[64]; } pokes[64]; static int npokes;   /* other probepokes at a tick's start */
-static uint8_t *tick_keys, *tick_flags, *tick_set;   /* scripts with per-tick input (probepoke ds_tick N ...) */
+static uint8_t *tick_keys, *tick_flags, *tick_set; static unsigned last_poke_hit;   /* scripts with per-tick input (probepoke ds_tick N ...); after the last poke the script's key events count again */
 static uint8_t flags_of(const uint8_t *k) { return (k[0x37] ? 2 : 0) | (k[0x43] ? 1 : 0) | (k[0x2A] ? 4 : 0) | (k[0x45] ? 8 : 0); }
 static int same_frame_keys;   /* keys set at the tick's own frame were already seen (1) or not yet (0) */
 /* The keys as the tick at `frame` saw them. A key set during the tick's own frame may arrive before or after the tick
@@ -145,12 +145,22 @@ int main(int argc, char **argv)
 	while (sf && fgets(line, sizeof line, sf)) {
 		int f, d; char name[32];
 		{ unsigned hit, phys; char hex[600];   /* per-tick input written at the tick's start (plan2script.py) */
-		  if (sscanf(line, "probepoke ds_tick %u %x %599s", &hit, &phys, hex) == 3 && hit < 8192) {
+		  /* the other releases' scripts (plan2script_ir.py): their own key table and Kid record, and "# pre_ticks N" when
+		   * the capture was cut after N ticks of another level (the level-13 start that installs IR's MIDI driver) */
+		  static unsigned pre_ticks; if (sscanf(line, "# pre_ticks %u", &pre_ticks) == 1) continue;
+		  unsigned keytab = game_ver == 2 ? 0x3AFCE : game_ver == 1 ? 0x3B254 : 0x3CF50;   /* DS:1E6E / 1CF4 / 1D00 */
+		  unsigned dsbase = game_ver == 2 ? 0x39160 : game_ver == 1 ? 0x39560 : 0x3B250, kid = game_ver == 2 ? 0x5C80 : game_ver == 1 ? 0x5B12 : 0x5B36;
+		  if (sscanf(line, "probepoke ds_tick %u %x %599s", &hit, &phys, hex) == 3 && hit < 8192 + pre_ticks) {
+			if (hit <= pre_ticks) continue;
+			hit -= pre_ticks;
 			if (!tick_keys) tick_keys = calloc(8192, 0x70), tick_flags = calloc(8192, 1), tick_set = calloc(8192, 1);
-			if (phys == 0x3CF50) { for (int q = 0; q < 0x70 && hex[2 * q]; q++) tick_keys[hit * 0x70 + q] = hexval(hex[2 * q]) << 4 | hexval(hex[2 * q + 1]); tick_set[hit] = 1; }
+			if (hit > last_poke_hit) last_poke_hit = hit;
+			if (phys == keytab) { for (int q = 0; q < 0x70 && hex[2 * q]; q++) tick_keys[hit * 0x70 + q] = hexval(hex[2 * q]) << 4 | hexval(hex[2 * q + 1]); tick_set[hit] = 1; }
 			else if (phys == 0x417) tick_flags[hit] = hexval(hex[0]) << 4 | hexval(hex[1]);
-			else if (phys >= 0x3B250 && phys < 0x3B250 + 0x10000 && npokes < 64) {   /* other DS state (e.g. POKE_HP) */
-				pokes[npokes].hit = hit; pokes[npokes].off = phys - 0x3B250; pokes[npokes].n = 0;
+			else if (phys >= dsbase && phys < dsbase + 0x10000 && npokes < 64) {   /* other DS state (e.g. POKE_HP): the Kid record's translated, the rest 1.1's only */
+				unsigned off = phys - dsbase;
+				if (off >= kid && off < kid + 0x40) off = off - kid + 0x5B36; else if (game_ver) { printf("poke at %X: not a 1.1 address, ignored\n", phys); continue; }
+				pokes[npokes].hit = hit; pokes[npokes].off = off; pokes[npokes].n = 0;
 				for (int q = 0; hex[2 * q] && q < 64; q++) pokes[npokes].b[pokes[npokes].n++] = hexval(hex[2 * q]) << 4 | hexval(hex[2 * q + 1]);
 				npokes++;
 			}
@@ -247,7 +257,7 @@ int main(int argc, char **argv)
 			/* one frame: 169B:0BA6, then the tick with this tick's keys */
 			const char_type *ak = (const char_type *)(mem + 0x5B36 - SNAP_BASE);
 			(void)ak; sound_busy = tick_ix < nt && alive_b[tick_ix] != -128 && alive_b[tick_ix] >= 0 && alive_b[tick_ix] == (alive_a[tick_ix] < 0 ? 0 : alive_a[tick_ix]); tick_ix++; pace_ix = tick_ix - 1;
-			if (tick_keys) {   /* the input the script wrote at this tick's start (the last one written before, if none) */
+			if (tick_keys && (unsigned)tick_ix <= last_poke_hit) {   /* the input the script wrote at this tick's start (the last one written before, if none) */
 				int h = tick_ix; while (h > 0 && !tick_set[h]) h--;
 				memcpy(key_table, tick_keys + h * 0x70, 0x70); bios_shift_flags = tick_flags[h]; keys_differ = 0; same_frame_keys = 1;
 			} else keys_at(frame, tick_ix - 1 < nt && kc_ok[tick_ix - 1] ? kc[tick_ix - 1] : NULL, Kid.alive >= 0, tick_ix - 1 < nt && reload_after[tick_ix - 1]); cur_tick_frame = frame; if (getenv("E2E_MISSING") && *missing_log()) printf("missing t%d:%s\n", ticks, missing_log()); missing_reset();

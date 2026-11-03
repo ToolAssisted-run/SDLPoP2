@@ -52,6 +52,17 @@ static const state_field extra_fields[] = {
 };
 #define NX (int)(sizeof extra_fields / sizeof extra_fields[0])
 
+/* the layout of a state: a state kept in a file (the frontend's QUICKSAVE.SAV) is taken back only by a program whose
+ * fields are the same, in the same order, of the same sizes */
+static uint64_t fnv(uint64_t h, const void *p, size_t n) { const uint8_t *b = p; while (n--) h = (h ^ *b++) * 1099511628211ull; return h; }
+uint64_t state_layout(void)
+{
+	uint64_t h = 1469598103934665603ull;
+	for (int i = 0; i < snap_nfields; i++) h = fnv(fnv(h, snap_fields[i].name, strlen(snap_fields[i].name) + 1), &snap_fields[i].size, 2);
+	for (int i = 0; i < NX; i++) h = fnv(fnv(h, extra_fields[i].name, strlen(extra_fields[i].name) + 1), &extra_fields[i].size, 2);
+	uint32_t c = (uint32_t)checkpoint_state_size();
+	return fnv(h, &c, 4);
+}
 size_t state_size(void)
 {
 	size_t n = checkpoint_state_size();

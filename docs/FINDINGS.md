@@ -1019,3 +1019,8 @@ ticks, 1 to 66 px), level 8's sword room after its scene (2 px left of the scene
   not shorten the wait. sound.c music_toggle() is the routine now; the shell's Alt-M and options menu call it, and
   the core takes it as an input (pop2_input.music_toggle). Unrelated, same check: a prince whose hit points are written
   to 0 on the stairs (before frame 0xE0) never starts the music, in the game as here (control() is not reached).
+- 2026-11-03 (issue 3): the 'k' cheat (0823:07A6) loads every character of the drawn room in turn and kills it, with no
+  test of whether it is alive: a guard already dead plays its death again at every 'k', in the game as here (the
+  original's loop at 0823:07D1..0854, PRINCE.EXE 1.1). '+' (one more minute) never reached the game: the frontend took
+  a key's character from SDL's key code, which is the unshifted one, so Shift and = gave '=' and the keypad's + gave
+  nothing; sdl/keys.c applies Shift as a US keyboard's BIOS does (tests/keystest.c).

@@ -88,6 +88,16 @@ if sdl2Dependency.found() and not isWindows
        suite : [ 'controller' ])
 endif
 
+# The characters keys type (sdl/keys.c), as the game's handlers and cheats read them; no game files needed
+if sdl2Dependency.found() and not isWindows
+  keystest = executable('keystest',
+    'keystest.c', files('../sdl/keys.c'),
+    c_args : commonCompileArgs,
+    dependencies : [ sdl2Dependency ],
+  )
+  test('keystest', keystest, suite : [ 'keys' ])
+endif
+
 # The in-game overlay menu (sdl/overlay_menu.c, SDLPoP's menu) driven headlessly on the whole program at level 1:
 # keyboard, mouse, a virtual controller, settings and SDLPoP2.cfg, quicksave / quickload, the game frozen while it shows.
 # OVERLAYMENU_SHOTS=DIR writes screenshots of its pages.

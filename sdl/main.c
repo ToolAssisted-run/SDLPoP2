@@ -24,6 +24,7 @@
 #include "../source/globals.h"
 #include "../source/version.h"
 #include "controller.h"
+#include "keys.h"
 #include "overlay_menu.h"
 #ifndef SDLPOP2_DATADIR
 #define SDLPOP2_DATADIR ""
@@ -264,18 +265,6 @@ static void build_keymap(void)
 		keymap[sc] = settings_key_pc_scan[k]; keyaction[sc] = 1;   /* (typed as that key: no character) */
 	}
 }
-static int ascii_of(SDL_Keycode k, Uint16 mod)
-{
-	if (k == SDLK_RETURN || k == SDLK_KP_ENTER) return 0x0D;
-	if (k == SDLK_ESCAPE) return 0x1B;
-	if (k == SDLK_TAB) return 0x09;
-	if (k == SDLK_BACKSPACE) return 0x08;
-	if (k == SDLK_SPACE) return 0x20;
-	if (mod & (KMOD_ALT | KMOD_CTRL)) return 0;
-	if (k >= SDLK_a && k <= SDLK_z) return (mod & (KMOD_SHIFT | KMOD_CAPS)) ? (int)(k - 32) : (int)k;
-	if (k >= 0x20 && k < 0x7F) return (int)k;
-	return 0;
-}
 
 /* ---- files ---- */
 static int file_exists(const char *p) { return plat_file_exists(p); }
@@ -299,14 +288,37 @@ static void replay_path(char *out, size_t n, const char *name, int reading)
 	if (plain) { if (!reading) plat_mkdir(S.replays_folder); snprintf(out, n, "%s/%s%s", S.replays_folder, name, ext ? "" : ".p2r"); }
 	else snprintf(out, n, "%s%s", name, ext ? "" : ".p2r");
 }
-/* SDLPoP2.cfg, the overlay menu's settings: next to the ini used (the current directory when none or the installed one) */
-static void cfg_location(char *out, size_t n, const char *ini_used)
+/* SDLPoP2.cfg, the overlay menu's settings, and QUICKSAVE.SAV, the quicksave kept across runs: next to the ini used (the
+ * current directory when none or the installed one) */
+static void beside_ini(char *out, size_t n, const char *ini_used, const char *name)
 {
 	const char *slash = strrchr(ini_used, '/'), *bslash = strrchr(ini_used, '\\');
 	if (bslash && (!slash || bslash > slash)) slash = bslash;
 	int installed = SDLPOP2_DATADIR[0] && !strncmp(ini_used, SDLPOP2_DATADIR, strlen(SDLPOP2_DATADIR));
-	if (!ini_used[0] || installed || !slash) snprintf(out, n, "SDLPoP2.cfg");
-	else snprintf(out, n, "%.*sSDLPoP2.cfg", (int)(slash - ini_used + 1), ini_used);
+	if (!ini_used[0] || installed || !slash) snprintf(out, n, "%s", name);
+	else snprintf(out, n, "%.*s%s", (int)(slash - ini_used + 1), ini_used, name);
+}
+/* the quicksave kept in QUICKSAVE.SAV (SDLPoP keeps one too): written at every quicksave, read when the program starts
+ * (not for a replay, nor while recording one: a replay plays the same with or without the file) */
+static char quick_path[1024];
+static void quick_write(void)
+{
+	size_t n = shell_quick_export(NULL, 0); void *b = n ? malloc(n) : NULL;
+	if (!b) return;
+	FILE *f = shell_quick_export(b, n) == n ? fopen(quick_path, "wb") : NULL;
+	if (!f || fwrite(b, 1, n, f) != n) fprintf(stderr, "sdlpop2: cannot write %s\n", quick_path);
+	if (f) fclose(f);
+	free(b);
+}
+static void quick_read(void)
+{
+	FILE *f = fopen(quick_path, "rb");
+	if (!f) return;
+	long n = fseek(f, 0, SEEK_END) == 0 ? ftell(f) : -1; void *b = n > 0 ? malloc((size_t)n) : NULL;
+	int ok = b && fseek(f, 0, SEEK_SET) == 0 && fread(b, 1, (size_t)n, f) == (size_t)n && shell_quick_import(b, (size_t)n);
+	fclose(f); free(b);
+	if (ok) fprintf(stderr, "sdlpop2: the quicksave from %s\n", quick_path);
+	else fprintf(stderr, "sdlpop2: %s is another release's or another build's quicksave, or cut short: not loaded\n", quick_path);
 }
 /* the overlay menu changed settings: apply them (OVERLAY_MENU_APPLY_*) */
 static int menu_reseed, menu_goto;    /* (the menu's "Restart game": a new random seed before the next step) */
@@ -459,7 +471,8 @@ int main(int argc, char **argv)
 	int ini_ok = load_ini(ini, ini_used, sizeof ini_used);
 	if (ini_ok < 0) { fprintf(stderr, "sdlpop2: cannot read %s\n", ini_used); return 2; }
 	if (ini_ok) { pop2_settings_game = &S; fprintf(stderr, "sdlpop2: settings from %s\n", ini_used); }
-	char cfg_path[1024]; cfg_location(cfg_path, sizeof cfg_path, ini_ok ? ini_used : "");
+	char cfg_path[1024]; beside_ini(cfg_path, sizeof cfg_path, ini_ok ? ini_used : "", "SDLPoP2.cfg");
+	beside_ini(quick_path, sizeof quick_path, ini_ok ? ini_used : "", "QUICKSAVE.SAV");
 	if (overlay_menu_load_cfg(&S, cfg_path, ini_ok ? ini_used : NULL, warn_ini)) { pop2_settings_game = &S; fprintf(stderr, "sdlpop2: the in-game menu's settings from %s\n", cfg_path); }
 	if ((rec_name || play_name) && !S.enable_replay) { fprintf(stderr, "sdlpop2: replays are off (SDLPoP2.ini enable_replay)\n"); return 2; }
 
@@ -505,6 +518,7 @@ int main(int argc, char **argv)
 		if (!replay_record_start(&rec, path, seed, nwords, words, &S)) { fprintf(stderr, "sdlpop2: cannot write %s\n", path); SDL_Quit(); return 1; }
 		fprintf(stderr, "sdlpop2: recording to %s\n", path);
 	}
+	if (!rec_name && !play_name && S.enable_quicksave) quick_read();
 
 	/* the window: 4:3 (320 x 200 drawn 1.2 times taller, as mode 13h on a monitor) or square pixels (setup_video) */
 	int lw = SCREEN_W, lh = S.use_correct_aspect_ratio ? SCREEN_H * 6 / 5 : SCREEN_H;
@@ -569,7 +583,7 @@ int main(int argc, char **argv)
 				if (o == 2) continue;
 			}
 			if (replaying || info_shown) continue;   /* (a replay plays its own keys) */
-			shell_input_key(&in, keymap[sc], down, down && !keyaction[sc] ? ascii_of(e.key.keysym.sym, e.key.keysym.mod) : 0);
+			shell_input_key(&in, keymap[sc], down, down && !keyaction[sc] ? key_ascii(e.key.keysym.sym, e.key.keysym.mod) : 0);
 		}
 		if (overlay_menu_is_open())
 			controller_frame(&in, shell_mode(), 0);   /* (the menu reads them: nothing to the game, the keys they held are released) */
@@ -591,7 +605,7 @@ int main(int argc, char **argv)
 			case OVERLAY_MENU_RESTART_GAME: menu_reseed = 1; type_alt_key(&in, 0x13, 'r'); break;    /* a new seed (SDLPoP2.ini random_seed), Alt+R */
 			case OVERLAY_MENU_QUIT: goto out;
 			case OVERLAY_MENU_KEY:   /* a key with Alt or Ctrl: the game's (held as the keyboard holds it) */
-				if (!replaying) shell_input_key(&in, keymap[key], 1, keyaction[key] ? 0 : ascii_of(SDL_GetKeyFromScancode(key), mod));
+				if (!replaying) shell_input_key(&in, keymap[key], 1, keyaction[key] ? 0 : key_ascii(SDL_GetKeyFromScancode(key), mod));
 				break;
 			case OVERLAY_MENU_GOTO:   /* the CHEATS page's "Go to level" (done before the next step, recorded) */
 				if (!replaying) { overlay_menu_goto(&rec.goto_level, &rec.goto_entry); menu_goto = 1; }
@@ -633,6 +647,7 @@ int main(int argc, char **argv)
 			if (adev) SDL_UnlockAudioDevice(adev);
 			in.ntyped = 0;
 			int q = shell_quick_result();
+			if (q == 1 && !replaying) quick_write();
 			switch (q) { case 1: message("QUICKSAVE"); break; case 2: message("QUICKLOAD"); break; case -1: message("NO QUICKSAVE YET"); break; }
 			controller_after_step(shell_mode(), pop2_level(), Kid.f12, q == 2);   /* (rumble: the hit points, Kid +0x12, went down) */
 			if (r == SHELL_EXIT) {

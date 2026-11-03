@@ -584,6 +584,31 @@ void shell_quicksave(void) { if (mode == SH_PLAY) qs_request = 1; }
 void shell_quickload(void) { if (mode == SH_PLAY) qs_request = 2; }
 int shell_quick_result(void) { int r = qs_result; qs_result = 0; return r; }
 void shell_quick_clear(void) { qs_valid = qs_request = qs_result = 0; }
+/* the file: "P2QUICK1", the release (4 bytes), the state's layout (8), the state's size (4), the level (4), the colours
+ * (768), the state; numbers little-endian, as the machines it runs on */
+enum { QS_HEAD = 8 + 4 + 8 + 4 + 4 };
+size_t shell_quick_export(void *out, size_t room)
+{
+	if (!qs_valid) return 0;
+	const size_t size = pop2_state_size(), total = QS_HEAD + sizeof qs_dac + size;
+	if (!out || room < total) return total;
+	uint8_t *p = out; const int32_t release = game_ver, level = qs_level; const uint64_t layout = pop2_state_layout(); const uint32_t n = (uint32_t)size;
+	memcpy(p, "P2QUICK1", 8); memcpy(p + 8, &release, 4); memcpy(p + 12, &layout, 8); memcpy(p + 20, &n, 4); memcpy(p + 24, &level, 4);
+	memcpy(p + QS_HEAD, qs_dac, sizeof qs_dac); memcpy(p + QS_HEAD + sizeof qs_dac, qs_buf, size);
+	return total;
+}
+int shell_quick_import(const void *data, size_t size)
+{
+	const uint8_t *p = data; const size_t state = pop2_state_size();
+	if (!p || size != QS_HEAD + sizeof qs_dac + state || memcmp(p, "P2QUICK1", 8)) return 0;
+	int32_t release, level; uint64_t layout; uint32_t n;
+	memcpy(&release, p + 8, 4); memcpy(&layout, p + 12, 8); memcpy(&n, p + 20, 4); memcpy(&level, p + 24, 4);
+	if (release != game_ver || layout != pop2_state_layout() || n != state || level < 1 || level > 14) return 0;
+	if (!qs_buf && !(qs_buf = malloc(state))) return 0;
+	memcpy(qs_dac, p + QS_HEAD, sizeof qs_dac); memcpy(qs_buf, p + QS_HEAD + sizeof qs_dac, state);
+	qs_level = level; qs_valid = 1;
+	return 1;
+}
 /* the loaded state on the screen: drawn as a level's first room is (169B:03AE: the room entered afresh with its
  * palette, the whole redraw, the hit points), then the opponent's hit points (0FB3:259C); the drawing's own state
  * effects are dropped (the state is put back as loaded) */

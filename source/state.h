@@ -7,6 +7,7 @@ size_t state_size(void);
 void state_save(uint8_t *buf);
 void state_load(const uint8_t *buf);
 uint64_t state_hash(void);
+uint64_t state_layout(void);   /* the fields' names and sizes in order, and the checkpoint copy's size, hashed */
 void state_load_ds_statics(const uint8_t *ds);   /* DS image: the EXE-initialised variables */
 size_t checkpoint_state_size(void); void checkpoint_state_save(uint8_t *buf); void checkpoint_state_load(const uint8_t *buf);   /* level.c */
 void glue_select_guard_dat(unsigned char type);

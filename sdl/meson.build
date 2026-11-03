@@ -41,7 +41,7 @@ if mt32emuDependency.found()
 endif
 
 sdlpop2Frontend = executable('sdlpop2',
-  'main.c', 'controller.c', 'overlay_menu.c',
+  'main.c', 'controller.c', 'overlay_menu.c', 'keys.c',
   c_args : frontendArgs,
   dependencies : [ sdlpop2Dependency, sdl2Dependencies, mt32emuDependency ],
   link_language : 'c',

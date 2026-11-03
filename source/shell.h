@@ -51,6 +51,12 @@ void shell_quickload(void);
 void shell_draw_state(const void *state);   /* (tools) a savestate drawn afresh into screen_buf / render_palette, as a quickload shows it */
 int  shell_quick_result(void);    /* since the last call: 1 saved, 2 loaded, -1 nothing to load, 0 none */
 void shell_quick_clear(void);     /* forget the slot */
+/* the slot as a file's bytes, for the frontend to keep it across runs (QUICKSAVE.SAV, as SDLPoP keeps one): the size of
+ * the whole, written to `out` when `room` holds it; 0 when the slot is empty. The bytes say the release played and the
+ * state's layout (pop2_state_layout), so that shell_quick_import takes back only what this program saved for this
+ * release: 1 taken, 0 not (the slot is left as it was) */
+size_t shell_quick_export(void *out, size_t room);
+int    shell_quick_import(const void *data, size_t size);
 /* the cheats (DS:10C2, 0823:0528's keys, Alt+N past level 3): on at start with the cheat word "yippeeyahoo", which
  * alone also governs the command line's LEVELn / NIS / TREE and LEVELn's hit points; the frontend turns them on or off
  * between two steps (the overlay menu's "Enable cheats"; a replay records it). Game state: quicksaves keep it. */

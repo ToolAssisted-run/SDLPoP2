@@ -669,6 +669,36 @@ int main(int argc, char **argv)
 		remove_scratch(cdir);
 	}
 
+	/* the quicksave kept in a file (the frontend's QUICKSAVE.SAV) and taken back by the program run again: the same
+	 * state; a cut file, another release's or another layout's is not taken (issue 3) */
+	{
+		char qdir[256]; scratch(qdir, sizeof qdir); snprintf(file_dir, sizeof file_dir, "%s", qdir);
+		int penalty = S.enable_quicksave_penalty; S.enable_quicksave_penalty = 0;
+		shell_quick_clear(); shell_set_seed(0x5EED);
+		CHECK(shell_init(argv[1], 0, NULL), "the program again, for a quicksave kept in a file");
+		until_playing();
+		key(SDL_SCANCODE_RIGHT, 1, 0); frames(40); key(SDL_SCANCODE_RIGHT, 0, 0); frames(10);
+		quick_result = 0; shell_quicksave(); until_quick();
+		const uint64_t h = pop2_hash();
+		size_t n = shell_quick_export(NULL, 0); uint8_t *file = n ? malloc(n) : NULL;
+		CHECK(quick_result == 1 && file && shell_quick_export(file, n) == n, "quicksaved, the slot as a file's bytes (%zu)", n);
+		shell_quick_clear(); shell_set_seed(0x5EED);
+		CHECK(shell_init(argv[1], 0, NULL), "the program run again");
+		until_playing();
+		quick_result = 0; shell_quickload(); until_quick();
+		CHECK(quick_result == -1, "run again without the file: NO QUICKSAVE YET (%d)", quick_result);
+		quick_result = 0; shell_quicksave(); until_quick(); shell_quick_clear();   /* (the slot's memory holds another state now) */
+		CHECK(quick_result == 1 && pop2_hash() != h, "another state quicksaved and forgotten");
+		CHECK(file && !shell_quick_import(file, n - 1), "a cut file is not taken");
+		if (file) { file[8] ^= 1; CHECK(!shell_quick_import(file, n), "another release's is not taken"); file[8] ^= 1; }
+		if (file) { file[12] ^= 1; CHECK(!shell_quick_import(file, n), "another layout's is not taken"); file[12] ^= 1; }
+		CHECK(file && shell_quick_import(file, n), "the file taken");
+		quick_result = 0; shell_quickload(); until_quick();
+		CHECK(quick_result == 2 && pop2_hash() == h, "run again with the file: QUICKLOAD gives the state saved (%d)", quick_result);
+		free(file); S.enable_quicksave_penalty = penalty;
+		remove_scratch(qdir);
+	}
+
 	controller_quit();
 	remove(cfg); remove(ini);
 	const char *names[3] = { "PRINCE.OPT", "PRINCE.HOF", "PRINCE.SAV" }; char p[600];

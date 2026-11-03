@@ -82,3 +82,4 @@ size_t pop2_state_size(void) { return state_size() + sizeof scene; }
 void pop2_save(void *buf) { state_save(buf); memcpy((uint8_t *)buf + state_size(), &scene, sizeof scene); }
 void pop2_load(const void *buf) { state_load(buf); memcpy(&scene, (const uint8_t *)buf + state_size(), sizeof scene); }
 uint64_t pop2_hash(void) { return state_hash(); }
+uint64_t pop2_state_layout(void) { uint32_t s = (uint32_t)sizeof scene; return state_layout() ^ ((uint64_t)s << 56); }

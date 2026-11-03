@@ -69,7 +69,7 @@ Found a bug or a glitch, or have an idea? Everything is welcome on the [issues p
 |---|---|
 | Esc / Backspace / mouse click | open the menu |
 | F1 | key summary |
-| F6 / F9 | quicksave / quickload (a quickload costs one minute of game time) |
+| F6 / F9 | quicksave / quickload (a quickload costs one minute of game time). The quicksave is kept in `QUICKSAVE.SAV`, beside `SDLPoP2.cfg`, so F9 still finds it after the game is closed and started again. |
 | Alt+Enter | fullscreen on or off |
 
 In the menu, use the arrows or the mouse, Enter or a click to choose, and Esc, Backspace or a right click to go back.
